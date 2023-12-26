@@ -169,6 +169,8 @@ class Hand(State):
                 fptr += 1
 
     def add_tiles(self, tiles: List, incr_ptr=0, is_peng=False):
+        if type(tiles) == str:  # TODO to be removed
+            tiles = [tiles]
         self.tiles_history[f"{len(self.tiles_history)}add"] = tiles
         for tile in tiles:
             if tile in self.replacement_tiles:
@@ -235,18 +237,44 @@ class Player(State):
         drawed_tile = tile_sequence.draw()
         self.hand.add_tiles(drawed_tile)
 
-        drawed_tile = self.resolve_tile_replacement(tile_sequence)
+        drawed_tile = self.resolve_tile_replacement(tile_sequence, drawed_tile)
 
-        possible_actions = self.draw_check(drawed_tile)
+        initial_possible_actions = self.draw_check(drawed_tile)
 
-        action = self.strategy(possible_actions, drawed_tile)
-        self.resolve()
-        return action, possible_actions
+        action = self.play_turn_strategy(initial_possible_actions, drawed_tile)
+        if action["resolve"]:
+            self.resolve(
+                action["input_tile"],
+                action["discard_tile"],
+                tile_sequence if action["tile_sequence"] else None,
+            )
+            return None
+        else:
+            self.hand.remove_tile(action["discard_tile"])
+            return
 
-    def strategy(self, possible_actions, input_tile):
+    def call(self, played_tile, player):
+        self.pending_resolve = None
+
+        possible_actions = self.call_check(played_tile, player)
+        response = self.call_strategy(possible_actions, played_tile)
+        self.pending_resolve = (
+            getattr(self, f"resolve_{response['action']}")
+            if response["action"]
+            else None
+        )
+        return response
+
+    def play_turn_strategy(self, possible_actions, input_tile):
+        raise NotImplementedError
+
+    def call_strategy(self, possible_actions, played_tile):
         raise NotImplementedError
 
     def draw_check(self, drawed_tile):
+        if type(drawed_tile) == list:
+            assert len(drawed_tile) == 1
+            drawed_tile = drawed_tile[0]
         rv = {
             "an_gang": self.an_gang(drawed_tile),
             "hu": self.hu(drawed_tile),
@@ -265,7 +293,10 @@ class Player(State):
         return rv
 
     def peng(self, played_tile):
-        if self.hand.distinct_tile_count[played_tile] == 2:
+        if (
+            played_tile in self.hand.distinct_tile_count.keys()
+            and self.hand.distinct_tile_count[played_tile] == 2
+        ):
             return True
         return False
 
@@ -276,30 +307,47 @@ class Player(State):
 
     def ming_gang(self, played_tile):
         if (
-            self.hand.distinct_tile_count[played_tile] == 3
+            played_tile in self.hand.distinct_tile_count.keys()
+            and self.hand.distinct_tile_count[played_tile] == 3
             and played_tile not in self.hand.peng_history
         ):
             return True
         return False
 
+    def resolve_ming_gang(self, played_tile, discard_tile, tile_sequence):
+        self.hand.add_tiles(played_tile)
+        drawed_tile = tile_sequence.replace(1)
+        self.hand.add_tiles(drawed_tile)
+        self.resolve_tile_replacement(tile_sequence, drawed_tile)
+
     def jia_gang(self, drawed_tile):
         if (
-            self.hand.distinct_tile_count[drawed_tile] == 3
+            drawed_tile in self.hand.distinct_tile_count.keys()
+            and self.hand.distinct_tile_count[drawed_tile] == 3
             and drawed_tile in self.hand.peng_history
         ):
             return True
         return False
 
+    def resolve_jia_gang(self, drawed_tile, discard_tile, tile_sequence):
+        self.hand.add_tiles(drawed_tile)
+        drawed_tile = tile_sequence.replace(1)
+        self.hand.add_tiles(drawed_tile)
+        self.resolve_tile_replacement(tile_sequence, drawed_tile)
+
     def an_gang(self, drawed_tile):
-        if self.hand.distinct_tile_count[drawed_tile] == 4:
+        if (
+            drawed_tile in self.hand.distinct_tile_count.keys()
+            and self.hand.distinct_tile_count[drawed_tile] == 4
+        ):
             return True
         return False
 
-    def resolve_gang(self, played_tile, discard_tile, tile_sequence):
-        # TODO add to hand then replace 1 tile from end of tile_sequence
-        self.hand.add_tiles(played_tile)
-        self.hand.add_tiles(tile_sequence.replace(1))
-        self.resolve_tile_replacement(tile_sequence)
+    def resolve_an_gang(self, drawed_tile, discard_tile, tile_sequence):
+        # TODO add to hidden hand
+        drawed_tile = tile_sequence.replace(1)
+        self.hand.add_tiles(drawed_tile)
+        self.resolve_tile_replacement(tile_sequence, drawed_tile)
 
     def shang(self, played_tile, player):
         if player != self.previous_player:
@@ -313,16 +361,17 @@ class Player(State):
             return True
         return False
 
-    def resolve_shang(self, tile):
+    def resolve_shang(self, played_tile, discard_tile):
         # TODO add to hand then remove one tile
-        self.hand.remove_tile(tile)
+        self.hand.add_tiles(played_tile)
+        self.hand.remove_tile(discard_tile)
 
     def hu(self, played_tile):
         if self.winning_condition(self.hand.tiles + [played_tile]):
             return True
         return False
 
-    def winning_condition(hand):
+    def winning_condition(self, hand):
         # basic winning condition 3 sets of 3 (peng/gang or shang) + 1 pair
         # gang will be considered as 3
 
@@ -338,7 +387,7 @@ class Player(State):
         # 七對子
         # 全不靠
         # 對對和
-        return
+        return False
 
     def resolve_hu(self):
         return True
@@ -352,7 +401,7 @@ class Player(State):
 
 
 class DummyPlay(Player):
-    def strategy(self, possible_actions):
+    def play_turn_strategy(self, possible_actions):
         return possible_actions[0]
 
 
