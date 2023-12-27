@@ -196,9 +196,10 @@ class Hand(State):
 
 
 class Player(State):
-    def __init__(self, player, house):
+    def __init__(self, player, house=False):
         self.player = player
         self.previous_player = (player - 1) % 4  # TODO validate
+        self.next_player = (player + 1) % 4  # TODO validate
         self.hand = Hand(player)
         self.action_history = []
         self.house = house
@@ -208,7 +209,7 @@ class Player(State):
         tiles = tile_sequence.draw(total, jump)
         self.hand.add_tiles(tiles)
 
-    def replace_tiles(self, tile_sequence: TilesSequence):
+    def _replace_tiles(self, tile_sequence: TilesSequence):
         """
         TODO
         - test
@@ -226,7 +227,7 @@ class Player(State):
     def resolve_tile_replacement(self, tile_sequence: TilesSequence, drawed_tile=None):
         while True:
             if len(self.hand.non_playable_tiles) > self.hand.non_playable_tiles_ptr:
-                drawed_tile = self.replace_tiles(tile_sequence)
+                drawed_tile = self._replace_tiles(tile_sequence)
             else:
                 break
         return drawed_tile
@@ -421,10 +422,10 @@ class Mahjong:
       note, discarded tiles are segregated by player
     """
 
-    def __init__(self, players):
-        self.players: Dict[int, Player] = {}
+    def __init__(self, players: Dict[int, Player]):
+        self.players: Dict[int, Player] = players
         self.tile_sequence = TilesSequence()
-        self.current_player = 0
+        self.current_player_idx = 0
         self.current_round_player_sequence = []
         self.current_round_sequence = 0
         self.winner = None
@@ -433,10 +434,11 @@ class Mahjong:
         # throw dice twice
         val_player_sequence = random.randint(0, 5)
         # 东 0 南 1 西 2 北 3
-        self.current_player = val_player_sequence % 4
+        self.current_player_idx = val_player_sequence % 4
+        self.players[self.current_player_idx].house = True
         self.current_round_player_sequence = [
-            x for x in range(self.current_player, 4)
-        ] + [x for x in range(0, self.current_player)]
+            x for x in range(self.current_player_idx, 4)
+        ] + [x for x in range(0, self.current_player_idx)]
 
         val_start_sequence = random.randint(1, 6) + val_player_sequence + 1
         self.tile_sequence.shuffle(val_start_sequence)
@@ -449,15 +451,16 @@ class Mahjong:
         for i in range(3):
             for player_idx in self.current_round_player_sequence:
                 player: Player = self.players[player_idx]
-                player.initial_draw(self.tile_sequence.draw(total=4))
-        for idx, player_idx in enumerate(self.current_round_player_sequence):
-            player: Player = self.players[player_idx]
-            if idx == 0:
-                player.initial_draw(self.tile_sequence.draw(total=2, jump=True))
-            player.initial_draw(self.tile_sequence.draw(total=1, jump=False))
+                player.initial_draw(self.tile_sequence, 4, False)
         for player_idx in self.current_round_player_sequence:
             player: Player = self.players[player_idx]
-            player.replace_tiles()
+            if player.house:
+                player.initial_draw(self.tile_sequence, 2, True)
+            else:
+                player.initial_draw(self.tile_sequence, 1, False)
+        for player_idx in self.current_round_player_sequence:
+            player: Player = self.players[player_idx]
+            player.resolve_tile_replacement(self.tile_sequence)
 
     def resolve_call(self, actions):
         """

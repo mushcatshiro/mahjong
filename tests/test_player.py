@@ -113,11 +113,11 @@ def test_player_deal_stage_with_replacement():
     assert len(p.hand.tiles) == 13
     assert len(p.hand.non_playable_tiles) == 1
 
-    p.replace_tiles(ts)
+    p._replace_tiles(ts)
     assert len(p.hand.tiles) == 13
     assert len(p.hand.non_playable_tiles) == 2
 
-    p.replace_tiles(ts)
+    p._replace_tiles(ts)
     assert len(p.hand.tiles) == 14
     assert len(p.hand.non_playable_tiles) == 2
 
