@@ -342,3 +342,6 @@ def test_call():
         assert response["action"]
 
     # not calling
+
+def test_dummy_player():
+    pass
