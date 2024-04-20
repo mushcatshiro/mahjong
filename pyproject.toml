@@ -9,6 +9,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.7"
 pytest = "^7.4.3"
+pre-commit = "2.21.0"
 
 
 [build-system]
