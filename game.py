@@ -2,7 +2,7 @@ import random
 import pickle
 import copy
 from typing import Dict, List
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 DEFAULT_REPLACEMENT_TILES = ("春", "夏", "秋", "冬", "梅", "蘭", "菊", "竹")
 
@@ -70,10 +70,6 @@ SHANG_LUT = {
     "89": ["7"],
 }
 
-SPECIAL_WINNING_HAND = {
-    "清一色": ["1索", "2索", "3索", "4索", "5索", "6索", "7索", "8索", "9索"],
-}
-
 
 class State:
     """
@@ -134,78 +130,13 @@ class TilesSequence(State):
 
     def replace(self, total):
         """
-        replace with last time. used when there is a "gang" or getting a non
+        replace with last tile. used when there is a "gang" or getting a non
         playable tile
         """
         rv = []
         for _ in range(total):
             rv.append(self.tiles.pop(-1))
         return rv
-
-
-class Hand(State):
-    def __init__(self, player: int, replacement_tiles=DEFAULT_REPLACEMENT_TILES):
-        self.tiles = []
-        self.player = player
-        self.tiles_history = {}
-        self.replacement_tiles = [] if not replacement_tiles else replacement_tiles
-        self.non_playable_tiles = []
-        self.non_playable_tiles_ptr = 0
-        self.distinct_tile_count = {}
-        self.shang_candidates = []
-        self.peng_history = []
-        self.showed_tiles = []  # lock list e.g. peng, gang, shang
-
-    def update_shang_candidates(self):
-        suite = ["万", "筒", "索"]
-        self.shang_candidates = []
-        for s in suite:
-            candidates = sorted([x.replace(s, "") for x in self.tiles if x.endswith(s)])
-            bptr = 0
-            fptr = 2
-            while fptr <= len(candidates):
-                combination = "".join(candidates[bptr:fptr])
-                if combination in SHANG_LUT:
-                    self.shang_candidates += [f"{x}{s}" for x in SHANG_LUT[combination]]
-                bptr += 1
-                fptr += 1
-
-    def add_tiles(self, tiles: List, incr_ptr=0, is_peng=False):
-        if type(tiles) == str:  # TODO to be removed
-            tiles = [tiles]
-        self.tiles_history[f"{len(self.tiles_history)}add"] = tiles
-        for tile in tiles:
-            if tile in self.replacement_tiles:
-                self.non_playable_tiles.append(tile)
-            else:
-                self.tiles.append(tile)
-                if tile not in self.distinct_tile_count:
-                    self.distinct_tile_count[tile] = 1
-                else:
-                    self.distinct_tile_count[tile] += 1
-        if incr_ptr:
-            self.non_playable_tiles_ptr += incr_ptr
-        if is_peng:
-            assert len(tiles) == 1
-            self.peng_history.append(tiles[0])
-        self.update_shang_candidates()
-
-    def remove_tile(self, tile):
-        self.tiles.remove(tile)
-        self.distinct_tile_count[tile] -= 1
-        assert self.distinct_tile_count[tile] >= 0
-        self.tiles_history[f"{len(self.tiles_history)}remove"] = tile
-
-    def is_winning_hand(self, played_tile):
-        # basic winning condition 4 sets of 3 (peng/gang or shang) + 1 pair
-        current_hand = self.tiles+[played_tile]
-        if played_tile in self.distinct_tile_count:
-            self.distinct_tile_count[played_tile] += 1 # temporary add to check
-        else:
-            self.distinct_tile_count[played_tile] = 1
-
-        self.distinct_tile_count[played_tile] -= 1 # removing if not winning hand
-        return False
 
 
 @dataclass
@@ -223,7 +154,6 @@ class PlayAction(State):
     action: str = None
     input_tile: str = None
     discard_tile: str = None
-    tile_sequence: bool = False
 
     def __post_init__(self):
         if self.resolve:
@@ -234,7 +164,184 @@ class PlayAction(State):
 
 @dataclass
 class PossibleActions(State):
-    actions: List[PlayAction] = []
+    actions: List[PlayAction] = field(default_factory=list)
+
+
+class Hand(State):
+    def __init__(self, player_idx: int, replacement_tiles=DEFAULT_REPLACEMENT_TILES):
+        self.tiles = []
+        self.player_idx = player_idx
+        self.tiles_history = {}
+        self.replacement_tiles = [] if not replacement_tiles else replacement_tiles
+        self.non_playable_tiles = []
+        self.distinct_tile_count = {}
+        self.peng_history = []
+        self.locked_tiles = []  # lock list e.g. peng, gang
+
+    def get_shang_candidates(self):
+        suite = ["万", "筒", "索"]
+        shang_candidates = []
+        for s in suite:
+            candidates = sorted([x.replace(s, "") for x in self.tiles if x.endswith(s)])
+            bptr = 0
+            fptr = 2
+            while fptr <= len(candidates):
+                combination = "".join(candidates[bptr:fptr])
+                if combination in SHANG_LUT:
+                    shang_candidates += [f"{x}{s}" for x in SHANG_LUT[combination]]
+                bptr += 1
+                fptr += 1
+        return shang_candidates
+
+    def get_eye_candidates(self):
+        return [k for k, v in self.distinct_tile_count.items() if v == 2]
+
+    def peng(self, action: PlayAction):
+        self.peng_history.append(action.input_tile)
+        self.locked_tiles += [action.input_tile] * 3
+        for _ in range(3):
+            self.remove_tile(action.input_tile)
+
+    def get_peng_candidates(self, played_tile=None):
+        # TODO `played_tile` seems to be redundant, can be checked at `Player` level
+        if played_tile:
+            return [played_tile] if self.distinct_tile_count[played_tile] == 2 else []
+        return [k for k, v in self.distinct_tile_count.items() if v == 2]
+
+    def gang(self, action: PlayAction):
+        """
+        ming_gang: hand 3 + call
+        jia_gang: peng + draw
+        an_gang: hand 4
+        """
+        if action.action == "jia_gang":
+            self.locked_tiles += [action.input_tile]
+            self.remove_tile(action.input_tile)
+        elif action.action == "an_gang" or action.action == "ming_gang":
+            self.locked_tiles += [action.input_tile] * 4
+            self.remove_tile(action.input_tile)
+
+    def get_gang_candidates(self, played_tile=None):
+        # TODO `played_tile` seems to be redundant, can be checked at `Player` level
+        if played_tile:
+            return [played_tile] if self.distinct_tile_count[played_tile] == 3 else []
+        return [k for k, v in self.distinct_tile_count.items() if v == 3]
+
+    def resolve(self, action: PlayAction):
+        fn = getattr(self, action.action)
+        fn(action)
+        self.remove_tile(action.discard_tile)
+
+    def get_discardable_tiles(self):
+        """
+        situation where player can discard a tile
+        """
+        return [x for x in self.tiles if x not in self.locked_tiles]
+
+    def add_tiles(self, tiles: List):
+        """
+        add tile to hand
+
+        Args:
+        tiles: list of tiles to be added to hand (expected to be a list,
+        check `draw` and `replace` method in `TilesSequence` class)
+        
+        Returns:
+        replacement_tile_count: number of replacement tiles added to hand
+        """
+        replacement_tile_count = 0
+        self.tiles_history[f"{len(self.tiles_history)}add"] = tiles
+        for tile in tiles:
+            if tile in self.replacement_tiles:
+                self.non_playable_tiles.append(tile)
+                replacement_tile_count += 1
+            else:
+                self.tiles.append(tile)
+                if tile not in self.distinct_tile_count:
+                    self.distinct_tile_count[tile] = 1
+                else:
+                    self.distinct_tile_count[tile] += 1
+        return replacement_tile_count
+
+    def remove_tile(self, tile):
+        self.tiles.remove(tile)
+        self.distinct_tile_count[tile] -= 1
+        assert self.distinct_tile_count[tile] >= 0
+        self.tiles_history[f"{len(self.tiles_history)}remove"] = tile
+
+    def dp_search(self, tiles):
+        """
+        dp search for winning hand
+        find 3 or gang and see what is left
+        - left 2 -> eyes?
+        - left > 2 and < 8/9 (excluding gang 4th tile)
+          - has eyes?
+          - check what's missing
+        """
+        if len(tiles) == 2:
+            if tiles[0] == tiles[1]:
+                return True
+        
+        if len(tiles) == 3:
+            pass
+
+        tiles: list
+        for tile in tiles:
+            # find group of peng
+            if self.distinct_tile_count[tile] >= 3:
+                tiles.remove(tile)
+                tiles.remove(tile)
+                tiles.remove(tile)
+                if self.distinct_tile_count[tile] == 4:
+                    tiles.remove(tile)
+                self.db_search(tiles)
+            # find group of shang
+            tiles.remove(tile)
+
+    def is_winning_hand(self):
+        
+        # 十三幺
+        distinct_tiles = list(self.distinct_tile_count.keys())
+        if (
+            sorted(distinct_tiles) == sorted(["1万", "9万", "1筒", "9筒", "1索", "9索", "东", "南", "西", "北", "白", "發", "中"])
+            and (
+                sum([x == 2 for x in self.distinct_tile_count.values()]) == 1
+                and sum([x == 1 for x in self.distinct_tile_count.values()]) == 12
+            )
+        ):
+            return True
+        # 对对胡
+        elif all([x == 2 for x in self.distinct_tile_count.values() ]):
+            return True
+        elif len(self.tiles) % 3 != 2:
+            return False
+        # basic winning condition 3 sets of 3 (peng/gang or shang) + 1 pair
+        # gang will be considered as 3
+        # if (
+        #     len(self.tiles) % 3 == 2
+        #     and 
+        # ):
+        
+    
+        # 九莲宝灯
+        # if (
+        #     len(self.tiles) == 14
+        #     and len(self.non_playable_tiles) == 0
+        #     and len(self.showed_tiles) == 0
+        #     and (
+        #         self.distinct_tile_count["1万"] == 3
+        #         and self.distinct_tile_count["2万"] == 1
+        #         and self.distinct_tile_count["3万"] == 1
+        #         and self.distinct_tile_count["4万"] == 1
+        #         and self.distinct_tile_count["5万"] == 1
+        #         and self.distinct_tile_count["6万"] == 1
+        #         and self.distinct_tile_count["7万"] == 1
+        #         and self.distinct_tile_count["8万"] == 1
+        #         and self.distinct_tile_count["9万"] == 3
+        #     )
+        # ):
+        #     return True
+        return False
 
 
 class Player(State):
@@ -261,7 +368,7 @@ class Player(State):
           instead of getting 4 in a go
         - check for non dealing stage replacement is always 1?
         """
-        total = len(self.hand.non_playable_tiles[self.hand.non_playable_tiles_ptr :])
+        total = len(self.hand.non_playable_tiles[self.hand.non_playable_tiles_ptr:])
         replaced_tiles = tile_sequence.replace(total)
         self.hand.add_tiles(replaced_tiles, total)
         return replaced_tiles
@@ -316,7 +423,7 @@ class Player(State):
     def play_turn_strategy(self, possible_actions, input_tile):
         """
         implementation details:
-        always return `PlayOption` object
+        always return `PlayAction` object
         set `self.pending_resolve` to the function that will be called if `resolve` is True
         """
         raise NotImplementedError
@@ -324,7 +431,7 @@ class Player(State):
     def call_strategy(self, possible_actions, played_tile):
         """
         implementation details:
-        always return `PlayOption` object
+        always return `PlayAction` object
         set `self.pending_resolve` to the function that will be called if `resolve` is True
         """
         raise NotImplementedError
