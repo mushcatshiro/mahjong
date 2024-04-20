@@ -2,11 +2,11 @@ from game import Hand, TilesSequence, PlayAction
 
 
 def reset_hand(h: Hand):
-        h.tiles = []
-        h.distinct_tile_count = {}
-        h.tiles_history = {}
-        h.non_playable_tiles = []
-        h.locked_tiles = []
+    h.tiles = []
+    h.distinct_tile_count = {}
+    h.tiles_history = {}
+    h.non_playable_tiles = []
+    h.locked_tiles = []
 
 
 def test_hand(monkeypatch):
@@ -33,6 +33,7 @@ def test_hand(monkeypatch):
         assert (
             h.tiles_history[f"{idx+36}remove"] == tile
         )  # `add_tiles` was called 36 times
+
 
 def test_remove_tile():
     h = Hand(0)
@@ -82,6 +83,7 @@ def test_get_shang_candidates():
     h.add_tiles(["7索", "9索"])
     assert h.get_shang_candidates() == ["1万", "4万", "3筒", "6筒", "8索"]
 
+
 def test_get_peng_candidates():
     h = Hand(0)
     h.add_tiles(["2万", "2万"])
@@ -94,6 +96,7 @@ def test_get_peng_candidates():
 
     h.add_tiles(["2万", "3万", "4万"])
     assert h.get_peng_candidates() == []
+
 
 def test_get_gang_candidates():
     h = Hand(0)
@@ -119,19 +122,21 @@ def test_get_discardable_tiles():
     """
     h = Hand(0)
     h.add_tiles(["2万", "2万", "2万"])
-    action = PlayAction(resolve=True, action="peng", input_tile= "2万", discard_tile="")
+    action = PlayAction(resolve=True, action="peng", input_tile="2万", discard_tile="")
     h.peng(action)
     assert h.get_discardable_tiles() == []
     reset_hand(h)
 
     h.add_tiles(["2万", "2万", "2万", "2万"])
-    action = PlayAction(resolve=True, action="an_gang", input_tile= "2万", discard_tile="")
+    action = PlayAction(
+        resolve=True, action="an_gang", input_tile="2万", discard_tile=""
+    )
     h.gang(action)
     assert h.get_discardable_tiles() == []
     reset_hand(h)
 
     h.add_tiles(["2万", "3万", "3万", "3万"])
-    action = PlayAction(resolve=True, action="peng", input_tile= "3万", discard_tile="")
+    action = PlayAction(resolve=True, action="peng", input_tile="3万", discard_tile="")
     h.peng(action)
     assert h.get_discardable_tiles() == ["2万"]
     reset_hand(h)
@@ -150,11 +155,30 @@ def test_is_winning_hand():
     # assert h.is_winning_hand() == True
 
     # 对对胡
-    h.add_tiles(["1万", "1万", "2万", "2万", "3万", "3万", "4万", "4万", "5万", "5万", "6万", "6万", "7万", "7万"])
+    h.add_tiles(
+        [
+            "1万",
+            "1万",
+            "2万",
+            "2万",
+            "3万",
+            "3万",
+            "4万",
+            "4万",
+            "5万",
+            "5万",
+            "6万",
+            "6万",
+            "7万",
+            "7万",
+        ]
+    )
     assert h.is_winning_hand() == True
     reset_hand(h)
 
     # 十三幺
-    h.add_tiles(["1万", "9万", "1筒", "9筒", "1索", "9索", "东", "南", "西", "北", "中", "發", "白", "白"])
+    h.add_tiles(
+        ["1万", "9万", "1筒", "9筒", "1索", "9索", "东", "南", "西", "北", "中", "發", "白", "白"]
+    )
     assert h.is_winning_hand() == True
     reset_hand(h)

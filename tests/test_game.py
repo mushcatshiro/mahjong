@@ -60,14 +60,30 @@ def test_player_sequence(monkeypatch):
     # force peng by player 0 plays 1万
     ts = MockTilesSequence(
         [
-            "1万", "1筒", "4筒", "7筒",
-            "5万", "6万", "7万", "8万",
-            "1万", "1万", "9万", "1筒",
-            "2筒", "4筒", "4筒", "5筒",
-            "1索", "7筒", "8筒",
+            "1万",
+            "1筒",
+            "4筒",
+            "7筒",
+            "5万",
+            "6万",
+            "7万",
+            "8万",
+            "1万",
+            "1万",
+            "9万",
+            "1筒",
+            "2筒",
+            "4筒",
+            "4筒",
+            "5筒",
+            "1索",
+            "7筒",
+            "8筒",
         ]
     )
-    game = Mahjong({0: DummyPlayer(0), 1: DummyPlayer(1), 2: DummyPlayer(2), 3: DummyPlayer(3)})
+    game = Mahjong(
+        {0: DummyPlayer(0), 1: DummyPlayer(1), 2: DummyPlayer(2), 3: DummyPlayer(3)}
+    )
     game.tile_sequence = ts
     game.start()
 
@@ -76,52 +92,63 @@ def test_player_sequence(monkeypatch):
 def test_resolve_call():
     game = Mahjong({0: Player(0), 1: Player(1), 2: Player(2), 3: Player(3)})
     # hu has the highest priority
-    resolved_to = game.resolve_call({
-        "hu": [0],
-        "peng": [1],
-    })
+    resolved_to = game.resolve_call(
+        {
+            "hu": [0],
+            "peng": [1],
+        }
+    )
     assert resolved_to == 0
 
-    resolved_to = game.resolve_call({
-        "peng": 1,
-        "shang": 2,
-    })
+    resolved_to = game.resolve_call(
+        {
+            "peng": 1,
+            "shang": 2,
+        }
+    )
     assert resolved_to == 1
 
-    resolved_to = game.resolve_call({
-        "ming_gang": 2,
-        "shang": 1,
-    })
+    resolved_to = game.resolve_call(
+        {
+            "ming_gang": 2,
+            "shang": 1,
+        }
+    )
     assert resolved_to == 2
 
-    resolved_to = game.resolve_call({
-        "an_gang": 2,
-        "shang": 1,
-    })
+    resolved_to = game.resolve_call(
+        {
+            "an_gang": 2,
+            "shang": 1,
+        }
+    )
     assert resolved_to == 2
 
-    resolved_to = game.resolve_call({
-        "jia_gang": 2,
-        "shang": 1,
-    })
+    resolved_to = game.resolve_call(
+        {
+            "jia_gang": 2,
+            "shang": 1,
+        }
+    )
     assert resolved_to == 2
 
-    resolved_to = game.resolve_call({
-        "hu": [1, 2]
-    })
+    resolved_to = game.resolve_call({"hu": [1, 2]})
     assert resolved_to == 1
 
-    resolved_to = game.resolve_call({
-        "hu": [1, 3],
-    })
+    resolved_to = game.resolve_call(
+        {
+            "hu": [1, 3],
+        }
+    )
     assert resolved_to == 1
 
 
 def _test_play_one_round():
     import os, json
+
     with open(os.path.join(os.path.dirname(__file__), "test_scenario.json")) as rf:
         game_scenario = json.load(rf)
-    
+
     for scenario in game_scenario:
         # load game scenario
         # assert stuff

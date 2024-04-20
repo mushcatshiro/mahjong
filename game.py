@@ -150,6 +150,7 @@ class PlayAction(State):
     - hu
     - discard
     """
+
     resolve: bool = False
     action: str = None
     input_tile: str = None
@@ -158,9 +159,17 @@ class PlayAction(State):
     def __post_init__(self):
         if self.resolve:
             assert self.input_tile is not None
-            assert self.action in ["peng", "ming_gang", "jia_gang", "an_gang", "shang", "hu"]
+            assert self.action in [
+                "peng",
+                "ming_gang",
+                "jia_gang",
+                "an_gang",
+                "shang",
+                "hu",
+            ]
         else:
             assert self.discard_tile is not None
+
 
 @dataclass
 class PossibleActions(State):
@@ -245,7 +254,7 @@ class Hand(State):
         Args:
         tiles: list of tiles to be added to hand (expected to be a list,
         check `draw` and `replace` method in `TilesSequence` class)
-        
+
         Returns:
         replacement_tile_count: number of replacement tiles added to hand
         """
@@ -281,7 +290,7 @@ class Hand(State):
         if len(tiles) == 2:
             if tiles[0] == tiles[1]:
                 return True
-        
+
         if len(tiles) == 3:
             pass
 
@@ -299,19 +308,18 @@ class Hand(State):
             tiles.remove(tile)
 
     def is_winning_hand(self):
-        
+
         # 十三幺
         distinct_tiles = list(self.distinct_tile_count.keys())
-        if (
-            sorted(distinct_tiles) == sorted(["1万", "9万", "1筒", "9筒", "1索", "9索", "东", "南", "西", "北", "白", "發", "中"])
-            and (
-                sum([x == 2 for x in self.distinct_tile_count.values()]) == 1
-                and sum([x == 1 for x in self.distinct_tile_count.values()]) == 12
-            )
+        if sorted(distinct_tiles) == sorted(
+            ["1万", "9万", "1筒", "9筒", "1索", "9索", "东", "南", "西", "北", "白", "發", "中"]
+        ) and (
+            sum([x == 2 for x in self.distinct_tile_count.values()]) == 1
+            and sum([x == 1 for x in self.distinct_tile_count.values()]) == 12
         ):
             return True
         # 对对胡
-        elif all([x == 2 for x in self.distinct_tile_count.values() ]):
+        elif all([x == 2 for x in self.distinct_tile_count.values()]):
             return True
         elif len(self.tiles) % 3 != 2:
             return False
@@ -319,10 +327,9 @@ class Hand(State):
         # gang will be considered as 3
         # if (
         #     len(self.tiles) % 3 == 2
-        #     and 
+        #     and
         # ):
-        
-    
+
         # 九莲宝灯
         # if (
         #     len(self.tiles) == 14
@@ -368,7 +375,7 @@ class Player(State):
           instead of getting 4 in a go
         - check for non dealing stage replacement is always 1?
         """
-        total = len(self.hand.non_playable_tiles[self.hand.non_playable_tiles_ptr:])
+        total = len(self.hand.non_playable_tiles[self.hand.non_playable_tiles_ptr :])
         replaced_tiles = tile_sequence.replace(total)
         self.hand.add_tiles(replaced_tiles, total)
         return replaced_tiles
@@ -413,9 +420,7 @@ class Player(State):
         possible_actions = self.call_check(played_tile, player)
         action: PlayAction = self.call_strategy(possible_actions, played_tile)
         self.pending_resolve = (
-            getattr(self, f"resolve_{action.action}")
-            if action.action
-            else None
+            getattr(self, f"resolve_{action.action}") if action.action else None
         )
         # TODO mandatory discard?
         return action.action
@@ -582,7 +587,12 @@ class HumanPlayer(Player):
         assert resp in ["resolve", "discard"]
         if resp == "resolve":
             resp = input("Enter 'input_tile discard_tile': ")
-            return {"resolve": True, "input_tile": resp.split()[0], "discard_tile": resp.split()[1], "tile_sequence": False}
+            return {
+                "resolve": True,
+                "input_tile": resp.split()[0],
+                "discard_tile": resp.split()[1],
+                "tile_sequence": False,
+            }
         return resp
 
 
@@ -616,9 +626,9 @@ class Mahjong:
         # 东 0 南 1 西 2 北 3
         self.current_player_idx = (val_player_sequence - 1) % 4
         self.players[self.current_player_idx].house = True
-        self.round_player_sequence = [
-            x for x in range(self.current_player_idx, 4)
-        ] + [x for x in range(0, self.current_player_idx)]
+        self.round_player_sequence = [x for x in range(self.current_player_idx, 4)] + [
+            x for x in range(0, self.current_player_idx)
+        ]
 
         val_start_sequence = random.randint(1, 13) + val_player_sequence
         self.tile_sequence.shuffle(val_start_sequence)
@@ -650,9 +660,9 @@ class Mahjong:
         """
         if "hu" in responses:
             if len(responses["hu"]) > 1:
-                hu_order = [
-                    x for x in range(self.current_player_idx, 4)
-                ] + [x for x in range(0, self.current_player_idx)]
+                hu_order = [x for x in range(self.current_player_idx, 4)] + [
+                    x for x in range(0, self.current_player_idx)
+                ]
                 for player_idx in hu_order:
                     if player_idx in responses["hu"]:
                         return player_idx
@@ -702,9 +712,7 @@ class Mahjong:
         while not self.winner:
             print(f"current round sequence {self.current_round_sequence}")
             print(f"current player idx {self.current_player_idx}")
-            print(
-                f"round player sequence {self.round_player_sequence}"
-            )
+            print(f"round player sequence {self.round_player_sequence}")
             self.current_player_idx = self.current_round_sequence % 4
             if self.tile_sequence.tiles == []:
                 break
