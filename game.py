@@ -189,6 +189,7 @@ class PlayResult(State):
     act as a message passing from `Hand` to `Player` for
     subsequent calls.
     """
+
     discarded_tile: str = None
     need_replacement: bool = False
 
@@ -208,10 +209,20 @@ class Hand(State):
         suite = ["万", "筒", "索"]
         shang_candidates = []
         for s in suite:
-            candidates = sorted(list(set([
-                x.replace(s, "") for x in self.tiles if x.endswith(s) and x
-                not in self.peng_history + self.gang_history  # BUG peng and gang history entry can be duplicated
-            ])))
+            candidates = sorted(
+                list(
+                    set(
+                        [
+                            x.replace(s, "")
+                            for x in self.tiles
+                            if x.endswith(s)
+                            and x
+                            not in self.peng_history
+                            + self.gang_history  # BUG peng and gang history entry can be duplicated
+                        ]
+                    )
+                )
+            )
             bptr = 0
             fptr = 2
             while fptr <= len(candidates):
@@ -229,8 +240,9 @@ class Hand(State):
 
     def get_eye_candidates(self):
         return [
-            k for k, v in self.distinct_tile_count.items() if v >= 2 and
-            not self.is_locked(k)
+            k
+            for k, v in self.distinct_tile_count.items()
+            if v >= 2 and not self.is_locked(k)
         ]
 
     def peng(self, action: PlayAction):
@@ -246,22 +258,32 @@ class Hand(State):
         """
         if played_tile:
             discardables = self.get_discardable_tiles(exclude_tile=played_tile)
-            return [PlayAction(
-                resolve=True,
-                action="peng",
-                target_tile=played_tile,
-                add_tile=True,
-                discard_tile=discard_tile
-            ) for discard_tile in discardables] if self.distinct_tile_count[played_tile] == 2 else []
+            return (
+                [
+                    PlayAction(
+                        resolve=True,
+                        action="peng",
+                        target_tile=played_tile,
+                        add_tile=True,
+                        discard_tile=discard_tile,
+                    )
+                    for discard_tile in discardables
+                ]
+                if self.distinct_tile_count[played_tile] == 2
+                else []
+            )
         rv = []
         for tile, tile_count in self.distinct_tile_count.items():
             if tile_count == 3:
-                rv += [PlayAction(
-                    resolve=True,
-                    action="peng",
-                    target_tile=tile,
-                    discard_tile=discard_tile
-                ) for discard_tile in self.get_discardable_tiles(exclude_tile=tile)]
+                rv += [
+                    PlayAction(
+                        resolve=True,
+                        action="peng",
+                        target_tile=tile,
+                        discard_tile=discard_tile,
+                    )
+                    for discard_tile in self.get_discardable_tiles(exclude_tile=tile)
+                ]
         return rv
 
     def gang(self, action: PlayAction):
@@ -276,17 +298,23 @@ class Hand(State):
         return PlayResult(need_replacement=True)
 
     def get_gang_candidates(self, played_tile=None, drawed_tile=None):
-        """
-        """
+        """ """
         check = played_tile if played_tile else drawed_tile
         if check not in self.distinct_tile_count.keys():
             return []
         if played_tile:
-            return [
-                PlayAction(
-                    resolve=True, action="ming_gang", add_tile=True, target_tile=played_tile,
-                )
-            ] if self.distinct_tile_count[played_tile] == 3 else []
+            return (
+                [
+                    PlayAction(
+                        resolve=True,
+                        action="ming_gang",
+                        add_tile=True,
+                        target_tile=played_tile,
+                    )
+                ]
+                if self.distinct_tile_count[played_tile] == 3
+                else []
+            )
         elif drawed_tile:
             if drawed_tile in self.peng_history:
                 action = "jia_gang"
@@ -294,9 +322,7 @@ class Hand(State):
                 action = "an_gang"
             else:
                 return []  # for completeness
-            return [
-                PlayAction(resolve=True, action=action, target_tile=drawed_tile)
-            ]
+            return [PlayAction(resolve=True, action=action, target_tile=drawed_tile)]
         return []
 
     def resolve(self, action: PlayAction):
@@ -312,7 +338,11 @@ class Hand(State):
         if type(exclude_tile) != list:
             exclude_tile = [exclude_tile]
         # BUG peng and gang history entry can be duplicated
-        return [x for x in self.tiles if x not in self.peng_history + exclude_tile + self.gang_history]
+        return [
+            x
+            for x in self.tiles
+            if x not in self.peng_history + exclude_tile + self.gang_history
+        ]
 
     def add_tiles(self, tiles: List):
         """

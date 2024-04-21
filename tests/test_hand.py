@@ -131,12 +131,13 @@ def test_get_peng_candidates():
     h.add_tiles(["2万", "3万", "4万"])
     assert h.get_peng_candidates() == []
 
+
 def test_peng():
     h = Hand(0)
 
     # peng during a call
     h.add_tiles(["2万", "2万", "3万"])
-    action =  h.get_peng_candidates("2万")
+    action = h.get_peng_candidates("2万")
     assert len(action) == 1
     play_result: PlayResult = h.peng(action[0])
     assert play_result.discarded_tile == "3万"
@@ -147,7 +148,7 @@ def test_peng():
 
     # check if there is 3 of a set
     h.add_tiles(["2万", "2万", "2万", "3万"])
-    action =  h.get_peng_candidates()
+    action = h.get_peng_candidates()
     assert len(action) == 1
     play_result: PlayResult = h.peng(action[0])
     assert play_result.discarded_tile == "3万"
@@ -235,6 +236,7 @@ def test_gang():
     assert h.gang_history == ["2万"]
     assert h.is_locked("2万")
     reset_hand(h)
+
 
 def test_get_discardable_tiles():
     """

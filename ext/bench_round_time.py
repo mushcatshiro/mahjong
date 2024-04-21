@@ -13,7 +13,8 @@ two option to bench
 l = []
 
 for i in range(10000):
-    g= Mahjong({0: DummyPlayer(0), 1: DummyPlayer(1), 2: DummyPlayer(2), 3: DummyPlayer(3)})
+    g = Mahjong(
+        {0: DummyPlayer(0), 1: DummyPlayer(1), 2: DummyPlayer(2), 3: DummyPlayer(3)}
+    )
     g.start()
     g.play()
-    
