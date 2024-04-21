@@ -381,8 +381,12 @@ def test_get_valid_shang_sets():
 
 
 def test_dp_search():
-    # TODO
-    pass
+    h = Hand(0)
+    # BUG dp search should look for `eyes` before moving to `peng` and `gang`
+    h.add_tiles(["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "9万", "9万"])
+    resp = h.dp_search()
+    assert 0 in resp
+    assert resp[0] == []
 
 
 def test_resolve():

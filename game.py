@@ -407,8 +407,8 @@ class Hand(State):
         self.tiles_history[f"{len(self.tiles_history)}remove"] = tile
         return tile
 
-    def get_valid_shang_sets(self):
-        tiles = sorted(self.tiles)
+    def get_valid_shang_sets(self, remaining_tiles):
+        tiles = sorted(tiles)
         valid_shang_sets = []
         for s in SUITES:
             candidates = sorted(
@@ -455,8 +455,27 @@ class Hand(State):
           - has eyes?
           - check what's missing
         """
+        combinations = []
         if len(remaining_tiles) == 2:
             return remaining_tiles
+
+        valid_shang_sets = self.get_valid_shang_sets(remaining_tiles)
+
+        if not valid_shang_set:
+            return []
+        if len(valid_shang_sets) == 1:
+            return remaining_tiles
+
+        for valid_shang_set in valid_shang_sets:
+            thread = []
+            remaining_tiles = copy.deepcopy(remaining_tiles)
+            for tile in valid_shang_set:
+                remaining_tiles.remove(tile)
+            valid_set = self._dp_search(remaining_tiles)
+            if valid_set:
+                thread += valid_set
+            combinations.append(thread)
+        return combinations
 
     def dp_search(self):
         tiles = copy.deepcopy(self.tiles)
@@ -475,15 +494,23 @@ class Hand(State):
                 for _ in range(3):
                     tiles.remove(peng_set)
 
-        """
-        combinations should be sth like
-        {
-            0: [[]], # the winning set
-            1: [[], []], # one tile away from winning
-        }
-        """
         combinations = self._dp_search(tiles)
-        return combinations
+        for thread in combinations:
+            if valid_gang_sets:
+                for gang_set in valid_gang_sets:
+                    # TODO should be wrong, append might not be in place
+                    thread.append([gang_set * 4])
+            if valid_peng_sets:
+                for peng_set in valid_peng_sets:
+                    thread.append([peng_set * 3])
+        rv = {}
+        for thread in combinations:
+            l = len(thread)
+            if l not in rv:
+                rv[l] = [thread]
+            else:
+                rv[l].append(thread)
+        return rv
 
     def is_winning_hand(self):
         # 十三幺
