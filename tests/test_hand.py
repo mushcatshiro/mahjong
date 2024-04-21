@@ -358,4 +358,53 @@ def test_dp_search():
 
 
 def test_resolve():
-    pass
+    h = Hand(0)
+
+    # resolve peng
+    h.add_tiles(["2万", "2万", "2万", "3万"])
+    actions = h.get_peng_candidates()
+    assert len(actions) == 1
+    play_result = h.resolve(actions[0])
+    assert h.tiles == ["2万", "2万", "2万"]
+    assert h.peng_history == ["2万"]
+    assert h.is_locked("2万")
+    assert play_result.discarded_tile == "3万"
+    reset_hand(h)
+
+    # resolve an_gang
+    h.add_tiles(["2万", "2万", "2万", "2万"])
+    actions = h.get_gang_candidates(drawed_tile="2万")
+    assert len(actions) == 1
+    play_result = h.resolve(actions[0])
+    assert h.tiles == ["2万", "2万", "2万", "2万"]
+    assert h.gang_history == ["2万"]
+    assert h.is_locked("2万")
+    assert play_result.need_replacement
+    reset_hand(h)
+
+    # resolve jia_gang
+    h.add_tiles(["2万", "2万", "2万", "3万"])
+    actions = h.get_peng_candidates()
+    assert len(actions) == 1
+    play_result = h.resolve(actions[0])
+    assert play_result.discarded_tile == "3万"
+    h.add_tiles(["2万"])
+    actions = h.get_gang_candidates(drawed_tile="2万")
+    assert len(actions) == 1
+    play_result = h.resolve(actions[0])
+    assert h.tiles == ["2万", "2万", "2万", "2万"]
+    assert h.gang_history == ["2万"]
+    assert h.is_locked("2万")
+    assert play_result.need_replacement
+    reset_hand(h)
+
+    # resolve ming_gang
+    h.add_tiles(["2万", "2万", "2万"])
+    actions = h.get_gang_candidates(played_tile="2万")
+    assert len(actions) == 1
+    play_result = h.resolve(actions[0])
+    assert h.tiles == ["2万", "2万", "2万", "2万"]
+    assert h.gang_history == ["2万"]
+    assert h.is_locked("2万")
+    assert play_result.need_replacement
+    reset_hand(h)

@@ -325,10 +325,13 @@ class Hand(State):
             return [PlayAction(resolve=True, action=action, target_tile=drawed_tile)]
         return []
 
-    def resolve(self, action: PlayAction):
-        fn = getattr(self, action.action)
-        fn(action)
-        self.remove_tile(action.discard_tile)
+    def resolve(self, action: PlayAction) -> PlayResult:
+        resolve_to = (
+            action.action if "_" not in action.action else action.action.split("_")[1]
+        )
+        fn = getattr(self, resolve_to)
+        result: PlayResult = fn(action)
+        return result
 
     def get_discardable_tiles(self, exclude_tile=None):
         """
@@ -344,7 +347,7 @@ class Hand(State):
             if x not in self.peng_history + exclude_tile + self.gang_history
         ]
 
-    def add_tiles(self, tiles: List):
+    def add_tiles(self, tiles: List) -> int:
         """
         add tile to hand
 
@@ -370,6 +373,13 @@ class Hand(State):
         return replacement_tile_count
 
     def remove_tile(self, tile):
+        """
+        Args:
+        tile: tile to be removed from hand
+
+        Returns:
+        tile: tile that is removed
+        """
         self.tiles.remove(tile)
         self.distinct_tile_count[tile] -= 1
         assert self.distinct_tile_count[tile] >= 0
