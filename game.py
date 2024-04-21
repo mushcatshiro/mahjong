@@ -155,19 +155,24 @@ class PlayAction(State):
     action: str = None
     input_tile: str = None
     discard_tile: str = None
+    RESOLVABLE_ACTIONS = [
+        "peng",
+        "ming_gang",
+        "jia_gang",
+        "an_gang",
+        "shang",
+        "hu",
+    ]
+    REQUIRED_DISCARD = ["peng", "shang"]
 
     def __post_init__(self):
         if self.resolve:
             assert self.input_tile is not None
-            assert self.action in [
-                "peng",
-                "ming_gang",
-                "jia_gang",
-                "an_gang",
-                "shang",
-                "hu",
-            ]
+            assert self.action in self.RESOLVABLE_ACTIONS
+            if self.action in self.REQUIRED_DISCARD:
+                assert self.discard_tile is not None
         else:
+            assert self.action not in self.RESOLVABLE_ACTIONS
             assert self.discard_tile is not None
 
 
@@ -185,7 +190,6 @@ class Hand(State):
         self.non_playable_tiles = []
         self.distinct_tile_count = {}
         self.peng_history = []
-        self.locked_tiles = []  # lock list e.g. peng, gang
 
     def get_shang_candidates(self):
         suite = ["万", "筒", "索"]
@@ -202,20 +206,39 @@ class Hand(State):
                 fptr += 1
         return shang_candidates
 
+    def is_locked(self, tile):
+        if tile in self.peng_history:
+            return True
+        return False
+
     def get_eye_candidates(self):
         return [k for k, v in self.distinct_tile_count.items() if v == 2]
 
     def peng(self, action: PlayAction):
         self.peng_history.append(action.input_tile)
-        self.locked_tiles += [action.input_tile] * 3
         for _ in range(3):
             self.remove_tile(action.input_tile)
 
     def get_peng_candidates(self, played_tile=None):
         # TODO `played_tile` seems to be redundant, can be checked at `Player` level
         if played_tile:
-            return [played_tile] if self.distinct_tile_count[played_tile] == 2 else []
-        return [k for k, v in self.distinct_tile_count.items() if v == 2]
+            discardables = self.get_discardable_tiles(exclude_tile=played_tile)
+            return [PlayAction(
+                resolve=True,
+                action="peng",
+                input_tile=played_tile,
+                discard_tile=discard_tile
+            ) for discard_tile in discardables] if self.distinct_tile_count[played_tile] == 2 else []
+        rv = []
+        for tile, tile_count in self.distinct_tile_count.items():
+            if tile_count == 2:
+                rv += [PlayAction(
+                    resolve=True,
+                    action="peng",
+                    input_tile=tile,
+                    discard_tile=discard_tile
+                ) for discard_tile in self.get_discardable_tiles(exclude_tile=tile)]
+        return rv
 
     def gang(self, action: PlayAction):
         """
@@ -224,10 +247,11 @@ class Hand(State):
         an_gang: hand 4
         """
         if action.action == "jia_gang":
-            self.locked_tiles += [action.input_tile]
             self.remove_tile(action.input_tile)
-        elif action.action == "an_gang" or action.action == "ming_gang":
-            self.locked_tiles += [action.input_tile] * 4
+        elif action.action == "an_gang":
+            self.peng_history.append(action.input_tile)
+            self.remove_tile(action.input_tile)
+        elif action.action == "ming_gang":
             self.remove_tile(action.input_tile)
 
     def get_gang_candidates(self, played_tile=None):
@@ -241,11 +265,14 @@ class Hand(State):
         fn(action)
         self.remove_tile(action.discard_tile)
 
-    def get_discardable_tiles(self):
+    def get_discardable_tiles(self, exclude_tile=None):
         """
         situation where player can discard a tile
         """
-        return [x for x in self.tiles if x not in self.locked_tiles]
+        # TODO potentially useless if condition
+        if type(exclude_tile) != list:
+            exclude_tile = [exclude_tile]
+        return [x for x in self.tiles if x not in self.peng_history + exclude_tile]
 
     def add_tiles(self, tiles: List):
         """

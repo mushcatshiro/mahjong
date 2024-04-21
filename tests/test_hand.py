@@ -6,7 +6,7 @@ def reset_hand(h: Hand):
     h.distinct_tile_count = {}
     h.tiles_history = {}
     h.non_playable_tiles = []
-    h.locked_tiles = []
+    h.peng_history = []
 
 
 def test_hand(monkeypatch):
@@ -86,12 +86,25 @@ def test_get_shang_candidates():
 
 def test_get_peng_candidates():
     h = Hand(0)
-    h.add_tiles(["2万", "2万"])
-    assert h.get_peng_candidates() == ["2万"]
+    h.add_tiles(["2万", "2万", "3万"])
+    assert len(h.get_peng_candidates()) == 1
+    assert h.get_peng_candidates()[0] == PlayAction(
+        resolve=True, action="peng", input_tile="2万", discard_tile="3万"
+    )
+    reset_hand(h)
+
+    h.add_tiles(["2万", "2万", "3万"])
+    assert len(h.get_peng_candidates("2万")) == 1
+    assert h.get_peng_candidates("2万")[0] == PlayAction(
+        resolve=True, action="peng", input_tile="2万", discard_tile="3万"
+    )
     reset_hand(h)
 
     h.add_tiles(["2万", "3万", "3万"])
-    assert h.get_peng_candidates() == ["3万"]
+    assert len(h.get_peng_candidates()) == 1
+    assert h.get_peng_candidates()[0] == PlayAction(
+        resolve=True, action="peng", input_tile="3万", discard_tile="2万"
+    )
     reset_hand(h)
 
     h.add_tiles(["2万", "3万", "4万"])
@@ -147,6 +160,14 @@ def test_get_discardable_tiles():
 
     h.add_tiles(["2万", "3万", "4万", "5万"])
     assert h.get_discardable_tiles() == ["2万", "3万", "4万", "5万"]
+    reset_hand(h)
+
+    h.add_tiles(["2万", "3万", "4万", "5万", "6万"])
+    assert h.get_discardable_tiles(exclude_tile="6万") == ["2万", "3万", "4万", "5万"]
+    reset_hand(h)
+
+    h.add_tiles(["2万", "3万", "4万", "5万", "6万"])
+    assert h.get_discardable_tiles(exclude_tile=["5万", "6万"]) == ["2万", "3万", "4万"]
 
 
 def test_is_winning_hand():
