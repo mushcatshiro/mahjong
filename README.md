@@ -13,3 +13,7 @@ mahjong in python. two modes provided, visualized client and api client.
   - [ ] 发牌顺序
   - [ ] 起手顺序
 - [ ] class for each tile instead of writing out chinese character
+- [ ] performance bench
+  - [ ] per round time
+  - [ ] search dp/winning hand
+- [ ] numpy or equivalent matrix operation
