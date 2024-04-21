@@ -114,19 +114,35 @@ def test_get_peng_candidates():
 def test_get_gang_candidates():
     h = Hand(0)
     h.add_tiles(["2万", "2万", "2万"])
-    assert h.get_gang_candidates() == ["2万"]
+    assert len(h.get_gang_candidates(played_tile="2万")) == 1
+    assert h.get_gang_candidates(played_tile="2万")[0] == PlayAction(
+        resolve=True, action="ming_gang", input_tile="2万"
+    )
     reset_hand(h)
 
-    h.add_tiles(["2万", "3万", "3万", "3万"])
-    assert h.get_gang_candidates() == ["3万"]
+    h.add_tiles(["2万", "3万", "3万"])
+    action = h.get_peng_candidates("3万")
+    assert len(action) == 1
+    h.peng(action[0])
+    assert len(h.get_gang_candidates(drawed_tile="3万")) == 1
+    assert h.get_gang_candidates(drawed_tile="3万")[0] == PlayAction(
+        resolve=True, action="jia_gang", input_tile="3万"
+    )
+    reset_hand(h)
+
+    h.add_tiles(["3万", "3万", "3万"])
+    assert len(h.get_gang_candidates(drawed_tile="3万")) == 1
+    assert h.get_gang_candidates(drawed_tile="3万")[0] == PlayAction(
+        resolve=True, action="an_gang", input_tile="3万"
+    )
     reset_hand(h)
 
     h.add_tiles(["2万", "3万", "4万", "4万"])
-    assert h.get_gang_candidates() == []
+    assert h.get_gang_candidates("5万") == []
     reset_hand(h)
 
     h.add_tiles(["2万", "3万", "4万", "5万"])
-    assert h.get_gang_candidates() == []
+    assert h.get_gang_candidates("6万") == []
 
 
 def test_get_discardable_tiles():

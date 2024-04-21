@@ -215,6 +215,7 @@ class Hand(State):
         return [k for k, v in self.distinct_tile_count.items() if v == 2]
 
     def peng(self, action: PlayAction):
+        self.add_tiles([action.input_tile])
         self.peng_history.append(action.input_tile)
         for _ in range(3):
             self.remove_tile(action.input_tile)
@@ -246,6 +247,7 @@ class Hand(State):
         jia_gang: peng + draw
         an_gang: hand 4
         """
+        self.add_tiles([action.input_tile])
         if action.action == "jia_gang":
             self.remove_tile(action.input_tile)
         elif action.action == "an_gang":
@@ -254,11 +256,29 @@ class Hand(State):
         elif action.action == "ming_gang":
             self.remove_tile(action.input_tile)
 
-    def get_gang_candidates(self, played_tile=None):
-        # TODO `played_tile` seems to be redundant, can be checked at `Player` level
+    def get_gang_candidates(self, played_tile=None, drawed_tile=None):
+        """
+        """
+        check = played_tile if played_tile else drawed_tile
+        if check not in self.distinct_tile_count.keys():
+            return []
         if played_tile:
-            return [played_tile] if self.distinct_tile_count[played_tile] == 3 else []
-        return [k for k, v in self.distinct_tile_count.items() if v == 3]
+            return [
+                PlayAction(
+                    resolve=True, action="ming_gang", input_tile=played_tile,
+                )
+            ] if self.distinct_tile_count[played_tile] == 3 else []
+        elif drawed_tile:
+            if drawed_tile in self.peng_history:
+                action = "jia_gang"
+            elif self.distinct_tile_count[drawed_tile] == 3:
+                action = "an_gang"
+            else:
+                return []  # for completeness
+            return [
+                PlayAction(resolve=True, action=action, input_tile=drawed_tile)
+            ]
+        return []
 
     def resolve(self, action: PlayAction):
         fn = getattr(self, action.action)
