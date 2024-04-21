@@ -70,6 +70,18 @@ SHANG_LUT = {
     "89": ["7"],
 }
 
+SHANG_REF = [
+    "123",
+    "234",
+    "345",
+    "456",
+    "567",
+    "678",
+    "789",
+]
+
+SUITES = ["万", "筒", "索"]
+
 
 class State:
     """
@@ -206,9 +218,9 @@ class Hand(State):
         self.gang_history = []  # used to help `get_valid_sets`
 
     def get_shang_candidates(self):
-        suite = ["万", "筒", "索"]
         shang_candidates = []
-        for s in suite:
+        for s in SUITES:
+            # BUG peng and gang history entry can be duplicated
             candidates = sorted(
                 list(
                     set(
@@ -216,9 +228,7 @@ class Hand(State):
                             x.replace(s, "")
                             for x in self.tiles
                             if x.endswith(s)
-                            and x
-                            not in self.peng_history
-                            + self.gang_history  # BUG peng and gang history entry can be duplicated
+                            and x not in self.peng_history + self.gang_history
                         ]
                     )
                 )
@@ -386,8 +396,47 @@ class Hand(State):
         self.tiles_history[f"{len(self.tiles_history)}remove"] = tile
         return tile
 
-    def dp_search(self, tiles):
+    def get_valid_shang_sets(self):
+        tiles = sorted(self.tiles)
+        valid_shang_sets = []
+        for s in SUITES:
+            candidates = sorted(
+                list(
+                    set(
+                        x
+                        for x in tiles
+                        if x.endswith(s)
+                        and x not in self.peng_history + self.gang_history
+                    )
+                )
+            )
+            bptr = 0
+            fptr = 3
+            while fptr <= len(candidates):
+                combination = "".join([x.replace(s, "") for x in candidates[bptr:fptr]])
+                if combination in SHANG_REF:
+                    valid_shang_sets.append([x for x in candidates[bptr:fptr]])
+                bptr += 1
+                fptr += 1
+        return valid_shang_sets
+
+    def get_valid_peng_sets(self):
+        valid_peng_sets = []
+        for tile, tile_count in self.distinct_tile_count.items():
+            if tile_count == 3:
+                valid_peng_sets.append(tile)
+        return valid_peng_sets
+
+    def get_valid_gang_sets(self):
+        valid_gang_sets = []
+        for tile, tile_count in self.distinct_tile_count.items():
+            if tile_count == 4:
+                valid_gang_sets.append(tile)
+        return valid_gang_sets
+
+    def _dp_search(self, remaining_tiles):
         """
+        assuming there are correct number of tiles
         dp search for winning hand
         find 3 or gang and see what is left
         - left 2 -> eyes?
@@ -395,28 +444,34 @@ class Hand(State):
           - has eyes?
           - check what's missing
         """
-        if len(tiles) == 2:
-            if tiles[0] == tiles[1]:
-                return True
 
-        if len(tiles) == 3:
-            pass
+    def dp_search(self):
+        tiles = copy.deepcopy(self.tiles)
+        tiles = sorted(tiles)
 
-        tiles: list
-        for tile in tiles:
-            # find group of peng
-            if self.distinct_tile_count[tile] >= 3:
-                tiles.remove(tile)
-                tiles.remove(tile)
-                tiles.remove(tile)
-                if self.distinct_tile_count[tile] == 4:
-                    tiles.remove(tile)
-                self.db_search(tiles)
-            # find group of shang
-            tiles.remove(tile)
+        valid_gang_sets = self.get_valid_gang_sets()
+        valid_peng_sets = self.get_valid_peng_sets()
+        if valid_gang_sets:
+            for gang_set in valid_gang_sets:
+                for _ in range(4):
+                    tiles.remove(gang_set)
+
+        if valid_peng_sets:
+            for peng_set in valid_peng_sets:
+                for _ in range(3):
+                    tiles.remove(peng_set)
+
+        """
+        combinations should be sth like
+        {
+            0: [[]], # the winning set
+            1: [[], []], # one tile away from winning
+        }
+        """
+        combinations = self._dp_search(tiles)
+        return combinations
 
     def is_winning_hand(self):
-
         # 十三幺
         distinct_tiles = list(self.distinct_tile_count.keys())
         if sorted(distinct_tiles) == sorted(
@@ -438,24 +493,6 @@ class Hand(State):
         #     and
         # ):
 
-        # 九莲宝灯
-        # if (
-        #     len(self.tiles) == 14
-        #     and len(self.non_playable_tiles) == 0
-        #     and len(self.showed_tiles) == 0
-        #     and (
-        #         self.distinct_tile_count["1万"] == 3
-        #         and self.distinct_tile_count["2万"] == 1
-        #         and self.distinct_tile_count["3万"] == 1
-        #         and self.distinct_tile_count["4万"] == 1
-        #         and self.distinct_tile_count["5万"] == 1
-        #         and self.distinct_tile_count["6万"] == 1
-        #         and self.distinct_tile_count["7万"] == 1
-        #         and self.distinct_tile_count["8万"] == 1
-        #         and self.distinct_tile_count["9万"] == 3
-        #     )
-        # ):
-        #     return True
         return False
 
 
@@ -678,6 +715,13 @@ class Player(State):
         if tile_sequence is not None:
             return self.pending_resolve(input_tile, discard_tile, tile_sequence)
         return self.pending_resolve(input_tile, discard_tile)
+
+    def round_summary(self):
+        """
+        for winner to calculate fan,
+        for other players to calculate how far they are from winning?
+        """
+        return
 
 
 class DummyPlayer(Player):

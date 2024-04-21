@@ -282,6 +282,7 @@ def test_get_discardable_tiles():
 
 
 def test_is_winning_hand():
+    # TODO
     h = Hand(0)
     # h.add_tiles(["1万", "2万", "3万", "1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "9万", "9万"])
     # assert h.is_winning_hand() == True
@@ -353,7 +354,34 @@ def test_get_eye_candidates():
     reset_hand(h)
 
 
+def test_get_valid_shang_sets():
+    h = Hand(0)
+
+    # 1/2/3
+    h.add_tiles(["1万", "2万", "3万"])
+    valid_sequences = h.get_valid_shang_sets()
+    assert len(valid_sequences) == 1
+    assert valid_sequences[0] == ["1万", "2万", "3万"]
+    reset_hand(h)
+
+    # 1/2/3/4
+    h.add_tiles(["1万", "2万", "3万", "4万"])
+    valid_sequences = h.get_valid_shang_sets()
+    assert len(valid_sequences) == 2
+    assert ["1万", "2万", "3万"] in valid_sequences
+    assert ["2万", "3万", "4万"] in valid_sequences
+    reset_hand(h)
+
+    # peng
+    h.add_tiles(["1万", "1万", "1万", "2万", "3万"])
+    h.peng_history.append("1万")  # is a hack
+    valid_sequences = h.get_valid_shang_sets()
+    assert len(valid_sequences) == 0
+    reset_hand(h)
+
+
 def test_dp_search():
+    # TODO
     pass
 
 
