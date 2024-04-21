@@ -212,10 +212,21 @@ class Hand(State):
         self.player_idx = player_idx
         self.tiles_history = {}
         self.replacement_tiles = [] if not replacement_tiles else replacement_tiles
-        self.non_playable_tiles = []
+        self.flower_tiles = []
         self.distinct_tile_count = {}
+        # TODO remove these 3 and make it `locked_tiles`
+        # `locked_tiles` can have duplicates and is used to remove exact tiles from
+        # `self.tiles`
         self.peng_history = []
-        self.gang_history = []  # used to help `get_valid_sets`
+        self.gang_history = []
+        self.shang_history = []
+
+    def shang(self, action: PlayAction):
+        # TODO not tested
+        self.shang_history += action.target_tile  # BUG `target_tile` is a list
+        self.add_tiles(action.add_tile)  # BUG `add_tile` was bool but now is a tile
+        self.remove_tile(action.discard_tile)
+        return PlayResult(discarded_tile=action.discard_tile)
 
     def get_shang_candidates(self):
         shang_candidates = []
@@ -372,7 +383,7 @@ class Hand(State):
         self.tiles_history[f"{len(self.tiles_history)}add"] = tiles
         for tile in tiles:
             if tile in self.replacement_tiles:
-                self.non_playable_tiles.append(tile)
+                self.flower_tiles.append(tile)
                 replacement_tile_count += 1
             else:
                 self.tiles.append(tile)
@@ -434,7 +445,7 @@ class Hand(State):
                 valid_gang_sets.append(tile)
         return valid_gang_sets
 
-    def _dp_search(self, remaining_tiles):
+    def _dp_search(self, remaining_tiles: list):
         """
         assuming there are correct number of tiles
         dp search for winning hand
@@ -444,6 +455,8 @@ class Hand(State):
           - has eyes?
           - check what's missing
         """
+        if len(remaining_tiles) == 2:
+            return remaining_tiles
 
     def dp_search(self):
         tiles = copy.deepcopy(self.tiles)
@@ -451,6 +464,7 @@ class Hand(State):
 
         valid_gang_sets = self.get_valid_gang_sets()
         valid_peng_sets = self.get_valid_peng_sets()
+
         if valid_gang_sets:
             for gang_set in valid_gang_sets:
                 for _ in range(4):
@@ -521,14 +535,14 @@ class Player(State):
           instead of getting 4 in a go
         - check for non dealing stage replacement is always 1?
         """
-        total = len(self.hand.non_playable_tiles[self.hand.non_playable_tiles_ptr :])
+        total = len(self.hand.flower_tiles[self.hand.non_playable_tiles_ptr :])
         replaced_tiles = tile_sequence.replace(total)
         self.hand.add_tiles(replaced_tiles, total)
         return replaced_tiles
 
     def resolve_tile_replacement(self, tile_sequence: TilesSequence, drawed_tile=None):
         while True:
-            if len(self.hand.non_playable_tiles) > self.hand.non_playable_tiles_ptr:
+            if len(self.hand.flower_tiles) > self.hand.non_playable_tiles_ptr:
                 drawed_tile = self._replace_tiles(tile_sequence)
             else:
                 break

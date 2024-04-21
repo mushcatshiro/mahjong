@@ -111,15 +111,15 @@ def test_player_deal_stage_with_replacement():
     p.initial_draw(ts, 2, True)
 
     assert len(p.hand.tiles) == 13
-    assert len(p.hand.non_playable_tiles) == 1
+    assert len(p.hand.flower_tiles) == 1
 
     p._replace_tiles(ts)
     assert len(p.hand.tiles) == 13
-    assert len(p.hand.non_playable_tiles) == 2
+    assert len(p.hand.flower_tiles) == 2
 
     p._replace_tiles(ts)
     assert len(p.hand.tiles) == 14
-    assert len(p.hand.non_playable_tiles) == 2
+    assert len(p.hand.flower_tiles) == 2
 
 
 def test_player_resolve_tile_replacement():
@@ -129,7 +129,7 @@ def test_player_resolve_tile_replacement():
     p.hand.add_tiles(["1万"] * 3 + ["春"])
     p.resolve_tile_replacement(ts)
     assert len(p.hand.tiles) == 4
-    assert len(p.hand.non_playable_tiles) == 1
+    assert len(p.hand.flower_tiles) == 1
     assert p.hand.tiles == ["1万"] * 3 + ["4万"]
 
     # replace twice
@@ -138,7 +138,7 @@ def test_player_resolve_tile_replacement():
     p.hand.add_tiles(["1万"] * 3 + ["春", "夏"])
     p.resolve_tile_replacement(ts)
     assert len(p.hand.tiles) == 5
-    assert len(p.hand.non_playable_tiles) == 2
+    assert len(p.hand.flower_tiles) == 2
     assert p.hand.tiles == ["1万"] * 3 + ["4万", "3万"]
 
     # replace eight times
@@ -147,7 +147,7 @@ def test_player_resolve_tile_replacement():
     p.hand.add_tiles(["1万"] * 3 + ["春", "夏", "秋", "冬", "梅", "蘭", "菊", "竹"])
     p.resolve_tile_replacement(ts)
     assert len(p.hand.tiles) == 11
-    assert len(p.hand.non_playable_tiles) == 8
+    assert len(p.hand.flower_tiles) == 8
     assert p.hand.tiles == ["1万"] * 3 + ["9万", "8万", "7万", "6万", "5万", "4万", "3万", "2万"]
 
 

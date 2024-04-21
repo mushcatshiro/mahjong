@@ -5,7 +5,7 @@ def reset_hand(h: Hand):
     h.tiles = []
     h.distinct_tile_count = {}
     h.tiles_history = {}
-    h.non_playable_tiles = []
+    h.flower_tiles = []
     h.peng_history = []
     h.gang_history = []
 
@@ -62,7 +62,7 @@ def test_add_tiles():
 
     replacement_tile_count = h.add_tiles(["菊"])
     assert h.tiles == ["1万", "2万"]
-    assert h.non_playable_tiles == ["菊"]
+    assert h.flower_tiles == ["菊"]
     assert replacement_tile_count == 1
 
 
