@@ -478,8 +478,17 @@ class Hand(State):
         return combinations
 
     def dp_search(self):
+        rv = {}
         tiles = copy.deepcopy(self.tiles)
         tiles = sorted(tiles)
+
+        valid_eye_sets = self.get_eye_candidates()
+        if not valid_eye_sets:
+            return rv
+        else:
+            for eye_set in valid_eye_sets:
+                for _ in range(2):
+                    tiles.remove(eye_set)
 
         valid_gang_sets = self.get_valid_gang_sets()
         valid_peng_sets = self.get_valid_peng_sets()
@@ -503,7 +512,7 @@ class Hand(State):
             if valid_peng_sets:
                 for peng_set in valid_peng_sets:
                     thread.append([peng_set * 3])
-        rv = {}
+        
         for thread in combinations:
             l = len(thread)
             if l not in rv:
