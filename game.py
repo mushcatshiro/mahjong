@@ -1,7 +1,7 @@
 import random
 import pickle
 import copy
-from typing import Dict, List
+from typing import Dict, List, Union
 from dataclasses import dataclass, field
 
 DEFAULT_REPLACEMENT_TILES = ("春", "夏", "秋", "冬", "梅", "蘭", "菊", "竹")
@@ -68,6 +68,18 @@ SHANG_LUT = {
     "78": ["6", "9"],
     "79": ["8"],
     "89": ["7"],
+}
+
+REVERSED_SHANG_LUT = {
+    "1": ["23"],
+    "2": ["13", "34"],
+    "3": ["12", "24", "45"],
+    "4": ["23", "35", "56"],
+    "5": ["34", "46", "67"],
+    "6": ["45", "57", "78"],
+    "7": ["56", "68", "89"],
+    "8": ["67", "79"],
+    "9": ["78"],
 }
 
 SHANG_REF = [
@@ -166,8 +178,8 @@ class PlayAction(State):
 
     resolve: bool = False
     action: str = None
-    target_tile: str = None
-    add_tile: bool = False
+    target_tile: Union[str, List] = None
+    add_tile: bool = False  # TODO actually add_tile can be str
     discard_tile: str = None
     RESOLVABLE_ACTIONS = [
         "peng",
@@ -223,35 +235,44 @@ class Hand(State):
 
     def shang(self, action: PlayAction):
         # TODO not tested
-        self.shang_history += action.target_tile  # BUG `target_tile` is a list
-        self.add_tiles(action.add_tile)  # BUG `add_tile` was bool but now is a tile
+        self.shang_history += action.target_tile
+        for tile in action.target_tile:
+            self.shang_history.append(tile)
+            if tile not in self.tiles:
+                self.add_tiles([tile])
         self.remove_tile(action.discard_tile)
         return PlayResult(discarded_tile=action.discard_tile)
 
-    def get_shang_candidates(self):
+    def get_shang_candidates(self, played_tile):
         shang_candidates = []
-        for s in SUITES:
-            # BUG peng and gang history entry can be duplicated
-            candidates = sorted(
-                list(
-                    set(
-                        [
-                            x.replace(s, "")
-                            for x in self.tiles
-                            if x.endswith(s)
-                            and x not in self.peng_history + self.gang_history
-                        ]
+        suite = played_tile[-1]
+        corresponding_tiles = REVERSED_SHANG_LUT[played_tile[:-1]]
+        for tile_group in corresponding_tiles:
+            if (
+                f"{tile_group[0]}{suite}" in self.tiles
+                and f"{tile_group[1]}{suite}" in self.tiles
+            ) and (
+                f"{tile[0]}" not in self.peng_history
+                or f"{tile[1]}" not in self.peng_history
+            ):
+                copy_tiles = copy.deepcopy(self.tiles)
+                copy_tiles.remove(f"{tile_group[0]}{suite}")
+                copy_tiles.remove(f"{tile_group[1]}{suite}")
+                for tile in copy_tiles:
+                    shang_candidates.append(
+                        PlayAction(
+                            resolve=True,
+                            action="shang",
+                            target_tile=[
+                                f"{tile_group[0]}{suite}",
+                                f"{tile_group[1]}{suite}",
+                                played_tile,
+                            ],
+                            add_tile=True,
+                            discard_tile=tile,
+                        )
                     )
-                )
-            )
-            bptr = 0
-            fptr = 2
-            while fptr <= len(candidates):
-                combination = "".join(candidates[bptr:fptr])
-                if combination in SHANG_LUT:
-                    shang_candidates += [f"{x}{s}" for x in SHANG_LUT[combination]]
-                bptr += 1
-                fptr += 1
+                copy_tiles = None
         return shang_candidates
 
     def is_locked(self, tile):
@@ -260,6 +281,7 @@ class Hand(State):
         return False
 
     def get_eye_candidates(self):
+        # TODO to improve based on updated `get_discardable_tiles`
         return [
             k
             for k, v in self.distinct_tile_count.items()
@@ -356,17 +378,22 @@ class Hand(State):
 
     def get_discardable_tiles(self, exclude_tile=None):
         """
-        situation where player can discard a tile
+        private method to address `peng` but allows `shang`
         """
-        # TODO potentially useless if condition
-        if type(exclude_tile) != list:
-            exclude_tile = [exclude_tile]
-        # BUG peng and gang history entry can be duplicated
-        return [
-            x
-            for x in self.tiles
-            if x not in self.peng_history + exclude_tile + self.gang_history
-        ]
+        non_locked_tiles = copy.deepcopy(self.tiles)
+        if self.peng_history:
+            for tile in self.peng_history:
+                for _ in range(3):
+                    non_locked_tiles.remove(tile)
+        if self.gang_history:
+            for tile in self.gang_history:
+                non_locked_tiles.remove(tile)
+        if self.shang_history:
+            for tile in self.shang_history:
+                non_locked_tiles.remove(tile)
+        if exclude_tile:
+            non_locked_tiles.remove(exclude_tile)
+        return non_locked_tiles
 
     def add_tiles(self, tiles: List) -> int:
         """
@@ -408,23 +435,20 @@ class Hand(State):
         return tile
 
     def get_valid_shang_sets(self, remaining_tiles):
-        tiles = sorted(tiles)
+        tiles = remaining_tiles
         valid_shang_sets = []
         for s in SUITES:
             candidates = sorted(
-                list(
-                    set(
-                        x
-                        for x in tiles
-                        if x.endswith(s)
-                        and x not in self.peng_history + self.gang_history
-                    )
-                )
+                [
+                    x.replace(s, "")
+                    for x in tiles
+                    if x.endswith(s) and x not in self.peng_history + self.gang_history
+                ]
             )
             bptr = 0
             fptr = 3
             while fptr <= len(candidates):
-                combination = "".join([x.replace(s, "") for x in candidates[bptr:fptr]])
+                combination = "".join(candidates[bptr:fptr])
                 if combination in SHANG_REF:
                     valid_shang_sets.append([x for x in candidates[bptr:fptr]])
                 bptr += 1
@@ -512,7 +536,7 @@ class Hand(State):
             if valid_peng_sets:
                 for peng_set in valid_peng_sets:
                     thread.append([peng_set * 3])
-        
+
         for thread in combinations:
             l = len(thread)
             if l not in rv:
@@ -595,7 +619,6 @@ class Player(State):
 
         self.possible_actions: PossibleActions = PossibleActions()
         self.draw_check(drawed_tile)
-        self.get_discardable_tiles()
         action: PlayAction = self.play_turn_strategy()
         if action.resolve:
             self.pending_resolve = getattr(self, f"resolve_{action.action}")

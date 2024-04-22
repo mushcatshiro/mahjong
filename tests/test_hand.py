@@ -68,35 +68,42 @@ def test_add_tiles():
 
 def test_get_shang_candidates():
     h = Hand(0)
-    h.add_tiles(["1万", "2万"])
-    assert h.get_shang_candidates() == ["3万"]
-    reset_hand(h)
-
     h.add_tiles(["1万", "2万", "5万"])
-    assert h.get_shang_candidates() == ["3万"]
+    assert len(h.get_shang_candidates("3万")) == 1
+    assert h.get_shang_candidates("3万")[0] == PlayAction(
+        resolve=True,
+        action="shang",
+        target_tile=["1万", "2万", "3万"],
+        add_tile=True,
+        discard_tile="5万",
+    )
     reset_hand(h)
 
-    h.add_tiles(["2万", "3万"])
-    assert h.get_shang_candidates() == ["1万", "4万"]
+    h.add_tiles(["2万", "3万", "5万", "9万"])
+    assert len(h.get_shang_candidates("4万")) == 4
     reset_hand(h)
 
     h.add_tiles(["2万", "3万", "4筒", "5筒"])
-    assert h.get_shang_candidates() == ["1万", "4万", "3筒", "6筒"]
-    reset_hand(h)
-
-    h.add_tiles(["2万", "3万", "4筒", "5筒", "7索", "9索"])
-    assert h.get_shang_candidates() == ["1万", "4万", "3筒", "6筒", "8索"]
+    assert len(h.get_shang_candidates("1万")) == 2
+    assert len(h.get_shang_candidates("6筒")) == 2
     reset_hand(h)
 
     # dealing with repeated tiles
     h.add_tiles(["1万", "2万", "2万"])
-    assert h.get_shang_candidates() == ["3万"]
+    assert len(h.get_shang_candidates("3万")) == 1
+    assert h.get_shang_candidates("3万")[0] == PlayAction(
+        resolve=True,
+        action="shang",
+        target_tile=["1万", "2万", "3万"],
+        add_tile=True,
+        discard_tile="2万",
+    )
     reset_hand(h)
 
     # dealing with locked tiles
     h.add_tiles(["1万", "2万", "2万", "2万"])
     h.peng_history.append("2万")
-    assert h.get_shang_candidates() == []
+    assert len(h.get_shang_candidates("3万")) == 0
     reset_hand(h)
 
     h.add_tiles(["1万", "2万", "2万", "2万", "2万"])
