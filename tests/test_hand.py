@@ -74,7 +74,6 @@ def test_get_shang_candidates():
         resolve=True,
         action="shang",
         target_tile=["1万", "2万", "3万"],
-        add_tile=True,
         discard_tile="5万",
     )
     reset_hand(h)
@@ -95,48 +94,29 @@ def test_get_shang_candidates():
         resolve=True,
         action="shang",
         target_tile=["1万", "2万", "3万"],
-        add_tile=True,
         discard_tile="2万",
     )
-    reset_hand(h)
-
-    # dealing with locked tiles
-    h.add_tiles(["1万", "2万", "2万", "2万"])
-    h.peng_history.append("2万")
-    assert len(h.get_shang_candidates("3万")) == 0
-    reset_hand(h)
-
-    h.add_tiles(["1万", "2万", "2万", "2万", "2万"])
-    h.gang_history.append("2万")
-    assert h.get_shang_candidates() == []
     reset_hand(h)
 
 
 def test_get_peng_candidates():
     h = Hand(0)
-    h.add_tiles(["2万", "2万", "2万", "3万"])
-    assert len(h.get_peng_candidates()) == 1
-    assert h.get_peng_candidates()[0] == PlayAction(
+    h.add_tiles(["2万", "2万", "3万"])
+    assert len(h.get_peng_candidates("2万")) == 1
+    assert h.get_peng_candidates("2万")[0] == PlayAction(
         resolve=True, action="peng", target_tile="2万", discard_tile="3万"
     )
     reset_hand(h)
 
-    h.add_tiles(["2万", "2万", "3万"])
-    assert len(h.get_peng_candidates("2万")) == 1
-    assert h.get_peng_candidates("2万")[0] == PlayAction(
-        resolve=True, action="peng", target_tile="2万", add_tile=True, discard_tile="3万"
-    )
-    reset_hand(h)
-
-    h.add_tiles(["2万", "3万", "3万", "3万"])
-    assert len(h.get_peng_candidates()) == 1
-    assert h.get_peng_candidates()[0] == PlayAction(
+    h.add_tiles(["2万", "3万", "3万"])
+    assert len(h.get_peng_candidates("3万")) == 1
+    assert h.get_peng_candidates("3万")[0] == PlayAction(
         resolve=True, action="peng", target_tile="3万", discard_tile="2万"
     )
     reset_hand(h)
 
     h.add_tiles(["2万", "3万", "4万"])
-    assert h.get_peng_candidates() == []
+    assert h.get_peng_candidates("4万") == []
 
 
 def test_peng():
@@ -148,20 +128,10 @@ def test_peng():
     assert len(action) == 1
     play_result: PlayResult = h.peng(action[0])
     assert play_result.discarded_tile == "3万"
-    assert h.tiles == ["2万", "2万", "2万"]
-    assert h.peng_history == ["2万"]
+    assert h.tiles == []
+    assert h.peng_history == ["2万", "2万", "2万"]
     assert h.is_locked("2万")
     reset_hand(h)
-
-    # check if there is 3 of a set
-    h.add_tiles(["2万", "2万", "2万", "3万"])
-    action = h.get_peng_candidates()
-    assert len(action) == 1
-    play_result: PlayResult = h.peng(action[0])
-    assert play_result.discarded_tile == "3万"
-    assert h.tiles == ["2万", "2万", "2万"]
-    assert h.peng_history == ["2万"]
-    assert h.is_locked("2万")
 
 
 def test_get_gang_candidates():
@@ -169,7 +139,7 @@ def test_get_gang_candidates():
     h.add_tiles(["2万", "2万", "2万"])
     assert len(h.get_gang_candidates(played_tile="2万")) == 1
     assert h.get_gang_candidates(played_tile="2万")[0] == PlayAction(
-        resolve=True, action="ming_gang", add_tile=True, target_tile="2万"
+        resolve=True, action="ming_gang", target_tile="2万"
     )
     reset_hand(h)
 
@@ -184,7 +154,6 @@ def test_get_gang_candidates():
     reset_hand(h)
 
     h.add_tiles(["3万", "3万", "3万"])
-    h.add_tiles(["3万"])
     assert len(h.get_gang_candidates(drawed_tile="3万")) == 1
     assert h.get_gang_candidates(drawed_tile="3万")[0] == PlayAction(
         resolve=True, action="an_gang", target_tile="3万"
@@ -207,22 +176,21 @@ def test_gang():
     assert action[0].action == "ming_gang"
     play_result: PlayResult = h.gang(action[0])
     assert play_result.need_replacement
-    assert h.tiles == ["2万", "2万", "2万", "2万"]
-    assert h.gang_history == ["2万"]
+    assert h.tiles == []
+    assert h.gang_history == ["2万", "2万", "2万", "2万"]
     assert h.is_locked("2万")
     reset_hand(h)
 
     # is confusing but drawed tiles should be added at `Player` level
     # before resolving stuff at `Hand`
     h.add_tiles(["2万", "2万", "2万"])
-    h.add_tiles(["2万"])
     action = h.get_gang_candidates(drawed_tile="2万")
     assert len(action) == 1
     assert action[0].action == "an_gang"
     play_result: PlayResult = h.gang(action[0])
     assert play_result.need_replacement
-    assert h.tiles == ["2万", "2万", "2万", "2万"]
-    assert h.gang_history == ["2万"]
+    assert h.tiles == []
+    assert h.gang_history == ["2万", "2万", "2万", "2万"]
     assert h.is_locked("2万")
     reset_hand(h)
 
@@ -231,16 +199,16 @@ def test_gang():
     assert len(action) == 1
     assert action[0].action == "peng"
     play_result: PlayResult = h.peng(action[0])
-    assert h.tiles == ["2万", "2万", "2万"]
-    assert h.peng_history == ["2万"]
-    h.add_tiles(["2万"])
+    assert h.tiles == []
+    assert h.peng_history == ["2万", "2万", "2万"]
     action = h.get_gang_candidates(drawed_tile="2万")
     assert len(action) == 1
     assert action[0].action == "jia_gang"
     play_result = h.gang(action[0])
     assert play_result.need_replacement
-    assert h.tiles == ["2万", "2万", "2万", "2万"]
-    assert h.gang_history == ["2万"]
+    assert h.tiles == []
+    assert h.gang_history == ["2万", "2万", "2万", "2万"]
+    assert h.peng_history == []
     assert h.is_locked("2万")
     reset_hand(h)
 
@@ -250,14 +218,14 @@ def test_get_discardable_tiles():
     TODO: `discard_tile` is not used, maybe use `Hand.resolve` instead?
     """
     h = Hand(0)
-    h.add_tiles(["2万", "2万", "2万", "3万"])
-    action = h.get_peng_candidates()
+    h.add_tiles(["2万", "2万", "3万"])
+    action = h.get_peng_candidates("2万")
     assert len(action) == 1
     h.peng(action[0])
     assert h.get_discardable_tiles() == []
     reset_hand(h)
 
-    h.add_tiles(["2万", "2万", "2万", "2万"])
+    h.add_tiles(["2万", "2万", "2万"])
     action = PlayAction(
         resolve=True, action="an_gang", target_tile="2万", discard_tile=""
     )
@@ -265,8 +233,8 @@ def test_get_discardable_tiles():
     assert h.get_discardable_tiles() == []
     reset_hand(h)
 
-    h.add_tiles(["2万", "3万", "3万", "3万", "4万"])
-    action = h.get_peng_candidates()
+    h.add_tiles(["2万", "3万", "3万", "4万"])
+    action = h.get_peng_candidates("3万")
     assert len(action) == 2
     h.peng(action[0])
     assert h.get_discardable_tiles() == [action[1].discard_tile]
@@ -284,8 +252,9 @@ def test_get_discardable_tiles():
     assert h.get_discardable_tiles(exclude_tile="6万") == ["2万", "3万", "4万", "5万"]
     reset_hand(h)
 
-    h.add_tiles(["2万", "3万", "4万", "5万", "6万"])
-    assert h.get_discardable_tiles(exclude_tile=["5万", "6万"]) == ["2万", "3万", "4万"]
+    # dont think at any point of time need to remove multiple different tiles
+    # h.add_tiles(["2万", "3万", "4万", "5万", "6万"])
+    # assert h.get_discardable_tiles(exclude_tile=["5万", "6万"]) == ["2万", "3万", "4万"]
 
 
 def test_is_winning_hand():
@@ -326,38 +295,24 @@ def test_is_winning_hand():
     # standard winning hand 3/3/3/3 + 2
 
 
-def test_get_eye_candidates():
+def test_get_valid_eye_sets():
     h = Hand(0)
     h.add_tiles(["2万", "2万"])
-    eye_candidates = h.get_eye_candidates()
+    eye_candidates = h.get_valid_eye_sets()
     assert len(eye_candidates) == 1
     assert eye_candidates == ["2万"]
     reset_hand(h)
 
     h.add_tiles(["2万", "2万", "3万", "3万"])
-    eye_candidates = h.get_eye_candidates()
+    eye_candidates = h.get_valid_eye_sets()
     assert len(eye_candidates) == 2
     assert sorted(eye_candidates) == sorted(["2万", "3万"])
     reset_hand(h)
 
     h.add_tiles(["2万", "2万", "2万"])
-    eye_candidates = h.get_eye_candidates()
+    eye_candidates = h.get_valid_eye_sets()
     assert len(eye_candidates) == 1
     assert eye_candidates == ["2万"]
-    reset_hand(h)
-
-    # is a hack
-    h.add_tiles(["2万", "2万", "2万"])
-    h.peng_history.append("2万")
-    eye_candidates = h.get_eye_candidates()
-    assert len(eye_candidates) == 0
-    reset_hand(h)
-
-    # is a hack
-    h.add_tiles(["2万", "2万", "2万", "2万"])
-    h.peng_history.append("2万")
-    eye_candidates = h.get_eye_candidates()
-    assert len(eye_candidates) == 0
     reset_hand(h)
 
 
@@ -365,25 +320,16 @@ def test_get_valid_shang_sets():
     h = Hand(0)
 
     # 1/2/3
-    h.add_tiles(["1万", "2万", "3万"])
-    valid_sequences = h.get_valid_shang_sets()
+    valid_sequences = h.get_valid_shang_sets(["1万", "2万", "3万"])
     assert len(valid_sequences) == 1
     assert valid_sequences[0] == ["1万", "2万", "3万"]
     reset_hand(h)
 
     # 1/2/3/4
-    h.add_tiles(["1万", "2万", "3万", "4万"])
-    valid_sequences = h.get_valid_shang_sets()
+    valid_sequences = h.get_valid_shang_sets(["1万", "2万", "3万", "4万"])
     assert len(valid_sequences) == 2
     assert ["1万", "2万", "3万"] in valid_sequences
     assert ["2万", "3万", "4万"] in valid_sequences
-    reset_hand(h)
-
-    # peng
-    h.add_tiles(["1万", "1万", "1万", "2万", "3万"])
-    h.peng_history.append("1万")  # is a hack
-    valid_sequences = h.get_valid_shang_sets()
-    assert len(valid_sequences) == 0
     reset_hand(h)
 
 
@@ -395,43 +341,50 @@ def test_internal_dp_search():
     assert resp[0] == []
 
 
+def test_history_tiles_always_complementary_and_correct():
+    # TODO
+    # gist is `peng` `gang` `shang` should always move from tiles
+    # to history
+    pass
+
+
 def test_resolve():
     h = Hand(0)
 
     # resolve peng
-    h.add_tiles(["2万", "2万", "2万", "3万"])
-    actions = h.get_peng_candidates()
+    h.add_tiles(["2万", "2万", "3万"])
+    actions = h.get_peng_candidates("2万")
     assert len(actions) == 1
     play_result = h.resolve(actions[0])
-    assert h.tiles == ["2万", "2万", "2万"]
-    assert h.peng_history == ["2万"]
+    assert h.tiles == []
+    assert h.peng_history == ["2万", "2万", "2万"]
     assert h.is_locked("2万")
     assert play_result.discarded_tile == "3万"
     reset_hand(h)
 
     # resolve an_gang
-    h.add_tiles(["2万", "2万", "2万", "2万"])
+    h.add_tiles(["2万", "2万", "2万", "3万"])
     actions = h.get_gang_candidates(drawed_tile="2万")
     assert len(actions) == 1
     play_result = h.resolve(actions[0])
-    assert h.tiles == ["2万", "2万", "2万", "2万"]
-    assert h.gang_history == ["2万"]
+    assert h.tiles == ["3万"]
+    assert h.gang_history == ["2万", "2万", "2万", "2万"]
     assert h.is_locked("2万")
+    assert not h.is_locked("3万")
     assert play_result.need_replacement
     reset_hand(h)
 
     # resolve jia_gang
-    h.add_tiles(["2万", "2万", "2万", "3万"])
-    actions = h.get_peng_candidates()
+    h.add_tiles(["2万", "2万", "3万"])
+    actions = h.get_peng_candidates("2万")
     assert len(actions) == 1
     play_result = h.resolve(actions[0])
     assert play_result.discarded_tile == "3万"
-    h.add_tiles(["2万"])
     actions = h.get_gang_candidates(drawed_tile="2万")
     assert len(actions) == 1
     play_result = h.resolve(actions[0])
-    assert h.tiles == ["2万", "2万", "2万", "2万"]
-    assert h.gang_history == ["2万"]
+    assert h.tiles == []
+    assert h.gang_history == ["2万", "2万", "2万", "2万"]
     assert h.is_locked("2万")
     assert play_result.need_replacement
     reset_hand(h)
@@ -441,8 +394,8 @@ def test_resolve():
     actions = h.get_gang_candidates(played_tile="2万")
     assert len(actions) == 1
     play_result = h.resolve(actions[0])
-    assert h.tiles == ["2万", "2万", "2万", "2万"]
-    assert h.gang_history == ["2万"]
+    assert h.tiles == []
+    assert h.gang_history == ["2万", "2万", "2万", "2万"]
     assert h.is_locked("2万")
     assert play_result.need_replacement
     reset_hand(h)

@@ -178,9 +178,9 @@ class PlayAction(State):
 
     resolve: bool = False
     action: str = None
-    target_tile: Union[str, List] = None
-    add_tile: bool = False  # TODO actually add_tile can be str
+    target_tile: str = None
     discard_tile: str = None
+
     RESOLVABLE_ACTIONS = [
         "peng",
         "ming_gang",
@@ -219,31 +219,41 @@ class PlayResult(State):
 
 
 class Hand(State):
+    """
+    `Hand` class is a representation of a player's hand. It includes
+    4 main methods to be called by `Player`:
+    - `get_*_candidates`: to get possible actions
+      - expected output is a list of `PlayAction` objects
+    - `resolve`: to resolve the action described in `PlayAction`
+    - `is_winning_hand`: to check if the hand is a winning hand
+      - checked after each draw and in call check
+    - `dp_search`: to search for winning hand i.e. inform player minimum
+        change of times to win
+      - `get_valid_*_sets` methods are supporting methods for `dp_search`
+    """
+
     def __init__(self, player_idx: int, replacement_tiles=DEFAULT_REPLACEMENT_TILES):
         self.tiles = []
         self.player_idx = player_idx
-        self.tiles_history = {}
+        self.tiles_history = {}  # TODO extend to include all actions
         self.replacement_tiles = [] if not replacement_tiles else replacement_tiles
         self.flower_tiles = []
         self.distinct_tile_count = {}
-        # TODO remove these 3 and make it `locked_tiles`
-        # `locked_tiles` can have duplicates and is used to remove exact tiles from
-        # `self.tiles`
         self.peng_history = []
         self.gang_history = []
         self.shang_history = []
 
     def shang(self, action: PlayAction):
         # TODO not tested
-        self.shang_history += action.target_tile
         for tile in action.target_tile:
+            if tile in self.tiles:
+                self.tiles.remove(tile)
             self.shang_history.append(tile)
-            if tile not in self.tiles:
-                self.add_tiles([tile])
         self.remove_tile(action.discard_tile)
         return PlayResult(discarded_tile=action.discard_tile)
 
     def get_shang_candidates(self, played_tile):
+        # TODO
         shang_candidates = []
         suite = played_tile[-1]
         corresponding_tiles = REVERSED_SHANG_LUT[played_tile[:-1]]
@@ -251,14 +261,11 @@ class Hand(State):
             if (
                 f"{tile_group[0]}{suite}" in self.tiles
                 and f"{tile_group[1]}{suite}" in self.tiles
-            ) and (
-                f"{tile[0]}" not in self.peng_history
-                or f"{tile[1]}" not in self.peng_history
             ):
-                copy_tiles = copy.deepcopy(self.tiles)
-                copy_tiles.remove(f"{tile_group[0]}{suite}")
-                copy_tiles.remove(f"{tile_group[1]}{suite}")
-                for tile in copy_tiles:
+                free_tiles = copy.deepcopy(self.tiles)
+                free_tiles.remove(f"{tile_group[0]}{suite}")
+                free_tiles.remove(f"{tile_group[1]}{suite}")
+                for tile in free_tiles:
                     shang_candidates.append(
                         PlayAction(
                             resolve=True,
@@ -268,66 +275,46 @@ class Hand(State):
                                 f"{tile_group[1]}{suite}",
                                 played_tile,
                             ],
-                            add_tile=True,
                             discard_tile=tile,
                         )
                     )
-                copy_tiles = None
+                free_tiles = None
         return shang_candidates
 
     def is_locked(self, tile):
-        if tile in self.peng_history or tile in self.gang_history:
+        free_tiles = self.get_discardable_tiles()
+        if not free_tiles:
             return True
-        return False
-
-    def get_eye_candidates(self):
-        # TODO to improve based on updated `get_discardable_tiles`
-        return [
-            k
-            for k, v in self.distinct_tile_count.items()
-            if v >= 2 and not self.is_locked(k)
-        ]
+        if tile in free_tiles:
+            return False
+        return True
 
     def peng(self, action: PlayAction):
-        self.peng_history.append(action.target_tile)
-        if action.add_tile:
-            self.add_tiles([action.target_tile])
+        for _ in range(2):
+            self.tiles.remove(action.target_tile)
+        self.peng_history += [action.target_tile] * 3
+        self.distinct_tile_count[action.target_tile] = 3
         self.remove_tile(action.discard_tile)
         return PlayResult(discarded_tile=action.discard_tile)
 
-    def get_peng_candidates(self, played_tile=None):
-        """
-        if args `played_tile` is provided, assuming is in a call state.
-        """
-        if played_tile:
-            discardables = self.get_discardable_tiles(exclude_tile=played_tile)
-            return (
-                [
-                    PlayAction(
-                        resolve=True,
-                        action="peng",
-                        target_tile=played_tile,
-                        add_tile=True,
-                        discard_tile=discard_tile,
-                    )
-                    for discard_tile in discardables
-                ]
-                if self.distinct_tile_count[played_tile] == 2
-                else []
-            )
-        rv = []
-        for tile, tile_count in self.distinct_tile_count.items():
-            if tile_count == 3:
-                rv += [
-                    PlayAction(
-                        resolve=True,
-                        action="peng",
-                        target_tile=tile,
-                        discard_tile=discard_tile,
-                    )
-                    for discard_tile in self.get_discardable_tiles(exclude_tile=tile)
-                ]
-        return rv
+    def get_peng_candidates(self, played_tile):
+        """ """
+        discardables = self.get_discardable_tiles(
+            exclude_tile=played_tile, exclude_all=True
+        )
+        return (
+            [
+                PlayAction(
+                    resolve=True,
+                    action="peng",
+                    target_tile=played_tile,
+                    discard_tile=discard_tile,
+                )
+                for discard_tile in discardables
+            ]
+            if self.distinct_tile_count[played_tile] == 2
+            else []
+        )
 
     def gang(self, action: PlayAction):
         """
@@ -335,14 +322,27 @@ class Hand(State):
         jia_gang: peng + draw
         an_gang: hand 4
         """
-        if action.add_tile:
-            self.add_tiles([action.target_tile])
-        self.gang_history.append(action.target_tile)
+        if action.action == "ming_gang":
+            for _ in range(3):
+                self.tiles.remove(action.target_tile)
+            self.gang_history += [action.target_tile] * 4
+            self.distinct_tile_count[action.target_tile] = 4
+        elif action.action == "an_gang":
+            for _ in range(3):
+                self.tiles.remove(action.target_tile)
+            self.gang_history += [action.target_tile] * 4
+            self.distinct_tile_count[action.target_tile] = 4
+        elif action.action == "jia_gang":
+            for _ in range(3):
+                self.peng_history.remove(action.target_tile)
+            self.gang_history += [action.target_tile] * 4
+            self.distinct_tile_count[action.target_tile] = 4
         return PlayResult(need_replacement=True)
 
     def get_gang_candidates(self, played_tile=None, drawed_tile=None):
-        """ """
+        """"""
         check = played_tile if played_tile else drawed_tile
+        # ensuring the tile is in the hand
         if check not in self.distinct_tile_count.keys():
             return []
         if played_tile:
@@ -351,7 +351,6 @@ class Hand(State):
                     PlayAction(
                         resolve=True,
                         action="ming_gang",
-                        add_tile=True,
                         target_tile=played_tile,
                     )
                 ]
@@ -361,7 +360,7 @@ class Hand(State):
         elif drawed_tile:
             if drawed_tile in self.peng_history:
                 action = "jia_gang"
-            elif self.distinct_tile_count[drawed_tile] == 4:
+            elif self.distinct_tile_count[drawed_tile] == 3:
                 action = "an_gang"
             else:
                 return []  # for completeness
@@ -376,21 +375,19 @@ class Hand(State):
         result: PlayResult = fn(action)
         return result
 
-    def get_discardable_tiles(self, exclude_tile=None):
+    def get_discardable_tiles(self, exclude_tile=None, exclude_all=False):
         """
         private method to address `peng` but allows `shang`
         """
-        non_locked_tiles = copy.deepcopy(self.tiles)
-        if self.peng_history:
-            for tile in self.peng_history:
-                for _ in range(3):
-                    non_locked_tiles.remove(tile)
-        if self.gang_history:
-            for tile in self.gang_history:
-                non_locked_tiles.remove(tile)
-        if self.shang_history:
-            for tile in self.shang_history:
-                non_locked_tiles.remove(tile)
+        # locked_tiles = self.gang_history + self.peng_history + self.shang_history
+        non_locked_tiles: list = copy.deepcopy(self.tiles)
+        # for tile in locked_tiles:
+        #     if tile in non_locked_tiles:
+        #         non_locked_tiles.remove(tile)
+        if exclude_all:
+            for _ in range(self.distinct_tile_count[exclude_tile]):
+                non_locked_tiles.remove(exclude_tile)
+            return non_locked_tiles
         if exclude_tile:
             non_locked_tiles.remove(exclude_tile)
         return non_locked_tiles
@@ -434,23 +431,32 @@ class Hand(State):
         self.tiles_history[f"{len(self.tiles_history)}remove"] = tile
         return tile
 
+    def get_valid_eye_sets(self):
+        # TODO to improve based on updated `get_discardable_tiles`
+        free_tiles = self.get_discardable_tiles()
+        rv = []
+        distinct_tile_count = {}
+        for tiles in free_tiles:
+            if tiles not in distinct_tile_count:
+                distinct_tile_count[tiles] = 1
+            else:
+                distinct_tile_count[tiles] += 1
+        return [k for k, v in distinct_tile_count.items() if v >= 2]
+
     def get_valid_shang_sets(self, remaining_tiles):
+        """
+        should return list of valid shang sets and remaining tiles
+        """
         tiles = remaining_tiles
         valid_shang_sets = []
         for s in SUITES:
-            candidates = sorted(
-                [
-                    x.replace(s, "")
-                    for x in tiles
-                    if x.endswith(s) and x not in self.peng_history + self.gang_history
-                ]
-            )
+            candidates = sorted([x.replace(s, "") for x in tiles if x.endswith(s)])
             bptr = 0
             fptr = 3
             while fptr <= len(candidates):
                 combination = "".join(candidates[bptr:fptr])
                 if combination in SHANG_REF:
-                    valid_shang_sets.append([x for x in candidates[bptr:fptr]])
+                    valid_shang_sets.append([f"{x}{s}" for x in candidates[bptr:fptr]])
                 bptr += 1
                 fptr += 1
         return valid_shang_sets
@@ -461,13 +467,6 @@ class Hand(State):
             if tile_count == 3:
                 valid_peng_sets.append(tile)
         return valid_peng_sets
-
-    def get_valid_gang_sets(self):
-        valid_gang_sets = []
-        for tile, tile_count in self.distinct_tile_count.items():
-            if tile_count == 4:
-                valid_gang_sets.append(tile)
-        return valid_gang_sets
 
     def _dp_search(self, remaining_tiles: list):
         """
@@ -485,7 +484,7 @@ class Hand(State):
 
         valid_shang_sets = self.get_valid_shang_sets(remaining_tiles)
 
-        if not valid_shang_set:
+        if not valid_shang_sets:
             return []
         if len(valid_shang_sets) == 1:
             return remaining_tiles
@@ -502,47 +501,27 @@ class Hand(State):
         return combinations
 
     def dp_search(self):
+        """
+        TODO consider to also check for 7 pairs
+        """
         rv = {}
-        tiles = copy.deepcopy(self.tiles)
-        tiles = sorted(tiles)
 
         valid_eye_sets = self.get_eye_candidates()
         if not valid_eye_sets:
             return rv
         else:
             for eye_set in valid_eye_sets:
+                tiles = copy.deepcopy(self.tiles)
                 for _ in range(2):
                     tiles.remove(eye_set)
 
-        valid_gang_sets = self.get_valid_gang_sets()
-        valid_peng_sets = self.get_valid_peng_sets()
-
-        if valid_gang_sets:
-            for gang_set in valid_gang_sets:
-                for _ in range(4):
-                    tiles.remove(gang_set)
-
-        if valid_peng_sets:
-            for peng_set in valid_peng_sets:
-                for _ in range(3):
-                    tiles.remove(peng_set)
-
-        combinations = self._dp_search(tiles)
-        for thread in combinations:
-            if valid_gang_sets:
-                for gang_set in valid_gang_sets:
-                    # TODO should be wrong, append might not be in place
-                    thread.append([gang_set * 4])
-            if valid_peng_sets:
-                for peng_set in valid_peng_sets:
-                    thread.append([peng_set * 3])
-
-        for thread in combinations:
-            l = len(thread)
-            if l not in rv:
-                rv[l] = [thread]
-            else:
-                rv[l].append(thread)
+                combinations = self._dp_search(tiles)
+                for thread in combinations:
+                    l = len(thread)
+                    if l not in rv:
+                        rv[l] = [thread]
+                    else:
+                        rv[l].append(thread)
         return rv
 
     def is_winning_hand(self):
@@ -629,7 +608,7 @@ class Player(State):
             )
             return action.discard_tile
         else:
-            self.hand.remove_tile(action.discard_tile)
+            self.hand.remove_tile(action.discard_tile)  # TODO to be removed
             return action.discard_tile
         # TODO mandatory discard?
 
