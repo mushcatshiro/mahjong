@@ -244,16 +244,14 @@ class Hand(State):
         self.shang_history = []
 
     def shang(self, action: PlayAction):
-        # TODO not tested
         for tile in action.target_tile:
             if tile in self.tiles:
-                self.tiles.remove(tile)
+                self.remove_tile(tile)
             self.shang_history.append(tile)
         self.remove_tile(action.discard_tile)
         return PlayResult(discarded_tile=action.discard_tile)
 
     def get_shang_candidates(self, played_tile):
-        # TODO
         shang_candidates = []
         suite = played_tile[-1]
         corresponding_tiles = REVERSED_SHANG_LUT[played_tile[:-1]]
@@ -291,7 +289,7 @@ class Hand(State):
 
     def peng(self, action: PlayAction):
         for _ in range(2):
-            self.tiles.remove(action.target_tile)
+            self.tiles.remove(action.target_tile)  # allowed, moving to peng_history
         self.peng_history += [action.target_tile] * 3
         self.distinct_tile_count[action.target_tile] = 3
         self.remove_tile(action.discard_tile)
@@ -324,12 +322,12 @@ class Hand(State):
         """
         if action.action == "ming_gang":
             for _ in range(3):
-                self.tiles.remove(action.target_tile)
+                self.tiles.remove(action.target_tile)  # allowed, moving to gang_history
             self.gang_history += [action.target_tile] * 4
             self.distinct_tile_count[action.target_tile] = 4
         elif action.action == "an_gang":
             for _ in range(3):
-                self.tiles.remove(action.target_tile)
+                self.tiles.remove(action.target_tile)  # allowed, moving to gang_history
             self.gang_history += [action.target_tile] * 4
             self.distinct_tile_count[action.target_tile] = 4
         elif action.action == "jia_gang":
@@ -372,6 +370,7 @@ class Hand(State):
             action.action if "_" not in action.action else action.action.split("_")[1]
         )
         fn = getattr(self, resolve_to)
+        self.tiles_history[f"{len(self.tiles_history)}resolve"] = str(action)
         result: PlayResult = fn(action)
         return result
 
@@ -432,7 +431,6 @@ class Hand(State):
         return tile
 
     def get_valid_eye_sets(self):
-        # TODO to improve based on updated `get_discardable_tiles`
         free_tiles = self.get_discardable_tiles()
         rv = []
         distinct_tile_count = {}
@@ -450,63 +448,64 @@ class Hand(State):
         tiles = remaining_tiles
         valid_shang_sets = []
         for s in SUITES:
-            candidates = sorted([x.replace(s, "") for x in tiles if x.endswith(s)])
-            bptr = 0
-            fptr = 3
-            while fptr <= len(candidates):
-                combination = "".join(candidates[bptr:fptr])
-                if combination in SHANG_REF:
-                    valid_shang_sets.append([f"{x}{s}" for x in candidates[bptr:fptr]])
-                bptr += 1
-                fptr += 1
+            distinct_tiles = {}
+            for tile in tiles:
+                if tile.endswith(s):
+                    if tile not in distinct_tiles:
+                        distinct_tiles[tile[:-1]] = 1
+                    else:
+                        distinct_tiles[tile[:-1]] += 1
+            for group in SHANG_REF:
+                if all([x in distinct_tiles for x in group]):
+                    candidates = []
+                    for x in group:
+                        candidates.append(x)
+                    valid_shang_sets.append([f"{x}{s}" for x in candidates])
         return valid_shang_sets
 
-    def get_valid_peng_sets(self):
+    def get_valid_peng_sets(self, remaining_tiles: list):
         valid_peng_sets = []
-        for tile, tile_count in self.distinct_tile_count.items():
-            if tile_count == 3:
-                valid_peng_sets.append(tile)
+        distinct_tile = set(remaining_tiles)
+        for tile in distinct_tile:
+            if remaining_tiles.count(tile) == 3:
+                valid_peng_sets.append([tile] * 3)
         return valid_peng_sets
 
     def _dp_search(self, remaining_tiles: list):
-        """
-        assuming there are correct number of tiles
-        dp search for winning hand
-        find 3 or gang and see what is left
-        - left 2 -> eyes?
-        - left > 2 and < 8/9 (excluding gang 4th tile)
-          - has eyes?
-          - check what's missing
-        """
-        combinations = []
-        if len(remaining_tiles) == 2:
-            return remaining_tiles
+        if not remaining_tiles:
+            return True
 
+        rv = False
         valid_shang_sets = self.get_valid_shang_sets(remaining_tiles)
+        valid_peng_sets = self.get_valid_peng_sets(remaining_tiles)
+        valid_sets = valid_shang_sets + valid_peng_sets
 
-        if not valid_shang_sets:
-            return []
-        if len(valid_shang_sets) == 1:
-            return remaining_tiles
+        # implies not able to form any sets of 3
+        if not valid_sets:
+            return rv
 
-        for valid_shang_set in valid_shang_sets:
-            thread = []
-            remaining_tiles = copy.deepcopy(remaining_tiles)
-            for tile in valid_shang_set:
-                remaining_tiles.remove(tile)
-            valid_set = self._dp_search(remaining_tiles)
-            if valid_set:
-                thread += valid_set
-            combinations.append(thread)
-        return combinations
+        for valid_set in valid_sets:
+            new_remaining_tiles = copy.deepcopy(remaining_tiles)
+            for tile in valid_set:
+                new_remaining_tiles.remove(tile)
+            rv = self._dp_search(new_remaining_tiles)
+            if rv:
+                return rv
+        return rv
 
     def dp_search(self):
         """
-        TODO consider to also check for 7 pairs
+        basic check if the hand is a winning hand
+        TODO
+        - return ting list
         """
-        rv = {}
+        rv = False
 
-        valid_eye_sets = self.get_eye_candidates()
+        # save guard, technically should not be called
+        if len(self.tiles) % 3 != 2:
+            raise ValueError(f"invalid hand: {self.tiles}")
+
+        valid_eye_sets = self.get_valid_eye_sets()
         if not valid_eye_sets:
             return rv
         else:
@@ -515,18 +514,15 @@ class Hand(State):
                 for _ in range(2):
                     tiles.remove(eye_set)
 
-                combinations = self._dp_search(tiles)
-                for thread in combinations:
-                    l = len(thread)
-                    if l not in rv:
-                        rv[l] = [thread]
-                    else:
-                        rv[l].append(thread)
+                rv = self._dp_search(tiles)
+                if rv:
+                    return rv
         return rv
 
     def is_winning_hand(self):
         # 十三幺
-        distinct_tiles = list(self.distinct_tile_count.keys())
+        # to use set, currently will consider tiles added and subsequently discarded
+        distinct_tiles = list(set(self.tiles))
         if sorted(distinct_tiles) == sorted(
             ["1万", "9万", "1筒", "9筒", "1索", "9索", "东", "南", "西", "北", "白", "發", "中"]
         ) and (
@@ -539,14 +535,7 @@ class Hand(State):
             return True
         elif len(self.tiles) % 3 != 2:
             return False
-        # basic winning condition 3 sets of 3 (peng/gang or shang) + 1 pair
-        # gang will be considered as 3
-        # if (
-        #     len(self.tiles) % 3 == 2
-        #     and
-        # ):
-
-        return False
+        return self.dp_search()
 
 
 class Player(State):
