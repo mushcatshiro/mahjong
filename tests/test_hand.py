@@ -254,38 +254,38 @@ def test_gang():
     reset_hand(h)
 
 
-def test_get_discardable_tiles():
+def test_internal_get_discardable_tiles():
     h = Hand(0)
     h.add_tiles(["2万", "2万", "3万"])
     action = h.get_peng_candidates("2万")
     assert len(action) == 1
     h.peng(action[0])
-    assert h.get_discardable_tiles() == []
+    assert h._get_discardable_tiles() == []
     reset_hand(h)
 
     h.add_tiles(["2万", "2万", "2万"])
     action = PlayAction(resolve=True, action="an_gang", target_tile="2万")
     h.gang(action)
-    assert h.get_discardable_tiles() == []
+    assert h._get_discardable_tiles() == []
     reset_hand(h)
 
     h.add_tiles(["2万", "3万", "3万", "4万"])
     action = h.get_peng_candidates("3万")
     assert len(action) == 2
     h.peng(action[0])
-    assert h.get_discardable_tiles() == [action[1].discard_tile]
+    assert h._get_discardable_tiles() == [action[1].discard_tile]
     reset_hand(h)
 
     h.add_tiles(["2万", "3万", "4万"])
-    assert h.get_discardable_tiles() == ["2万", "3万", "4万"]
+    assert h._get_discardable_tiles() == ["2万", "3万", "4万"]
     reset_hand(h)
 
     h.add_tiles(["2万", "3万", "4万", "5万"])
-    assert h.get_discardable_tiles() == ["2万", "3万", "4万", "5万"]
+    assert h._get_discardable_tiles() == ["2万", "3万", "4万", "5万"]
     reset_hand(h)
 
     h.add_tiles(["2万", "3万", "4万", "5万", "6万"])
-    assert h.get_discardable_tiles(exclude_tile="6万") == ["2万", "3万", "4万", "5万"]
+    assert h._get_discardable_tiles(exclude_tile="6万") == ["2万", "3万", "4万", "5万"]
     reset_hand(h)
 
     # dont think at any point of time need to remove multiple different tiles

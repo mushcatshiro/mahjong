@@ -52,6 +52,19 @@ Tiles = {
     "竹": 1,
 }
 
+# `Tiles` for ndarray/tensor, using mask and element-wise multiplication
+Tiles2 = [
+    ["1万", "1万", "1万", "1万"],
+    ["2万", "2万", "2万", "2万"],
+    ["3万", "3万", "3万", "3万"],
+    ["4万", "4万", "4万", "4万"],
+    ["5万", "5万", "5万", "5万"],
+    ["6万", "6万", "6万", "6万"],
+    ["7万", "7万", "7万", "7万"],
+    ["8万", "8万", "8万", "8万"],
+    ["9万", "9万", "9万", "9万"],
+]
+
 SHANG_LUT = {
     "12": ["3"],
     "13": ["2"],
@@ -176,7 +189,7 @@ class PlayAction(State):
     - discard
     """
 
-    resolve: bool = False
+    resolve: bool = False  # TODO needed?
     action: str = None
     target_tile: str = None
     discard_tile: str = None
@@ -189,7 +202,7 @@ class PlayAction(State):
         "shang",
         "hu",
     ]
-    REQUIRED_DISCARD = ["peng", "shang"]
+    REQUIRED_DISCARD = ["peng", "shang", "discard"]
 
     def __post_init__(self):
         if self.resolve:
@@ -199,7 +212,8 @@ class PlayAction(State):
                 assert self.discard_tile is not None
         else:
             assert self.action not in self.RESOLVABLE_ACTIONS
-            assert self.discard_tile is not None
+            if self.action in self.REQUIRED_DISCARD:
+                assert self.discard_tile is not None
 
 
 @dataclass
@@ -230,6 +244,10 @@ class Hand(State):
     - `dp_search`: to search for winning hand i.e. inform player minimum
         change of times to win
       - `get_valid_*_sets` methods are supporting methods for `dp_search`
+    TODO
+    - ensuring `Hand`'s api is consistent to `Player` i.e. tiles always
+      added to hand at start to ensure `get_discardable_tiles` returning
+      all possible tiles
     """
 
     def __init__(self, player_idx: int, replacement_tiles=DEFAULT_REPLACEMENT_TILES):
@@ -280,7 +298,7 @@ class Hand(State):
         return shang_candidates
 
     def is_locked(self, tile):
-        free_tiles = self.get_discardable_tiles()
+        free_tiles = self._get_discardable_tiles()
         if not free_tiles:
             return True
         if tile in free_tiles:
@@ -297,9 +315,11 @@ class Hand(State):
 
     def get_peng_candidates(self, played_tile):
         """ """
-        discardables = self.get_discardable_tiles(
+        discardables = self._get_discardable_tiles(
             exclude_tile=played_tile, exclude_all=True
         )
+        if played_tile not in self.distinct_tile_count or self.distinct_tile_count[played_tile] != 2:
+            return []
         return (
             [
                 PlayAction(
@@ -374,7 +394,7 @@ class Hand(State):
         result: PlayResult = fn(action)
         return result
 
-    def get_discardable_tiles(self, exclude_tile=None, exclude_all=False):
+    def _get_discardable_tiles(self, exclude_tile=None, exclude_all=False):
         """
         private method to address `peng` but allows `shang`
         """
@@ -383,6 +403,8 @@ class Hand(State):
         # for tile in locked_tiles:
         #     if tile in non_locked_tiles:
         #         non_locked_tiles.remove(tile)
+        if exclude_tile not in non_locked_tiles:  # TODO add test
+            return non_locked_tiles
         if exclude_all:
             for _ in range(self.distinct_tile_count[exclude_tile]):
                 non_locked_tiles.remove(exclude_tile)
@@ -390,6 +412,12 @@ class Hand(State):
         if exclude_tile:
             non_locked_tiles.remove(exclude_tile)
         return non_locked_tiles
+
+    def get_discardable_tiles(self):
+        return [
+            PlayAction(resolve=False, action="discard", discard_tile=tile)
+            for tile in self._get_discardable_tiles()
+        ]
 
     def add_tiles(self, tiles: List) -> int:
         """
@@ -431,7 +459,7 @@ class Hand(State):
         return tile
 
     def get_valid_eye_sets(self):
-        free_tiles = self.get_discardable_tiles()
+        free_tiles = self._get_discardable_tiles()
         rv = []
         distinct_tile_count = {}
         for tiles in free_tiles:
@@ -498,6 +526,7 @@ class Hand(State):
         basic check if the hand is a winning hand
         TODO
         - return ting list
+        - dealing with an_gang?
         """
         rv = False
 
@@ -542,16 +571,16 @@ class Player(State):
     def __init__(self, player_idx, house=False):
         # TODO add player turn count/call count?
         self.player_idx = player_idx
-        self.previous_player = (player_idx - 1) % 4  # TODO validate
-        self.next_player = (player_idx + 1) % 4  # TODO validate
+        self.previous_player = (player_idx - 1) % 4
+        self.next_player = (player_idx + 1) % 4
         self.hand = Hand(player_idx)
         self.action_history = []
         self.house = house
-        self.pending_resolve = None
+        self.replacement_tile_count = 0
 
     def initial_draw(self, tile_sequence: TilesSequence, total, jump):
         tiles = tile_sequence.draw(total, jump)
-        self.hand.add_tiles(tiles)
+        self.replacement_tile_count += self.hand.add_tiles(tiles)
 
     def _replace_tiles(self, tile_sequence: TilesSequence):
         """
@@ -563,56 +592,47 @@ class Player(State):
           instead of getting 4 in a go
         - check for non dealing stage replacement is always 1?
         """
-        total = len(self.hand.flower_tiles[self.hand.non_playable_tiles_ptr :])
-        replaced_tiles = tile_sequence.replace(total)
-        self.hand.add_tiles(replaced_tiles, total)
-        return replaced_tiles
+        replaced_tiles = tile_sequence.replace(self.replacement_tile_count)
+        self.replacement_tile_count -= len(replaced_tiles)
+        self.replacement_tile_count += self.hand.add_tiles(replaced_tiles)
 
-    def resolve_tile_replacement(self, tile_sequence: TilesSequence, drawed_tile=None):
-        while True:
-            if len(self.hand.flower_tiles) > self.hand.non_playable_tiles_ptr:
-                drawed_tile = self._replace_tiles(tile_sequence)
-            else:
-                break
-        return drawed_tile
+    def resolve_tile_replacement(self, tile_sequence: TilesSequence):
+        if self.replacement_tile_count == 0:
+            return
+        while self.replacement_tile_count > 0:
+            self._replace_tiles(tile_sequence)
 
     def play_turn(self, tile_sequence: TilesSequence):
-        self.pending_resolve = None  # reset
-        self.possible_actions = None
-
         drawed_tile = tile_sequence.draw()
-        self.hand.add_tiles(drawed_tile)
+        self.replacement_tile_count += self.hand.add_tiles(drawed_tile)
 
-        drawed_tile = self.resolve_tile_replacement(tile_sequence, drawed_tile)
+        self.resolve_tile_replacement(tile_sequence)
 
-        self.possible_actions: PossibleActions = PossibleActions()
-        self.draw_check(drawed_tile)
-        action: PlayAction = self.play_turn_strategy()
-        if action.resolve:
-            self.pending_resolve = getattr(self, f"resolve_{action.action}")
-            self.resolve(
-                action.target_tile,
-                action.discard_tile,
-                tile_sequence if action.tile_sequence else None,
-            )
-            return action.discard_tile
-        else:
-            self.hand.remove_tile(action.discard_tile)  # TODO to be removed
-            return action.discard_tile
-        # TODO mandatory discard?
+        possible_actions = self.hand.get_discardable_tiles()
 
-    def call(self, played_tile, player):
-        self.pending_resolve = None
+        action: PlayAction = self.play_turn_strategy(possible_actions)
+        discarded_tile = self.hand.remove_tile(action.discard_tile)
+        return discarded_tile
 
-        possible_actions = self.call_check(played_tile, player)
-        action: PlayAction = self.call_strategy(possible_actions, played_tile)
-        self.pending_resolve = (
-            getattr(self, f"resolve_{action.action}") if action.action else None
-        )
-        # TODO mandatory discard?
-        return action.action
+    def call(self, played_tile, player) -> List[PlayAction]:
+        rv = []
+        if player == self.previous_player:
+            rv += self.hand.get_shang_candidates(played_tile)
+        rv += self.hand.get_peng_candidates(played_tile)
+        rv += self.hand.get_gang_candidates(played_tile)
+        return rv
 
-    def play_turn_strategy(self, possible_actions, input_tile):
+    def call_resolve(self, action: PlayAction, tile_sequence: TilesSequence):
+        play_result: PlayResult = self.hand.resolve(action)
+        if play_result.need_replacement:
+            tile = tile_sequence.replace(1)
+            self.replacement_tile_count += self.hand.add_tiles(tile)
+            self.resolve_tile_replacement(tile_sequence)
+            return None
+        elif play_result.discarded_tile:
+            return play_result.discarded_tile
+
+    def play_turn_strategy(self, possible_actions):
         """
         implementation details:
         always return `PlayAction` object
@@ -637,14 +657,14 @@ class Player(State):
 
 
 class DummyPlayer(Player):
-    def play_turn_strategy(self, possible_actions, drawed_tile):
-        return PlayAction(discard_tile=drawed_tile)
+    def play_turn_strategy(self, possible_actions):
+        return possible_actions[0]
 
     def call_strategy(self, possible_actions, played_tile):
-        return {"action": None}
+        return possible_actions[0]
 
 
-class HumanPlayer(Player):
+class BotPlayer(Player):
     def play_turn_strategy(self, possible_actions, drawed_tile):
         print(f"hand: {self.hand.tiles}")
         print(f"possible actions: {possible_actions}")
