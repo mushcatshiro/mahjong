@@ -206,7 +206,7 @@ class PlayAction(State):
 
     def __post_init__(self):
         if self.resolve:
-            assert self.target_tile is not None
+            # assert self.target_tile is not None
             assert self.action in self.RESOLVABLE_ACTIONS
             if self.action in self.REQUIRED_DISCARD:
                 assert self.discard_tile is not None
@@ -230,6 +230,7 @@ class PlayResult(State):
 
     discarded_tile: str = None
     need_replacement: bool = False
+    hu: bool = False
 
 
 class Hand(State):
@@ -318,7 +319,10 @@ class Hand(State):
         discardables = self._get_discardable_tiles(
             exclude_tile=played_tile, exclude_all=True
         )
-        if played_tile not in self.distinct_tile_count or self.distinct_tile_count[played_tile] != 2:
+        if (
+            played_tile not in self.distinct_tile_count
+            or self.distinct_tile_count[played_tile] != 2
+        ):
             return []
         return (
             [
@@ -560,19 +564,25 @@ class Hand(State):
         ):
             return True
         # 对对胡
-        elif all([x == 2 for x in self.distinct_tile_count.values()]):
+        elif all([x == 2 for x in self.distinct_tile_count.values() if x > 0]):
             return True
         elif len(self.tiles) % 3 != 2:
             return False
         return self.dp_search()
+
+    def get_hu_play_action(self):
+        return PlayAction(resolve=True, action="hu")
+
+    def get_hu_play_result(self):
+        return PlayResult(hu=True)
 
 
 class Player(State):
     def __init__(self, player_idx, house=False):
         # TODO add player turn count/call count?
         self.player_idx = player_idx
-        self.previous_player = (player_idx - 1) % 4
-        self.next_player = (player_idx + 1) % 4
+        self.previous_player_idx = (player_idx - 1) % 4
+        self.next_player_idx = (player_idx + 1) % 4
         self.hand = Hand(player_idx)
         self.action_history = []
         self.house = house
@@ -602,11 +612,14 @@ class Player(State):
         while self.replacement_tile_count > 0:
             self._replace_tiles(tile_sequence)
 
-    def play_turn(self, tile_sequence: TilesSequence):
+    def play_turn(self, tile_sequence: TilesSequence) -> PlayResult:
         drawed_tile = tile_sequence.draw()
         self.replacement_tile_count += self.hand.add_tiles(drawed_tile)
 
         self.resolve_tile_replacement(tile_sequence)
+
+        if self.hand.is_winning_hand():
+            return self.hand.get_hu_play_action()
 
         possible_actions = self.hand.get_discardable_tiles()
 
@@ -614,25 +627,32 @@ class Player(State):
         discarded_tile = self.hand.remove_tile(action.discard_tile)
         return discarded_tile
 
-    def call(self, played_tile, player) -> List[PlayAction]:
-        rv = []
-        if player == self.previous_player:
-            rv += self.hand.get_shang_candidates(played_tile)
-        rv += self.hand.get_peng_candidates(played_tile)
-        rv += self.hand.get_gang_candidates(played_tile)
-        return rv
+    def call(self, played_tile, player) -> PlayAction:
+        call_actions = []
+        if self.hand.is_winning_hand():
+            return [self.hand.get_hu_play_action()]
+        if player == self.previous_player_idx:
+            call_actions += self.hand.get_shang_candidates(played_tile)
+        call_actions += self.hand.get_peng_candidates(played_tile)
+        call_actions += self.hand.get_gang_candidates(played_tile)
+        call_action = self.call_strategy(call_actions, played_tile)
+        return call_action
 
-    def call_resolve(self, action: PlayAction, tile_sequence: TilesSequence):
+    def call_resolve(
+        self, action: PlayAction, tile_sequence: TilesSequence
+    ) -> PlayResult:
+        if action.action == "hu":
+            # hu does not need to resolve?
+            return self.hand.get_hu_play_result()
         play_result: PlayResult = self.hand.resolve(action)
+        # TODO check hu?
         if play_result.need_replacement:
             tile = tile_sequence.replace(1)
             self.replacement_tile_count += self.hand.add_tiles(tile)
             self.resolve_tile_replacement(tile_sequence)
-            return None
-        elif play_result.discarded_tile:
-            return play_result.discarded_tile
+        return play_result
 
-    def play_turn_strategy(self, possible_actions):
+    def play_turn_strategy(self, possible_actions) -> PlayAction:
         """
         implementation details:
         always return `PlayAction` object
@@ -640,7 +660,7 @@ class Player(State):
         """
         raise NotImplementedError
 
-    def call_strategy(self, possible_actions, played_tile):
+    def call_strategy(self, possible_actions, played_tile) -> PlayAction:
         """
         implementation details:
         always return `PlayAction` object
@@ -661,10 +681,12 @@ class DummyPlayer(Player):
         return possible_actions[0]
 
     def call_strategy(self, possible_actions, played_tile):
+        if not possible_actions:
+            return []
         return possible_actions[0]
 
 
-class BotPlayer(Player):
+class HumanPlayer(Player):
     def play_turn_strategy(self, possible_actions, drawed_tile):
         print(f"hand: {self.hand.tiles}")
         print(f"possible actions: {possible_actions}")
@@ -681,10 +703,26 @@ class BotPlayer(Player):
         return resp
 
 
+class RandomPlayer(Player):
+    def play_turn_strategy(self, possible_actions):
+        return random.choice(possible_actions)
+
+    def call_strategy(self, possible_actions, played_tile):
+        return random.choice(possible_actions)
+
+
+class StatsPlayer(Player):
+    pass
+
+
+class FormulaicPlayer(Player):
+    pass
+
+
 class Mahjong:
     """
     TODO
-    - 东南西北圈/一局16盘
+    - 东南西北圈/一局24圈
     - backend numpy/torch or human readable
     - simple visualization with print example below,
 
@@ -704,8 +742,9 @@ class Mahjong:
         self.round_player_sequence = []
         self.current_round_sequence = 0
         self.winner = None
+        self.discarded_pool = []  # TODO
 
-    def start(self):
+    def start(self, debug=False):
         # throw dice twice
         val_player_sequence = random.randint(1, 13)
         # 东 0 南 1 西 2 北 3
@@ -737,7 +776,7 @@ class Mahjong:
             player: Player = self.players[player_idx]
             player.resolve_tile_replacement(self.tile_sequence)
 
-    def resolve_call(self, responses):
+    def resolve_call_priority(self, responses):
         """
         hu > peng/gang > shang
         multiple players can hu, player who sits right (1st) to the player that
@@ -748,9 +787,11 @@ class Mahjong:
                 hu_order = [x for x in range(self.current_player_idx, 4)] + [
                     x for x in range(0, self.current_player_idx)
                 ]
+                # e.g. 2 3 0 1
                 for player_idx in hu_order:
-                    if player_idx in responses["hu"]:
-                        return player_idx
+                    for response in responses["hu"]:
+                        if player_idx == response[0]:
+                            return response
             else:
                 return responses["hu"][0]
         elif "peng" in responses:
@@ -767,38 +808,65 @@ class Mahjong:
             raise ValueError("no valid response")
 
     def play_one_round(self):
-        current_player = self.players[
-            self.round_player_sequence[self.current_player_idx]
-        ]
-        played_tile = current_player.play_turn(self.tile_sequence)
+        current_player = self.players[self.current_player_idx]
+        discarded_tile = current_player.play_turn(self.tile_sequence)
 
         check_responses = {}
-        for _, player in self.players.items():
-            player: Player
-            rv = player.call()
-            if rv == "hu" and rv not in check_responses:
-                check_responses[rv] = [player.player_idx]
-            elif rv == "hu" and rv in check_responses:
-                check_responses[rv].append(player.player_idx)
+        while True:
+            for _, player in self.players.items():
+                print(f"player: {player.player_idx}; tiles: {player.hand.tiles}")
+                if player.player_idx == current_player.player_idx:
+                    continue
+                player: Player
+                play_action = player.call(discarded_tile, current_player.player_idx)
+                if not play_action:
+                    continue
+                if (
+                    play_action.action == "hu"
+                    and play_action.action not in check_responses
+                ):
+                    check_responses[play_action.action] = [
+                        [player.player_idx, play_action]
+                    ]
+                elif (
+                    play_action.action == "hu" and play_action.action in check_responses
+                ):
+                    check_responses[play_action.action].append(
+                        [player.player_idx, play_action]
+                    )
+                else:
+                    check_responses[play_action.action] = [
+                        player.player_idx,
+                        play_action,
+                    ]
+            print(f"check_responses: {check_responses}")
+            if not check_responses:
+                next_player_idx = current_player.next_player_idx
+                break
+            elif len(check_responses) >= 1:
+                resolve_to, play_action = self.resolve_call_priority(check_responses)
+                print(f"resolve_to: {resolve_to}; play_action: {play_action}")
+                play_result: PlayResult = self.players[resolve_to].call_resolve(
+                    play_action, self.tile_sequence
+                )
+                print(f"play_result: {play_result}")
+                if play_result.hu:
+                    self.winner = resolve_to
+                    break
+                elif play_result.discarded_tile:
+                    discarded_tile = play_result.discarded_tile
+                    current_player = self.players[resolve_to]
             else:
-                check_responses[rv] = player.player_idx
-        if len(check_responses) > 1:
-            player_idx = self.resolve_call(check_responses)
-            hu = self.players[player_idx].resolve()
-            if hu:
-                self.winner = player_idx
-            # skip to the player that resolved the call
-            self.current_round_sequence += player_idx  # TODO validate
-            return
+                raise ValueError("invalid response")
+            check_responses = {}
+
         self.current_round_sequence += 1
-        return
+        self.current_player_idx = next_player_idx
 
     def play(self):
         while not self.winner:
             print(f"current round sequence {self.current_round_sequence}")
             print(f"current player idx {self.current_player_idx}")
-            print(f"round player sequence {self.round_player_sequence}")
-            self.current_player_idx = self.current_round_sequence % 4
             if self.tile_sequence.tiles == []:
                 break
             self.play_one_round()
@@ -806,4 +874,4 @@ class Mahjong:
                 break
 
     def round_summary(self):
-        return
+        winner_score = self.players[self.winner].round_summary()

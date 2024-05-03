@@ -1,4 +1,4 @@
-from game import Mahjong, Player, DummyPlayer, TilesSequence
+from game import Mahjong, Player, DummyPlayer, TilesSequence, PlayAction
 
 import pytest
 from unittest.mock import patch
@@ -92,52 +92,101 @@ def test_player_sequence(monkeypatch):
 def test_resolve_call():
     game = Mahjong({0: Player(0), 1: Player(1), 2: Player(2), 3: Player(3)})
     # hu has the highest priority
-    resolved_to = game.resolve_call(
+    resolved_to, _ = game.resolve_call_priority(
         {
-            "hu": [0],
-            "peng": [1],
+            "hu": [[0, PlayAction(resolve=True, action="hu")]],
+            "peng": [
+                1,
+                PlayAction(
+                    resolve=True, action="peng", target_tile="1万", discard_tile="2万"
+                ),
+            ],
         }
     )
     assert resolved_to == 0
 
-    resolved_to = game.resolve_call(
+    resolved_to, _ = game.resolve_call_priority(
         {
-            "peng": 1,
-            "shang": 2,
+            "peng": [
+                1,
+                PlayAction(
+                    resolve=True, action="peng", target_tile="1万", discard_tile="2万"
+                ),
+            ],
+            "shang": [
+                2,
+                PlayAction(
+                    resolve=True, action="shang", target_tile="1万", discard_tile="2万"
+                ),
+            ],
         }
     )
     assert resolved_to == 1
 
-    resolved_to = game.resolve_call(
+    resolved_to, _ = game.resolve_call_priority(
         {
-            "ming_gang": 2,
-            "shang": 1,
+            "ming_gang": [
+                2,
+                PlayAction(resolve=True, action="ming_gang", target_tile="1万"),
+            ],
+            "shang": [
+                1,
+                PlayAction(
+                    resolve=True, action="shang", target_tile="1万", discard_tile="2万"
+                ),
+            ],
         }
     )
     assert resolved_to == 2
 
-    resolved_to = game.resolve_call(
+    resolved_to, _ = game.resolve_call_priority(
         {
-            "an_gang": 2,
-            "shang": 1,
+            "an_gang": [
+                2,
+                PlayAction(resolve=True, action="an_gang", target_tile="1万"),
+            ],
+            "shang": [
+                1,
+                PlayAction(
+                    resolve=True, action="shang", target_tile="1万", discard_tile="2万"
+                ),
+            ],
         }
     )
     assert resolved_to == 2
 
-    resolved_to = game.resolve_call(
+    resolved_to, _ = game.resolve_call_priority(
         {
-            "jia_gang": 2,
-            "shang": 1,
+            "jia_gang": [
+                2,
+                PlayAction(resolve=True, action="jia_gang", target_tile="1万"),
+            ],
+            "shang": [
+                1,
+                PlayAction(
+                    resolve=True, action="shang", target_tile="1万", discard_tile="2万"
+                ),
+            ],
         }
     )
     assert resolved_to == 2
 
-    resolved_to = game.resolve_call({"hu": [1, 2]})
+    resolved_to, _ = game.resolve_call_priority(
+        {
+            "hu": [
+                [1, PlayAction(resolve=True, action="hu")],
+                [2, PlayAction(resolve=True, action="hu")],
+            ]
+        }
+    )
     assert resolved_to == 1
 
-    resolved_to = game.resolve_call(
+    resolved_to, _ = game.resolve_call_priority(
         {
-            "hu": [1, 3],
+            "hu": [
+                [1, PlayAction(resolve=True, action="hu")],
+                [3, PlayAction(resolve=True, action="hu")],
+            ]
         }
     )
     assert resolved_to == 1
@@ -153,3 +202,11 @@ def _test_play_one_round():
         # load game scenario
         # assert stuff
         pass
+
+
+def test_play_one_round_with_multiple_resolves():
+    """
+    - peng -> shang -> hu
+    - peng -> shang
+    """
+    pass
