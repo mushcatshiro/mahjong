@@ -99,6 +99,10 @@ def test_get_shang_candidates():
     )
     reset_hand(h)
 
+    h.add_tiles(["1万", "2万", "2万", "3万"])
+    assert len(h.get_shang_candidates("中")) == 0
+    reset_hand(h)
+
 
 def test_shang():
     h = Hand(0)
