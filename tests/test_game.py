@@ -78,7 +78,12 @@ def test_house_winning_immediately(monkeypatch):
     ])
     # fmt: on
     game = Mahjong(
-        {0: DummyPlayer(0), 1: DummyPlayer(1), 2: DummyPlayer(2), 3: DummyPlayer(3)}
+        {
+            0: DummyPlayer(0, True),
+            1: DummyPlayer(1),
+            2: DummyPlayer(2),
+            3: DummyPlayer(3),
+        }
     )
     game.tile_sequence = ts
     game.start()
@@ -254,7 +259,12 @@ def test_play_with_multiple_resolve_conditions(monkeypatch):
     ])
     # fmt: on
     game = Mahjong(
-        {0: DummyPlayer(0), 1: DummyPlayer(1), 2: DummyPlayer(2), 3: DummyPlayer(3)}
+        {
+            0: DummyPlayer(0, True),
+            1: DummyPlayer(1),
+            2: DummyPlayer(2),
+            3: DummyPlayer(3),
+        }
     )
     game.tile_sequence = ts
     game.start()
@@ -291,7 +301,12 @@ def test_play_with_multiple_resolve_conditions(monkeypatch):
     ])
     # fmt: on
     game = Mahjong(
-        {0: DummyPlayer(0), 1: DummyPlayer(1), 2: DummyPlayer(2), 3: DummyPlayer(3)}
+        {
+            0: DummyPlayer(0, True),
+            1: DummyPlayer(1),
+            2: DummyPlayer(2),
+            3: DummyPlayer(3),
+        }
     )
     game.tile_sequence = ts
     game.start()
@@ -337,7 +352,12 @@ def test_play_shang_peng(monkeypatch):
     )
     # fmt: on
     game = Mahjong(
-        {0: DummyPlayer(0), 1: DummyPlayer(1), 2: DummyPlayer(2), 3: DummyPlayer(3)}
+        {
+            0: DummyPlayer(0, True),
+            1: DummyPlayer(1),
+            2: DummyPlayer(2),
+            3: DummyPlayer(3),
+        }
     )
     game.tile_sequence = ts
     game.start()

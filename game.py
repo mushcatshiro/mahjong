@@ -416,6 +416,10 @@ class Hand(State):
         result: PlayResult = fn(action)
         return result
 
+    def discard(self, action: PlayAction):
+        self.remove_tile(action.discard_tile)
+        return PlayResult(discarded_tile=action.discard_tile)
+
     def _get_discardable_tiles(self, exclude_tile=None, exclude_all=False):
         """
         private method to address `peng` but allows `shang`
@@ -650,8 +654,9 @@ class Player(State):
             )
 
         action: PlayAction = self.play_turn_strategy(possible_actions)
-        discarded_tile = self.hand.remove_tile(action.discard_tile)
-        return PlayResult(discarded_tile=discarded_tile)
+        # TODO test only `an_gang`, `jia_gang` and `discard` are allowed
+        play_result = self.hand.resolve(action)
+        return play_result
 
     def call(self, played_tile, player) -> PlayAction:
         if self.hand.is_winning_hand(call_tile=played_tile):
@@ -707,10 +712,11 @@ class Player(State):
 
 
 class DummyPlayer(Player):
-    def __init__(self, debug=False, strategy="dummy"):
+    def __init__(self, player_idx, house=False, debug=False, strategy="dummy"):
         assert strategy in ["dummy", "random"]
         self.stragetgy = strategy
         self.debug = debug
+        super().__init__(player_idx=player_idx, house=house)
 
     def play_turn_strategy(self, possible_actions):
         if self.debug:
