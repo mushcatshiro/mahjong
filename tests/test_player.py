@@ -307,3 +307,42 @@ def test_call_resolve():
     assert play_action.action == "hu"
     resp = p.call_resolve(play_action, ts)
     assert resp.hu
+
+
+def test_play_turn_multiple_tile_replace():
+    """
+    TODO observed when play turn drawed flower tile, only 1 tile is replaced
+    test below not able to reproduce the issue
+    """
+    ts = MockTilesSequence(
+        [
+            "1万",
+            "2万",
+            "3万",
+            "4万",
+            "5万",
+            "6万",
+            "7万",
+            "8万",
+            "9万",
+            "1筒",
+            "2筒",
+            "3筒",
+            "4筒",  # 0
+            "菊",  # 1
+            "5筒",  # 2
+            "6筒",  # 3
+            "7筒",  # 0
+            "8筒",
+            "竹",
+        ]
+    )
+    p = DummyPlayer(0)
+    for _ in range(3):
+        p.initial_draw(ts, 4, False)
+    p.initial_draw(ts, 1, False)
+    assert len(p.hand.tiles) == 13
+    assert len(p.hand.flower_tiles) == 0
+    p.play_turn(ts)
+    assert len(p.hand.tiles) == 13
+    assert len(p.hand.flower_tiles) == 2

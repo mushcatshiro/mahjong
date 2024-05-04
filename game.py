@@ -325,7 +325,7 @@ class Hand(State):
 
     def peng(self, action: PlayAction):
         for _ in range(2):
-            self.tiles.remove(action.target_tile)  # allowed, moving to peng_history
+            self.remove_tile(action.target_tile)
         self.peng_history += [action.target_tile] * 3
         self.distinct_tile_count[action.target_tile] = 3
         self.remove_tile(action.discard_tile)
@@ -363,12 +363,12 @@ class Hand(State):
         """
         if action.action == "ming_gang":
             for _ in range(3):
-                self.tiles.remove(action.target_tile)  # allowed, moving to gang_history
+                self.remove_tile(action.target_tile)
             self.gang_history += [action.target_tile] * 4
             self.distinct_tile_count[action.target_tile] = 4
         elif action.action == "an_gang":
             for _ in range(4):
-                self.tiles.remove(action.target_tile)  # allowed, moving to gang_history
+                self.remove_tile(action.target_tile)
             self.gang_history += [action.target_tile] * 4
             self.distinct_tile_count[action.target_tile] = 4
         elif action.action == "jia_gang":
@@ -721,9 +721,12 @@ class DummyPlayer(Player):
     def play_turn_strategy(self, possible_actions):
         if self.debug:
             print(f"hand: {sorted(self.hand.tiles)}")
-            print(f"possible actions: ")
-            for action in possible_actions:
-                print(f"action: {action}")
+            if self.hand.peng_history:
+                print(f"peng_history: {self.hand.peng_history}")
+            if self.hand.shang_history:
+                print(f"shang_history: {self.hand.shang_history}")
+            if self.hand.gang_history:
+                print(f"gang_history: {self.hand.gang_history}")
         for action in possible_actions:
             if action.action == "hu":
                 print("hu exists")
@@ -732,7 +735,7 @@ class DummyPlayer(Player):
             action = possible_actions[0]
         else:
             action = random.choice(possible_actions)
-        print(f"action: {action}")
+        print(f"action chosen: {action}")
         return action
 
     def call_strategy(self, possible_actions, played_tile):
@@ -741,9 +744,12 @@ class DummyPlayer(Player):
         if self.debug:
             print(f"hand: {sorted(self.hand.tiles)}")
             print(f"played_tile: {played_tile}")
-            print("possible actions: ")
-            for action in possible_actions:
-                print(f"action: {action}")
+            if self.hand.peng_history:
+                print(f"peng_history: {self.hand.peng_history}")
+            if self.hand.shang_history:
+                print(f"shang_history: {self.hand.shang_history}")
+            if self.hand.gang_history:
+                print(f"gang_history: {self.hand.gang_history}")
         for action in possible_actions:
             if action.action == "hu":
                 print("hu exists")
@@ -752,6 +758,7 @@ class DummyPlayer(Player):
             action = possible_actions[0]
         else:
             action = random.choice(possible_actions)
+        print(f"action chosen: {action}")
         return action
 
 
