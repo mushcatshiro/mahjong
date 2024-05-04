@@ -350,7 +350,7 @@ class Hand(State):
             self.gang_history += [action.target_tile] * 4
             self.distinct_tile_count[action.target_tile] = 4
         elif action.action == "an_gang":
-            for _ in range(3):
+            for _ in range(4):
                 self.tiles.remove(action.target_tile)  # allowed, moving to gang_history
             self.gang_history += [action.target_tile] * 4
             self.distinct_tile_count[action.target_tile] = 4
@@ -365,6 +365,8 @@ class Hand(State):
         """"""
         check = played_tile if played_tile else drawed_tile
         # ensuring the tile is in the hand
+        if not check:
+            return []
         if check not in self.distinct_tile_count.keys():
             return []
         if played_tile:
@@ -382,12 +384,11 @@ class Hand(State):
         elif drawed_tile:
             if drawed_tile in self.peng_history:
                 action = "jia_gang"
-            elif self.distinct_tile_count[drawed_tile] == 3:
+            elif self.distinct_tile_count[drawed_tile] == 4:
                 action = "an_gang"
             else:
-                return []  # for completeness
+                return []  # noqa
             return [PlayAction(resolve=True, action=action, target_tile=drawed_tile)]
-        return []
 
     def resolve(self, action: PlayAction) -> PlayResult:
         resolve_to = (
@@ -462,8 +463,7 @@ class Hand(State):
         self.tiles_history[f"{len(self.tiles_history)}remove"] = tile
         return tile
 
-    def get_valid_eye_sets(self):
-        free_tiles = self._get_discardable_tiles()
+    def get_valid_eye_sets(self, free_tiles):
         rv = []
         distinct_tile_count = {}
         for tiles in free_tiles:
@@ -525,7 +525,7 @@ class Hand(State):
                 return rv
         return rv
 
-    def dp_search(self):
+    def dp_search(self, tiles):
         """
         basic check if the hand is a winning hand
         TODO
@@ -535,24 +535,24 @@ class Hand(State):
         rv = False
 
         # save guard, technically should not be called
-        if len(self.tiles) % 3 != 2:
-            raise ValueError(f"invalid hand: {self.tiles}")
+        if len(tiles) % 3 != 2:
+            raise ValueError(f"invalid hand: {tiles}")
 
-        valid_eye_sets = self.get_valid_eye_sets()
+        valid_eye_sets = self.get_valid_eye_sets(tiles)
         if not valid_eye_sets:
             return rv
         else:
             for eye_set in valid_eye_sets:
-                tiles = copy.deepcopy(self.tiles)
+                tmp_tiles = copy.deepcopy(tiles)
                 for _ in range(2):
-                    tiles.remove(eye_set)
+                    tmp_tiles.remove(eye_set)
 
-                rv = self._dp_search(tiles)
+                rv = self._dp_search(tmp_tiles)
                 if rv:
                     return rv
         return rv
 
-    def is_winning_hand(self):
+    def is_winning_hand(self, call_tile=None):
         # 十三幺
         # to use set, currently will consider tiles added and subsequently discarded
         distinct_tiles = list(set(self.tiles))
@@ -566,12 +566,13 @@ class Hand(State):
         # 对对胡
         elif all([x == 2 for x in self.distinct_tile_count.values() if x > 0]):
             return True
-        elif len(self.tiles) % 3 != 2:
-            return False
-        return self.dp_search()
+        tiles = copy.deepcopy(self.tiles)
+        if call_tile:
+            tiles.append(call_tile)
+        return self.dp_search(tiles)
 
-    def get_hu_play_action(self):
-        return PlayAction(resolve=True, action="hu")
+    def get_hu_play_action(self, target_tile):
+        return PlayAction(resolve=True, action="hu", target_tile=target_tile)
 
     def get_hu_play_result(self):
         return PlayResult(hu=True)
@@ -588,7 +589,7 @@ class Player(State):
         self.house = house
         self.replacement_tile_count = 0
 
-    def initial_draw(self, tile_sequence: TilesSequence, total, jump):
+    def initial_draw(self, tile_sequence: TilesSequence, total, jump: bool):
         tiles = tile_sequence.draw(total, jump)
         self.replacement_tile_count += self.hand.add_tiles(tiles)
 
@@ -613,24 +614,32 @@ class Player(State):
             self._replace_tiles(tile_sequence)
 
     def play_turn(self, tile_sequence: TilesSequence) -> PlayResult:
-        drawed_tile = tile_sequence.draw()
-        self.replacement_tile_count += self.hand.add_tiles(drawed_tile)
+        possible_actions = []
+        if self.house and len(self.hand.tiles) == 14:
+            if self.hand.is_winning_hand():
+                return self.hand.get_hu_play_result()
+            possible_actions += self.hand.get_discardable_tiles()
+        else:
+            drawed_tile = tile_sequence.draw()
+            self.replacement_tile_count += self.hand.add_tiles(drawed_tile)
+            self.resolve_tile_replacement(tile_sequence)
 
-        self.resolve_tile_replacement(tile_sequence)
+            if self.hand.is_winning_hand():
+                return self.hand.get_hu_play_result()
 
-        if self.hand.is_winning_hand():
-            return self.hand.get_hu_play_action()
-
-        possible_actions = self.hand.get_discardable_tiles()
+            possible_actions += self.hand.get_discardable_tiles()
+            possible_actions += self.hand.get_gang_candidates(
+                drawed_tile=drawed_tile[0]
+            )
 
         action: PlayAction = self.play_turn_strategy(possible_actions)
         discarded_tile = self.hand.remove_tile(action.discard_tile)
-        return discarded_tile
+        return PlayResult(discarded_tile=discarded_tile)
 
     def call(self, played_tile, player) -> PlayAction:
+        if self.hand.is_winning_hand(call_tile=played_tile):
+            return self.hand.get_hu_play_action(played_tile)
         call_actions = []
-        if self.hand.is_winning_hand():
-            return [self.hand.get_hu_play_action()]
         if player == self.previous_player_idx:
             call_actions += self.hand.get_shang_candidates(played_tile)
         call_actions += self.hand.get_peng_candidates(played_tile)
@@ -642,7 +651,9 @@ class Player(State):
         self, action: PlayAction, tile_sequence: TilesSequence
     ) -> PlayResult:
         if action.action == "hu":
-            # hu does not need to resolve?
+            self.hand.add_tiles(
+                [action.target_tile]
+            )  # TODO might want to push list check to `Hand`
             return self.hand.get_hu_play_result()
         play_result: PlayResult = self.hand.resolve(action)
         # TODO check hu?
@@ -652,7 +663,7 @@ class Player(State):
             self.resolve_tile_replacement(tile_sequence)
         return play_result
 
-    def play_turn_strategy(self, possible_actions) -> PlayAction:
+    def play_turn_strategy(self, possible_actions, **kwargs) -> PlayAction:
         """
         implementation details:
         always return `PlayAction` object
@@ -660,7 +671,7 @@ class Player(State):
         """
         raise NotImplementedError
 
-    def call_strategy(self, possible_actions, played_tile) -> PlayAction:
+    def call_strategy(self, possible_actions, played_tile, **kwargs) -> PlayAction:
         """
         implementation details:
         always return `PlayAction` object
@@ -678,6 +689,9 @@ class Player(State):
 
 class DummyPlayer(Player):
     def play_turn_strategy(self, possible_actions):
+        for action in possible_actions:
+            if action.action == "hu":
+                return action
         return possible_actions[0]
 
     def call_strategy(self, possible_actions, played_tile):
@@ -687,7 +701,7 @@ class DummyPlayer(Player):
 
 
 class HumanPlayer(Player):
-    def play_turn_strategy(self, possible_actions, drawed_tile):
+    def play_turn_strategy(self, possible_actions, **kwargs):
         print(f"hand: {self.hand.tiles}")
         print(f"possible actions: {possible_actions}")
         resp = input("Enter 'resolve' or 'discard: ")
@@ -742,7 +756,7 @@ class Mahjong:
         self.round_player_sequence = []
         self.current_round_sequence = 0
         self.winner = None
-        self.discarded_pool = []  # TODO
+        self.discarded_pool = []  # TODO testing
 
     def start(self, debug=False):
         # throw dice twice
@@ -800,7 +814,9 @@ class Mahjong:
             return responses["ming_gang"]
         elif "jia_gang" in responses:
             return responses["jia_gang"]
-        elif "an_gang" in responses:
+        elif (
+            "an_gang" in responses
+        ):  # TODO technically an_gang does not need to resolve here?
             return responses["an_gang"]
         elif "shang" in responses:
             return responses["shang"]
@@ -809,16 +825,25 @@ class Mahjong:
 
     def play_one_round(self):
         current_player = self.players[self.current_player_idx]
-        discarded_tile = current_player.play_turn(self.tile_sequence)
+        play_result: PlayResult = current_player.play_turn(self.tile_sequence)
+        print(f"play_result: {play_result}")
+        if play_result.hu:
+            self.winner = current_player.player_idx
+            return
+        self.discarded_pool.append(
+            play_result.discarded_tile
+        )  # BUG should only be added if no one calls
 
         check_responses = {}
         while True:
             for _, player in self.players.items():
-                print(f"player: {player.player_idx}; tiles: {player.hand.tiles}")
                 if player.player_idx == current_player.player_idx:
                     continue
+                print(f"player: {player.player_idx}; tiles: {player.hand.tiles}")
                 player: Player
-                play_action = player.call(discarded_tile, current_player.player_idx)
+                play_action = player.call(
+                    play_result.discarded_tile, current_player.player_idx
+                )
                 if not play_action:
                     continue
                 if (
@@ -852,9 +877,10 @@ class Mahjong:
                 print(f"play_result: {play_result}")
                 if play_result.hu:
                     self.winner = resolve_to
-                    break
+                    return
                 elif play_result.discarded_tile:
                     discarded_tile = play_result.discarded_tile
+                    self.discarded_pool.append(discarded_tile)
                     current_player = self.players[resolve_to]
             else:
                 raise ValueError("invalid response")
@@ -870,7 +896,7 @@ class Mahjong:
             if self.tile_sequence.tiles == []:
                 break
             self.play_one_round()
-            if self.winner:
+            if self.winner is not None:
                 break
 
     def round_summary(self):

@@ -42,54 +42,50 @@ def test_up_to_deal(monkeypatch, execution_number):
     assert game.round_player_sequence[3] == (house_player_idx + 3) % 4
 
 
-def test_player_sequence(monkeypatch):
-    def mock_deal(self: Mahjong):
-        for player_idx in self.round_player_sequence:
-            player: Player = self.players[player_idx]
-            player.initial_draw(self.tile_sequence, 4, False)
+def test_house_winning_immediately(monkeypatch):
+    def mock_randint(a, b):
+        return 1
 
-    def mock_start(self: Mahjong):
-        self.current_player_idx = 0
-        self.round_player_sequence = [0, 1, 2, 3]
-        self.deal()
-        self.play()
+    def mock_round_summary(self):
+        pass
 
-    monkeypatch.setattr(Mahjong, "start", mock_start)
-    monkeypatch.setattr(Mahjong, "deal", mock_deal)
+    import random  # noqa
 
-    # force peng by player 0 plays 1万
-    ts = MockTilesSequence(
-        [
-            "1万",
-            "1筒",
-            "4筒",
-            "7筒",
-            "5万",
-            "6万",
-            "7万",
-            "8万",
-            "1万",
-            "1万",
-            "9万",
-            "1筒",
-            "2筒",
-            "4筒",
-            "4筒",
-            "5筒",
-            "1索",
-            "7筒",
-            "8筒",
-        ]
-    )
+    monkeypatch.setattr(random, "randint", mock_randint)
+    monkeypatch.setattr(Mahjong, "round_summary", mock_round_summary)
+
+    # 天胡
+    # fmt: off
+    ts = MockTilesSequence([
+        "1万", "9万", "1筒", "9筒",  # 0
+        "2万", "3万", "4万", "5万",  # 1
+        "2万", "3万", "4万", "5万",  # 2
+        "1筒", "2筒", "3筒", "4筒",  # 3
+        "1索", "9索", "东", "南",  # 0
+        "6万", "7万", "8万", "9万",  # 1
+        "6万", "7万", "8万", "9万",  # 2
+        "1筒", "2筒", "3筒", "4筒",  # 3
+        "西", "北", "中", "發",  # 0
+        "2万", "2万", "3万", "4万",  # 1
+        "3万", "3万", "7万", "8万",  # 2
+        "5筒", "6筒", "7筒", "8筒",  # 3
+        "白",  # 0
+        "5万", # 1
+        "9万",  # 2
+        "9筒",  # 3
+        "白",  # 0
+        "6筒",  # ensure `ts` is not empty
+    ])
+    # fmt: on
     game = Mahjong(
         {0: DummyPlayer(0), 1: DummyPlayer(1), 2: DummyPlayer(2), 3: DummyPlayer(3)}
     )
     game.tile_sequence = ts
     game.start()
+    assert game.winner == 0
 
 
-@patch("random.randint", 0)
-def test_resolve_call():
+def test_resolve_call_priority():
     game = Mahjong({0: Player(0), 1: Player(1), 2: Player(2), 3: Player(3)})
     # hu has the highest priority
     resolved_to, _ = game.resolve_call_priority(
@@ -191,6 +187,18 @@ def test_resolve_call():
     )
     assert resolved_to == 1
 
+    resolved_to, _ = game.resolve_call_priority(
+        {
+            "shang": [
+                2,
+                PlayAction(
+                    resolve=True, action="shang", target_tile="1万", discard_tile="2万"
+                ),
+            ],
+        }
+    )
+    assert resolved_to == 2
+
 
 def _test_play_one_round():
     import os, json
@@ -204,9 +212,138 @@ def _test_play_one_round():
         pass
 
 
-def test_play_one_round_with_multiple_resolves():
+def test_play_with_multiple_resolve_conditions(monkeypatch):
     """
     - peng -> shang -> hu
-    - peng -> shang
+    - shang -> peng
+    - multiple hu
     """
-    pass
+
+    def mock_randint(a, b):
+        return 1
+
+    def mock_round_summary(self):
+        pass
+
+    import random  # noqa
+
+    monkeypatch.setattr(random, "randint", mock_randint)
+    monkeypatch.setattr(Mahjong, "round_summary", mock_round_summary)
+
+    # multiple hu; 1, 2 hu -> resolve to 1
+    # fmt: off
+    ts = MockTilesSequence([
+        "1万", "1万", "1万", "1万",  # 0
+        "2万", "3万", "4万", "5万",  # 1
+        "2万", "3万", "4万", "5万",  # 2
+        "1筒", "2筒", "3筒", "4筒",  # 3
+        "1索", "2索", "3索", "4索",  # 0
+        "6万", "7万", "8万", "9万",  # 1
+        "6万", "7万", "8万", "9万",  # 2
+        "1筒", "2筒", "3筒", "4筒",  # 3
+        "5索", "6索", "7索", "8索",  # 0
+        "2万", "2万", "3万", "4万",  # 1
+        "3万", "3万", "7万", "8万",  # 2
+        "5筒", "6筒", "7筒", "8筒",  # 3
+        "9索", # 0
+        "5万", # 1
+        "9万",  # 2
+        "9筒",  # 3
+        "9筒", # 0, jump
+        "6筒",  # ensure `ts` is not empty
+    ])
+    # fmt: on
+    game = Mahjong(
+        {0: DummyPlayer(0), 1: DummyPlayer(1), 2: DummyPlayer(2), 3: DummyPlayer(3)}
+    )
+    game.tile_sequence = ts
+    game.start()
+    assert game.round_player_sequence == [0, 1, 2, 3]
+    # fmt: off
+    assert game.players[0].hand.tiles == ["1万", "1万", "1万", "1索", "2索", "3索", "4索", "5索", "6索", "7索", "8索", "9索", "9筒"]
+    assert sorted(game.players[1].hand.tiles) == sorted(["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "2万", "2万", "3万", "4万", "5万"])
+    assert game.players[2].hand.tiles == ["2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "3万", "3万", "7万", "8万", "9万"]
+    assert game.players[3].hand.tiles == ["1筒", "2筒", "3筒", "4筒", "1筒", "2筒", "3筒", "4筒", "5筒", "6筒", "7筒", "8筒", "9筒"]
+    # fmt: on
+    assert game.winner == 1
+
+    # peng -> shang -> hu; 2 peng -> 3 shang -> 1 hu
+    # fmt: off
+    ts = MockTilesSequence([
+        "1万", "2万", "3万", "4万",  # 0
+        "1索", "2索", "3索", "4索",  # 1
+        "1万", "1万", "1筒", "2筒",  # 2
+        "2筒", "3筒", "1索", "5万",  # 3
+        "5万", "6万", "7万", "8万",  # 0
+        "5索", "6索", "7索", "8索",  # 1
+        "6万", "7万", "8万", "9万",  # 2
+        "1筒", "2筒", "3筒", "4筒",  # 3
+        "9万", "1筒", "2筒", "3筒",  # 0
+        "9索", "2索", "3索", "4索",  # 1
+        "3万", "3万", "7万", "8万",  # 2
+        "5筒", "6筒", "7筒", "8筒",  # 3
+        "4筒", # 0
+        "4索", # 1
+        "9万",  # 2
+        "9筒",  # 3
+        "5筒", # 0, jump
+        "6筒",  # ensure `ts` is not empty
+    ])
+    # fmt: on
+    game = Mahjong(
+        {0: DummyPlayer(0), 1: DummyPlayer(1), 2: DummyPlayer(2), 3: DummyPlayer(3)}
+    )
+    game.tile_sequence = ts
+    game.start()
+    assert game.round_player_sequence == [0, 1, 2, 3]
+    assert game.winner == 1
+    assert game.players[2].hand.peng_history == ["1万", "1万", "1万"]
+    assert sorted(game.players[3].hand.shang_history) == sorted(["1筒", "2筒", "3筒"])
+
+
+def test_play_shang_peng(monkeypatch):
+    def mock_randint(a, b):
+        return 1
+
+    def mock_round_summary(self):
+        pass
+
+    import random  # noqa
+
+    monkeypatch.setattr(random, "randint", mock_randint)
+    monkeypatch.setattr(Mahjong, "round_summary", mock_round_summary)
+    # shang -> peng; 1 shang -> 3 peng -> next player 0
+    # fmt: off
+    ts = MockTilesSequence([
+        "1万", "2万", "3万", "4万",  # 0
+        "2万", "3万", "3索", "4索",  # 1
+        "2万", "3万", "4万", "2筒",  # 2
+        "3索", "3索", "1索", "5万",  # 3
+        "4万", "4万", "5万", "6万",  # 0
+        "5索", "6索", "7索", "8索",  # 1
+        "6万", "7万", "8万", "9万",  # 2
+        "1筒", "2筒", "3筒", "4筒",  # 3
+        "9万", "1筒", "2筒", "3筒",  # 0
+        "9索", "2索", "3索", "4索",  # 1
+        "3万", "3万", "7万", "8万",  # 2
+        "5筒", "6筒", "7筒", "8筒",  # 3
+        "4筒",  # 0
+        "4筒",  # 1
+        "9万",  # 2
+        "9筒",  # 3
+        "5筒",  # 0, jump
+        "6筒",  # ensure `ts` is not empty
+        ]
+    )
+    # fmt: on
+    game = Mahjong(
+        {0: DummyPlayer(0), 1: DummyPlayer(1), 2: DummyPlayer(2), 3: DummyPlayer(3)}
+    )
+    game.tile_sequence = ts
+    game.start()
+    assert sorted(game.players[1].hand.shang_history) == sorted(["1万", "2万", "3万"])
+    assert game.players[3].hand.peng_history == ["3索", "3索", "3索"]
+    assert (
+        game.current_player_idx == 1
+    )  # is 1 because 0 will finish the turn and move to 1
+    assert game.winner is None

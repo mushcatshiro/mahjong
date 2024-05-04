@@ -195,6 +195,7 @@ def test_get_gang_candidates():
     reset_hand(h)
 
     h.add_tiles(["3万", "3万", "3万"])
+    h.add_tiles(["3万"])
     assert len(h.get_gang_candidates(drawed_tile="3万")) == 1
     assert h.get_gang_candidates(drawed_tile="3万")[0] == PlayAction(
         resolve=True, action="an_gang", target_tile="3万"
@@ -207,6 +208,15 @@ def test_get_gang_candidates():
 
     h.add_tiles(["2万", "3万", "4万", "5万"])
     assert h.get_gang_candidates("6万") == []
+    reset_hand(h)
+
+    h.add_tiles(["2万", "3万", "4万", "5万", "6万"])
+    assert h.get_gang_candidates(played_tile="7万") == []
+    reset_hand(h)
+
+    h.add_tiles(["2万", "3万", "4万", "5万", "6万"])
+    assert h.get_gang_candidates() == []
+    reset_hand(h)
 
 
 def test_gang():
@@ -225,6 +235,7 @@ def test_gang():
     # is confusing but drawed tiles should be added at `Player` level
     # before resolving stuff at `Hand`
     h.add_tiles(["2万", "2万", "2万"])
+    h.add_tiles(["2万"])
     action = h.get_gang_candidates(drawed_tile="2万")
     assert len(action) == 1
     assert action[0].action == "an_gang"
@@ -264,6 +275,7 @@ def test_internal_get_discardable_tiles():
     reset_hand(h)
 
     h.add_tiles(["2万", "2万", "2万"])
+    h.add_tiles(["2万"])
     action = PlayAction(resolve=True, action="an_gang", target_tile="2万")
     h.gang(action)
     assert h._get_discardable_tiles() == []
@@ -351,19 +363,19 @@ def test_is_winning_hand():
 def test_get_valid_eye_sets():
     h = Hand(0)
     h.add_tiles(["2万", "2万"])
-    eye_candidates = h.get_valid_eye_sets()
+    eye_candidates = h.get_valid_eye_sets(h.tiles)
     assert len(eye_candidates) == 1
     assert eye_candidates == ["2万"]
     reset_hand(h)
 
     h.add_tiles(["2万", "2万", "3万", "3万"])
-    eye_candidates = h.get_valid_eye_sets()
+    eye_candidates = h.get_valid_eye_sets(h.tiles)
     assert len(eye_candidates) == 2
     assert sorted(eye_candidates) == sorted(["2万", "3万"])
     reset_hand(h)
 
     h.add_tiles(["2万", "2万", "2万"])
-    eye_candidates = h.get_valid_eye_sets()
+    eye_candidates = h.get_valid_eye_sets(h.tiles)
     assert len(eye_candidates) == 1
     assert eye_candidates == ["2万"]
     reset_hand(h)
@@ -395,23 +407,23 @@ def test_dp_search():
     h = Hand(0)
     # BUG dp search should look for `eyes` before moving to `peng` and `gang`
     h.add_tiles(["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "9索", "1索"])
-    resp = h.dp_search()
+    resp = h.dp_search(h.tiles)
     assert not resp
     reset_hand(h)
 
     h.add_tiles(["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万"])
-    resp = h.dp_search()
+    resp = h.dp_search(h.tiles)
     assert resp
     reset_hand(h)
 
     # mixed suites
     h.add_tiles(["1索", "1索", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万"])
-    resp = h.dp_search()
+    resp = h.dp_search(h.tiles)
     assert resp
     reset_hand(h)
 
     h.add_tiles(["1索", "1索", "1万", "2万", "2筒", "2万", "3筒", "3万", "3万", "4万", "4筒"])
-    resp = h.dp_search()
+    resp = h.dp_search(h.tiles)
     assert resp
     reset_hand(h)
 
@@ -438,7 +450,7 @@ def test_resolve():
     reset_hand(h)
 
     # resolve an_gang
-    h.add_tiles(["2万", "2万", "2万", "3万"])
+    h.add_tiles(["2万", "2万", "2万", "2万", "3万"])
     actions = h.get_gang_candidates(drawed_tile="2万")
     assert len(actions) == 1
     play_result = h.resolve(actions[0])
