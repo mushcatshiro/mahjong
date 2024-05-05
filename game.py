@@ -207,6 +207,7 @@ class PlayAction(State):
     resolve: bool = False  # TODO needed?
     action: str = None
     target_tile: str = None
+    move_tiles: List[str] = field(default_factory=list)
     discard_tile: str = None
 
     RESOLVABLE_ACTIONS = [
@@ -278,11 +279,11 @@ class Hand(State):
         self.shang_history = []
 
     def shang(self, action: PlayAction):
-        for tile in action.target_tile:
-            if tile in self.tiles:
-                self.remove_tile(tile)
+        for tile in action.move_tiles:
+            self.remove_tile(tile, "shang-move")
             self.shang_history.append(tile)
-        self.remove_tile(action.discard_tile)
+        self.shang_history.append(action.target_tile)
+        self.remove_tile(action.discard_tile, "shang-discard")
         return PlayResult(discarded_tile=action.discard_tile)
 
     def get_shang_candidates(self, played_tile):
@@ -304,10 +305,10 @@ class Hand(State):
                         PlayAction(
                             resolve=True,
                             action="shang",
-                            target_tile=[
+                            target_tile=played_tile,
+                            move_tiles=[
                                 f"{tile_group[0]}{suite}",
                                 f"{tile_group[1]}{suite}",
-                                played_tile,
                             ],
                             discard_tile=tile,
                         )
@@ -324,11 +325,11 @@ class Hand(State):
         return True
 
     def peng(self, action: PlayAction):
-        for _ in range(2):
-            self.remove_tile(action.target_tile)
+        for tile in action.move_tiles:
+            self.remove_tile(tile, "peng-move")
         self.peng_history += [action.target_tile] * 3
         self.distinct_tile_count[action.target_tile] = 3
-        self.remove_tile(action.discard_tile)
+        self.remove_tile(action.discard_tile, "peng-discard")
         return PlayResult(discarded_tile=action.discard_tile)
 
     def get_peng_candidates(self, played_tile):
@@ -347,6 +348,7 @@ class Hand(State):
                     resolve=True,
                     action="peng",
                     target_tile=played_tile,
+                    move_tiles=[played_tile, played_tile],
                     discard_tile=discard_tile,
                 )
                 for discard_tile in discardables
@@ -362,18 +364,18 @@ class Hand(State):
         an_gang: hand 4
         """
         if action.action == "ming_gang":
-            for _ in range(3):
-                self.remove_tile(action.target_tile)
+            for tile in action.move_tiles:
+                self.remove_tile(tile, "ming-move")
             self.gang_history += [action.target_tile] * 4
             self.distinct_tile_count[action.target_tile] = 4
         elif action.action == "an_gang":
-            for _ in range(4):
-                self.remove_tile(action.target_tile)
-            self.gang_history += [action.target_tile] * 4
-            self.distinct_tile_count[action.target_tile] = 4
+            for tile in action.move_tiles:
+                self.remove_tile(tile, "an-move")
+            self.gang_history += [action.move_tiles[0]] * 4
+            self.distinct_tile_count[action.move_tiles[0]] = 4
         elif action.action == "jia_gang":
-            for _ in range(3):
-                self.peng_history.remove(action.target_tile)
+            for tile in action.move_tiles:
+                self.peng_history.remove(tile)
             self.gang_history += [action.target_tile] * 4
             self.distinct_tile_count[action.target_tile] = 4
         return PlayResult(need_replacement=True)
@@ -393,6 +395,7 @@ class Hand(State):
                         resolve=True,
                         action="ming_gang",
                         target_tile=played_tile,
+                        move_tiles=[played_tile, played_tile, played_tile],
                     )
                 ]
                 if self.distinct_tile_count[played_tile] == 3
@@ -401,23 +404,37 @@ class Hand(State):
         elif drawed_tile:
             if drawed_tile in self.peng_history:
                 action = "jia_gang"
+                return [
+                    PlayAction(
+                        resolve=True,
+                        action=action,
+                        target_tile=drawed_tile,
+                        move_tiles=[drawed_tile, drawed_tile, drawed_tile]
+                    )
+                ]
             elif self.distinct_tile_count[drawed_tile] == 4:
                 action = "an_gang"
+                return [
+                    PlayAction(
+                        resolve=True,
+                        action=action,
+                        move_tiles=[drawed_tile, drawed_tile, drawed_tile, drawed_tile]
+                    )
+                ]
             else:
                 return []  # noqa
-            return [PlayAction(resolve=True, action=action, target_tile=drawed_tile)]
 
     def resolve(self, action: PlayAction) -> PlayResult:
         resolve_to = (
             action.action if "_" not in action.action else action.action.split("_")[1]
         )
         fn = getattr(self, resolve_to)
-        self.tiles_history[f"{len(self.tiles_history)}resolve"] = str(action)
+        self.tiles_history[f"{len(self.tiles_history)}-resolve"] = str(action)
         result: PlayResult = fn(action)
         return result
 
     def discard(self, action: PlayAction):
-        self.remove_tile(action.discard_tile)
+        self.remove_tile(action.discard_tile, "turn-discard")
         return PlayResult(discarded_tile=action.discard_tile)
 
     def _get_discardable_tiles(self, exclude_tile=None, exclude_all=False):
@@ -445,7 +462,7 @@ class Hand(State):
             for tile in self._get_discardable_tiles()
         ]
 
-    def add_tiles(self, tiles: List) -> int:
+    def add_tiles(self, tiles: List, method: str="") -> int:
         """
         add tile to hand
 
@@ -457,7 +474,7 @@ class Hand(State):
         replacement_tile_count: number of replacement tiles added to hand
         """
         replacement_tile_count = 0
-        self.tiles_history[f"{len(self.tiles_history)}add"] = tiles
+        self.tiles_history[f"{len(self.tiles_history)}-{method}-add"] = tiles
         for tile in tiles:
             if tile in self.replacement_tiles:
                 self.flower_tiles.append(tile)
@@ -470,7 +487,7 @@ class Hand(State):
                     self.distinct_tile_count[tile] += 1
         return replacement_tile_count
 
-    def remove_tile(self, tile):
+    def remove_tile(self, tile, method:str=""):
         """
         Args:
         tile: tile to be removed from hand
@@ -481,7 +498,7 @@ class Hand(State):
         self.tiles.remove(tile)
         self.distinct_tile_count[tile] -= 1
         assert self.distinct_tile_count[tile] >= 0
-        self.tiles_history[f"{len(self.tiles_history)}remove"] = tile
+        self.tiles_history[f"{len(self.tiles_history)}-{method}-remove"] = tile
         return tile
 
     def get_valid_eye_sets(self, free_tiles):
@@ -612,7 +629,7 @@ class Player(State):
 
     def initial_draw(self, tile_sequence: TilesSequence, total, jump: bool):
         tiles = tile_sequence.draw(total, jump)
-        self.replacement_tile_count += self.hand.add_tiles(tiles)
+        self.replacement_tile_count += self.hand.add_tiles(tiles, "init-draw")
 
     def _replace_tiles(self, tile_sequence: TilesSequence):
         """
@@ -626,7 +643,7 @@ class Player(State):
         """
         replaced_tiles = tile_sequence.replace(self.replacement_tile_count)
         self.replacement_tile_count -= len(replaced_tiles)
-        self.replacement_tile_count += self.hand.add_tiles(replaced_tiles)
+        self.replacement_tile_count += self.hand.add_tiles(replaced_tiles, "replace")
 
     def resolve_tile_replacement(self, tile_sequence: TilesSequence):
         if self.replacement_tile_count == 0:
@@ -642,7 +659,7 @@ class Player(State):
             possible_actions += self.hand.get_discardable_tiles()
         else:
             drawed_tile = tile_sequence.draw()
-            self.replacement_tile_count += self.hand.add_tiles(drawed_tile)
+            self.replacement_tile_count += self.hand.add_tiles(drawed_tile, "turn-draw")
             self.resolve_tile_replacement(tile_sequence)
 
             if self.hand.is_winning_hand():
@@ -676,14 +693,14 @@ class Player(State):
     ) -> PlayResult:
         if action.action == "hu":
             self.hand.add_tiles(
-                [action.target_tile]
+                [action.target_tile], "hu-add"
             )  # TODO might want to push list check to `Hand`
             return self.hand.get_hu_play_result()
         play_result: PlayResult = self.hand.resolve(action)
         # TODO check hu?
         if play_result.need_replacement:
             tile = tile_sequence.replace(1)
-            self.replacement_tile_count += self.hand.add_tiles(tile)
+            self.replacement_tile_count += self.hand.add_tiles(tile, f"{action.action}-draw")
             self.resolve_tile_replacement(tile_sequence)
         return play_result
 

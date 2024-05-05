@@ -26,14 +26,14 @@ def test_hand(monkeypatch):
 
     for i in range(36):
         drawed = ts.draw(4)
-        h.add_tiles(drawed)
-        assert sorted(h.tiles_history[f"{i}add"]) == sorted(drawed)
+        h.add_tiles(drawed, "init-draw")
+        assert sorted(h.tiles_history[f"{i}-init-draw-add"]) == sorted(drawed)
 
     for idx, tile in enumerate(["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万"]):
         h.remove_tile(tile)
         assert h.distinct_tile_count[tile] == 3
         assert (
-            h.tiles_history[f"{idx+36}remove"] == tile
+            h.tiles_history[f"{idx+36}--remove"] == tile
         )  # `add_tiles` was called 36 times
 
 
@@ -74,7 +74,8 @@ def test_get_shang_candidates():
     assert h.get_shang_candidates("3万")[0] == PlayAction(
         resolve=True,
         action="shang",
-        target_tile=["1万", "2万", "3万"],
+        target_tile="3万",
+        move_tiles=["1万", "2万"],
         discard_tile="5万",
     )
     reset_hand(h)
@@ -83,9 +84,18 @@ def test_get_shang_candidates():
     assert len(h.get_shang_candidates("4万")) == 4
     reset_hand(h)
 
+    # dealing with mixed tiles
     h.add_tiles(["2万", "3万", "4筒", "5筒"])
     assert len(h.get_shang_candidates("1万")) == 2
     assert len(h.get_shang_candidates("6筒")) == 2
+    reset_hand(h)
+
+    # dealing with mixed tiles with repeated numbers
+    h.add_tiles(["2万", "3万", "2筒", "3筒"])
+    shang_candidates = h.get_shang_candidates("1万")
+    assert len(shang_candidates) == 2
+    for candidate in shang_candidates:
+        assert candidate.discard_tile in ["2筒", "3筒"]
     reset_hand(h)
 
     # dealing with repeated tiles
@@ -94,7 +104,8 @@ def test_get_shang_candidates():
     assert h.get_shang_candidates("3万")[0] == PlayAction(
         resolve=True,
         action="shang",
-        target_tile=["1万", "2万", "3万"],
+        target_tile="3万",
+        move_tiles=["1万", "2万"],
         discard_tile="2万",
     )
     reset_hand(h)
@@ -102,6 +113,8 @@ def test_get_shang_candidates():
     h.add_tiles(["1万", "2万", "2万", "3万"])
     assert len(h.get_shang_candidates("中")) == 0
     reset_hand(h)
+
+    
 
 
 def test_shang():
@@ -124,10 +137,11 @@ def test_shang():
     play_result: PlayResult = h.shang(action[0])
     assert play_result.discarded_tile == action[0].discard_tile
     assert len(h.tiles) == 1
-    assert sorted(h.shang_history) == sorted(action[0].target_tile)
-    assert h.is_locked(action[0].target_tile[0])
-    assert h.is_locked(action[0].target_tile[1])
-    assert h.is_locked(action[0].target_tile[2])
+    shang_history = [action[0].target_tile] + action[0].move_tiles
+    assert sorted(h.shang_history) == sorted(shang_history)
+    assert h.is_locked(shang_history[0])
+    assert h.is_locked(shang_history[1])
+    assert h.is_locked(shang_history[2])
     reset_hand(h)
 
     h.add_tiles(["2万", "3万", "4筒", "5筒"])
@@ -136,10 +150,11 @@ def test_shang():
     play_result: PlayResult = h.shang(action[0])
     assert play_result.discarded_tile == action[0].discard_tile
     assert len(h.tiles) == 1
-    assert sorted(h.shang_history) == sorted(action[0].target_tile)
-    assert h.is_locked(action[0].target_tile[0])
-    assert h.is_locked(action[0].target_tile[1])
-    assert h.is_locked(action[0].target_tile[2])
+    shang_history = [action[0].target_tile] + action[0].move_tiles
+    assert sorted(h.shang_history) == sorted(shang_history)
+    assert h.is_locked(shang_history[0])
+    assert h.is_locked(shang_history[1])
+    assert h.is_locked(shang_history[2])
     assert not h.is_locked(h.tiles[0])
     reset_hand(h)
 
@@ -149,14 +164,22 @@ def test_get_peng_candidates():
     h.add_tiles(["2万", "2万", "3万"])
     assert len(h.get_peng_candidates("2万")) == 1
     assert h.get_peng_candidates("2万")[0] == PlayAction(
-        resolve=True, action="peng", target_tile="2万", discard_tile="3万"
+        resolve=True,
+        action="peng",
+        target_tile="2万",
+        move_tiles=["2万", "2万"],
+        discard_tile="3万",
     )
     reset_hand(h)
 
     h.add_tiles(["2万", "3万", "3万"])
     assert len(h.get_peng_candidates("3万")) == 1
     assert h.get_peng_candidates("3万")[0] == PlayAction(
-        resolve=True, action="peng", target_tile="3万", discard_tile="2万"
+        resolve=True,
+        action="peng",
+        target_tile="3万",
+        move_tiles=["3万", "3万"],
+        discard_tile="2万",
     )
     reset_hand(h)
 
@@ -184,7 +207,10 @@ def test_get_gang_candidates():
     h.add_tiles(["2万", "2万", "2万"])
     assert len(h.get_gang_candidates(played_tile="2万")) == 1
     assert h.get_gang_candidates(played_tile="2万")[0] == PlayAction(
-        resolve=True, action="ming_gang", target_tile="2万"
+        resolve=True,
+        action="ming_gang",
+        target_tile="2万",
+        move_tiles=["2万", "2万", "2万"],
     )
     reset_hand(h)
 
@@ -194,7 +220,10 @@ def test_get_gang_candidates():
     h.peng(action[0])
     assert len(h.get_gang_candidates(drawed_tile="3万")) == 1
     assert h.get_gang_candidates(drawed_tile="3万")[0] == PlayAction(
-        resolve=True, action="jia_gang", target_tile="3万"
+        resolve=True,
+        action="jia_gang",
+        target_tile="3万",
+        move_tiles=["3万", "3万", "3万"],
     )
     reset_hand(h)
 
@@ -202,7 +231,7 @@ def test_get_gang_candidates():
     h.add_tiles(["3万"])
     assert len(h.get_gang_candidates(drawed_tile="3万")) == 1
     assert h.get_gang_candidates(drawed_tile="3万")[0] == PlayAction(
-        resolve=True, action="an_gang", target_tile="3万"
+        resolve=True, action="an_gang", move_tiles=["3万", "3万", "3万", "3万"]
     )
     reset_hand(h)
 
@@ -280,7 +309,7 @@ def test_internal_get_discardable_tiles():
 
     h.add_tiles(["2万", "2万", "2万"])
     h.add_tiles(["2万"])
-    action = PlayAction(resolve=True, action="an_gang", target_tile="2万")
+    action = PlayAction(resolve=True, action="an_gang", move_tiles=["2万", "2万", "2万", "2万"])
     h.gang(action)
     assert h._get_discardable_tiles() == []
     reset_hand(h)
@@ -497,9 +526,10 @@ def test_resolve():
     assert len(actions) == 2
     play_result = h.resolve(actions[0])
     assert h.tiles == []
-    assert sorted(h.shang_history) == sorted(actions[0].target_tile)
-    assert h.is_locked(actions[0].target_tile[0])
-    assert h.is_locked(actions[0].target_tile[1])
-    assert h.is_locked(actions[0].target_tile[2])
+    shang_history = [actions[0].target_tile] + actions[0].move_tiles
+    assert sorted(h.shang_history) == sorted(shang_history)
+    assert h.is_locked(shang_history[0])
+    assert h.is_locked(shang_history[1])
+    assert h.is_locked(shang_history[2])
     assert play_result.discarded_tile == actions[0].discard_tile
     reset_hand(h)
