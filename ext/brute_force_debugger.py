@@ -52,10 +52,13 @@ def main():
         else:
             complete_games += 1
             assert game.winner is not None
-    print(f"total games: {ctr}; complete games: {complete_games}; draw games: {draw_games}")
+    print(
+        f"total games: {ctr}; complete games: {complete_games}; draw games: {draw_games}"
+    )
 
 
 if __name__ == "__main__":
     import random
+
     random.seed(0)
     main()
