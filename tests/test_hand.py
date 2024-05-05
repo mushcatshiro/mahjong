@@ -114,8 +114,6 @@ def test_get_shang_candidates():
     assert len(h.get_shang_candidates("中")) == 0
     reset_hand(h)
 
-    
-
 
 def test_shang():
     h = Hand(0)
@@ -310,7 +308,9 @@ def test_internal_get_discardable_tiles():
 
     h.add_tiles(["2万", "2万", "2万"])
     h.add_tiles(["2万"])
-    action = PlayAction(resolve=True, action="an_gang", move_tiles=["2万", "2万", "2万", "2万"])
+    action = PlayAction(
+        resolve=True, action="an_gang", move_tiles=["2万", "2万", "2万", "2万"]
+    )
     h.gang(action)
     assert h._get_discardable_tiles() == []
     reset_hand(h)
