@@ -43,6 +43,7 @@ def main():
                     f"Player {i} peng: {player.hand.peng_history}; gang: {player.hand.gang_history}; shang: {player.hand.shang_history}"
                 )
                 print("\n")
+            print(f"{game.tile_sequence.tiles}")
             break
         ctr += 1
         if game.winner is None:

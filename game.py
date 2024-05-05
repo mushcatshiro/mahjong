@@ -190,6 +190,12 @@ class TilesSequence(State):
         # convienence method
         return len(self.tiles) == 0
 
+    def only_flowers(self):
+        rv = [1 if x in DEFAULT_REPLACEMENT_TILES else 0 for x in self.tiles]
+        if all(rv):
+            return True
+        return False
+
 
 @dataclass
 class PlayAction(State):
@@ -663,6 +669,9 @@ class Player(State):
             drawed_tile = tile_sequence.draw()  # guaranteed
             self.replacement_tile_count += self.hand.add_tiles(drawed_tile, "turn-draw")
             if self.replacement_tile_count > 0 and tile_sequence.tiles == []:
+                return PlayResult(draw=True)
+            elif self.replacement_tile_count > 0 and len(tile_sequence.tiles) <= self.replacement_tile_count and tile_sequence.only_flowers():
+                # add to hand
                 return PlayResult(draw=True)
             self.resolve_tile_replacement(tile_sequence)
 
