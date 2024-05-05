@@ -210,7 +210,7 @@ class PlayAction(State):
     - discard
     """
 
-    resolve: bool = False  # TODO needed?
+    resolve: bool = False  # TODO needed? can be removed
     action: str = None
     target_tile: str = None
     move_tiles: List[str] = field(default_factory=list)
@@ -256,6 +256,11 @@ class PlayResult(State):
     draw: bool = False
 
 
+@dataclass
+class ReplacementResult(State):
+    complete: bool = False
+
+
 class Hand(State):
     """
     `Hand` class is a representation of a player's hand. It includes
@@ -277,7 +282,7 @@ class Hand(State):
     def __init__(self, player_idx: int, replacement_tiles=DEFAULT_REPLACEMENT_TILES):
         self.tiles = []
         self.player_idx = player_idx
-        self.tiles_history = {}  # TODO extend to include all actions
+        self.tiles_history = {}
         self.replacement_tiles = [] if not replacement_tiles else replacement_tiles
         self.flower_tiles = []
         self.distinct_tile_count = {}
@@ -641,24 +646,21 @@ class Player(State):
         self.replacement_tile_count += self.hand.add_tiles(tiles, "init-draw")
 
     def _replace_tiles(self, tile_sequence: TilesSequence):
-        """
-        TODO
-        - test
-          hand "春 夏"
-          got replacement "秋 冬"
-          then get two more replacement "1 2"
-          instead of getting 4 in a go
-        - check for non dealing stage replacement is always 1?
-        """
         replaced_tiles = tile_sequence.replace(self.replacement_tile_count)
         self.replacement_tile_count -= len(replaced_tiles)
         self.replacement_tile_count += self.hand.add_tiles(replaced_tiles, "replace")
 
-    def resolve_tile_replacement(self, tile_sequence: TilesSequence):
+    def resolve_tile_replacement(
+        self, tile_sequence: TilesSequence
+    ) -> ReplacementResult:
         if self.replacement_tile_count == 0:
-            return
+            return ReplacementResult(complete=True)
         while self.replacement_tile_count > 0:
-            self._replace_tiles(tile_sequence)
+            try:
+                self._replace_tiles(tile_sequence)
+            except IndexError:
+                return ReplacementResult(complete=False)
+        return ReplacementResult(complete=True)
 
     def play_turn(self, tile_sequence: TilesSequence) -> PlayResult:
         possible_actions = []
@@ -669,16 +671,9 @@ class Player(State):
         else:
             drawed_tile = tile_sequence.draw()  # guaranteed
             self.replacement_tile_count += self.hand.add_tiles(drawed_tile, "turn-draw")
-            if self.replacement_tile_count > 0 and tile_sequence.tiles == []:
+            replacement_result = self.resolve_tile_replacement(tile_sequence)
+            if not replacement_result.complete:
                 return PlayResult(draw=True)
-            elif (
-                self.replacement_tile_count > 0
-                and len(tile_sequence.tiles) <= self.replacement_tile_count
-                and tile_sequence.only_flowers()
-            ):
-                # add to hand
-                return PlayResult(draw=True)
-            self.resolve_tile_replacement(tile_sequence)
 
             if self.hand.is_winning_hand():
                 return self.hand.get_hu_play_result()
@@ -693,11 +688,15 @@ class Player(State):
         assert action.action in ["an_gang", "jia_gang", "discard"]
         play_result = self.hand.resolve(action)
         if play_result.need_replacement:
+            if tile_sequence.is_empty():
+                return PlayResult(draw=True)
             tile = tile_sequence.replace(1)
             self.replacement_tile_count += self.hand.add_tiles(
                 tile, f"{action.action}-replace"
             )
-            self.resolve_tile_replacement(tile_sequence)
+            replacement_result = self.resolve_tile_replacement(tile_sequence)
+            if not replacement_result.complete:
+                return PlayResult(draw=True)
             possible_discards = self.hand.get_discardable_tiles()
             discard_play_action = self.gang_discard_strategy(possible_discards)
             play_result = self.hand.resolve(discard_play_action)
@@ -720,17 +719,19 @@ class Player(State):
         self, action: PlayAction, tile_sequence: TilesSequence
     ) -> PlayResult:
         if action.action == "hu":
-            self.hand.add_tiles(
-                [action.target_tile], "hu-add"
-            )  # TODO might want to push list check to `Hand`
+            self.hand.add_tiles([action.target_tile], "hu-add")
             return self.hand.get_hu_play_result()
         play_result: PlayResult = self.hand.resolve(action)
         if play_result.need_replacement:
+            if tile_sequence.is_empty():
+                return PlayResult(draw=True)
             tile = tile_sequence.replace(1)
             self.replacement_tile_count += self.hand.add_tiles(
                 tile, f"{action.action}-replace"
             )
-            self.resolve_tile_replacement(tile_sequence)
+            replacement_result = self.resolve_tile_replacement(tile_sequence)
+            if not replacement_result.complete:
+                return PlayResult(draw=True)
             possible_discards = self.hand.get_discardable_tiles()
             discard_play_action = self.gang_discard_strategy(possible_discards)
             play_result = self.hand.resolve(discard_play_action)
@@ -946,7 +947,7 @@ class Mahjong:
             return responses["jia_gang"]
         elif (
             "an_gang" in responses
-        ):  # TODO technically an_gang does not need to resolve here?
+        ):  # TODO technically an_gang is not need to resolve here
             return responses["an_gang"]
         elif "shang" in responses:
             return responses["shang"]
@@ -1011,6 +1012,8 @@ class Mahjong:
                 if play_result.hu:
                     self.winner = resolve_to
                     return
+                elif play_result.draw:
+                    return
                 elif play_result.discarded_tile:
                     discarded_tile = play_result.discarded_tile
                     self.discarded_pool.append(discarded_tile)
@@ -1030,7 +1033,7 @@ class Mahjong:
         while not self.winner:
             print(f"current round sequence {self.current_round_sequence}")
             print(f"current player idx {self.current_player_idx}")
-            if self.tile_sequence.tiles == []:
+            if self.tile_sequence.is_empty():
                 break
             self.play_one_round()
             if self.winner is not None:
