@@ -282,8 +282,8 @@ def test_call_resolve():
     resp = p.call_resolve(play_action, ts)
     assert p.hand.distinct_tile_count["1万"] == 4
     assert "1万" in p.hand.gang_history
-    assert len(p.hand.tiles) == 2  # 4 remove 3, replace 1
-    assert resp.need_replacement
+    assert len(p.hand.tiles) == 1
+    assert resp.discarded_tile  # replace is handled internally
 
     # shang
     ts = MockTilesSequence(["1万", "2万", "6万", "7万"])

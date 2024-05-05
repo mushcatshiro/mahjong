@@ -286,6 +286,7 @@ def test_gang():
     play_result: PlayResult = h.peng(action[0])
     assert h.tiles == []
     assert h.peng_history == ["2万", "2万", "2万"]
+    h.add_tiles(["2万"])
     action = h.get_gang_candidates(drawed_tile="2万")
     assert len(action) == 1
     assert action[0].action == "jia_gang"
@@ -500,6 +501,7 @@ def test_resolve():
     assert len(actions) == 1
     play_result = h.resolve(actions[0])
     assert play_result.discarded_tile == "3万"
+    h.add_tiles(["2万"])
     actions = h.get_gang_candidates(drawed_tile="2万")
     assert len(actions) == 1
     play_result = h.resolve(actions[0])

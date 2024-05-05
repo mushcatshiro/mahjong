@@ -9,6 +9,8 @@ from game import Mahjong, DummyPlayer
 def main():
     # TODO support random house
     ctr = 0
+    complete_games = 0
+    draw_games = 0
     while True:
         # to replace while True with standard 24 rounds or 1 round
         # associate round summary/game summary code need to behave correctly
@@ -41,14 +43,18 @@ def main():
                     f"Player {i} peng: {player.hand.peng_history}; gang: {player.hand.gang_history}; shang: {player.hand.shang_history}"
                 )
                 print("\n")
-            print(f"ctr: {ctr}")
             break
         ctr += 1
         if game.winner is None:
+            draw_games += 1
             assert game.tile_sequence.is_empty()
         else:
+            complete_games += 1
             assert game.winner is not None
+    print(f"total games: {ctr}; complete games: {complete_games}; draw games: {draw_games}")
 
 
 if __name__ == "__main__":
+    import random
+    random.seed(0)
     main()

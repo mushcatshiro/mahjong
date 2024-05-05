@@ -247,6 +247,7 @@ class PlayResult(State):
     discarded_tile: str = None
     need_replacement: bool = False
     hu: bool = False
+    draw: bool = False
 
 
 class Hand(State):
@@ -376,6 +377,7 @@ class Hand(State):
         elif action.action == "jia_gang":
             for tile in action.move_tiles:
                 self.peng_history.remove(tile)
+            self.remove_tile(action.target_tile, "jia-gang-move")
             self.gang_history += [action.target_tile] * 4
             self.distinct_tile_count[action.target_tile] = 4
         return PlayResult(need_replacement=True)
@@ -398,7 +400,7 @@ class Hand(State):
                         move_tiles=[played_tile, played_tile, played_tile],
                     )
                 ]
-                if self.distinct_tile_count[played_tile] == 3
+                if self.distinct_tile_count[played_tile] == 3 and not self.is_locked(played_tile)
                 else []
             )
         elif drawed_tile:
@@ -658,8 +660,10 @@ class Player(State):
                 return self.hand.get_hu_play_result()
             possible_actions += self.hand.get_discardable_tiles()
         else:
-            drawed_tile = tile_sequence.draw()
+            drawed_tile = tile_sequence.draw()  # guaranteed
             self.replacement_tile_count += self.hand.add_tiles(drawed_tile, "turn-draw")
+            if self.replacement_tile_count > 0 and tile_sequence.tiles == []:
+                return PlayResult(draw=True)
             self.resolve_tile_replacement(tile_sequence)
 
             if self.hand.is_winning_hand():
@@ -672,7 +676,15 @@ class Player(State):
 
         action: PlayAction = self.play_turn_strategy(possible_actions)
         # TODO test only `an_gang`, `jia_gang` and `discard` are allowed
+        assert action.action in ["an_gang", "jia_gang", "discard"]
         play_result = self.hand.resolve(action)
+        if play_result.need_replacement:
+            tile = tile_sequence.replace(1)
+            self.replacement_tile_count += self.hand.add_tiles(tile, f"{action.action}-replace")
+            self.resolve_tile_replacement(tile_sequence)
+            possible_discards = self.hand.get_discardable_tiles()
+            discard_play_action = self.gang_discard_strategy(possible_discards)
+            play_result = self.hand.resolve(discard_play_action)
         return play_result
 
     def call(self, played_tile, player) -> PlayAction:
@@ -697,11 +709,13 @@ class Player(State):
             )  # TODO might want to push list check to `Hand`
             return self.hand.get_hu_play_result()
         play_result: PlayResult = self.hand.resolve(action)
-        # TODO check hu?
         if play_result.need_replacement:
             tile = tile_sequence.replace(1)
-            self.replacement_tile_count += self.hand.add_tiles(tile, f"{action.action}-draw")
+            self.replacement_tile_count += self.hand.add_tiles(tile, f"{action.action}-replace")
             self.resolve_tile_replacement(tile_sequence)
+            possible_discards = self.hand.get_discardable_tiles()
+            discard_play_action = self.gang_discard_strategy(possible_discards)
+            play_result = self.hand.resolve(discard_play_action)
         return play_result
 
     def play_turn_strategy(self, possible_actions, **kwargs) -> PlayAction:
@@ -718,6 +732,9 @@ class Player(State):
         always return `PlayAction` object
         set `self.pending_resolve` to the function that will be called if `resolve` is True
         """
+        raise NotImplementedError
+
+    def gang_discard_strategy(self, possible_actions) -> PlayAction:
         raise NotImplementedError
 
     def round_summary(self):
@@ -752,7 +769,7 @@ class DummyPlayer(Player):
             action = possible_actions[0]
         else:
             action = random.choice(possible_actions)
-        print(f"action chosen: {action}")
+        print(f"turn action chosen: {action}")
         return action
 
     def call_strategy(self, possible_actions, played_tile):
@@ -775,7 +792,18 @@ class DummyPlayer(Player):
             action = possible_actions[0]
         else:
             action = random.choice(possible_actions)
-        print(f"action chosen: {action}")
+        print(f"call action chosen: {action}")
+        return action
+
+    def gang_discard_strategy(self, possible_actions) -> PlayAction:
+        if self.debug:
+            print(f"hand: {sorted(self.hand.tiles)}")
+            print(f"gang_history: {self.hand.gang_history}")
+        if self.stragetgy == "dummy":
+            action = possible_actions[0]
+        else:
+            action = random.choice(possible_actions)
+        print(f"gang discard action chosen: {action}")
         return action
 
 
@@ -917,6 +945,8 @@ class Mahjong:
         if play_result.hu:
             self.winner = current_player.player_idx
             return
+        elif play_result.draw:
+            return
 
         check_responses = {}
         while True:
@@ -967,6 +997,10 @@ class Mahjong:
                     discarded_tile = play_result.discarded_tile
                     self.discarded_pool.append(discarded_tile)
                     current_player = self.players[resolve_to]
+                elif play_result.need_replacement:
+                    # TODO break didnt work previously, check if ever branched here
+                    next_player_idx = self.players[resolve_to].next_player_idx
+                    break
             else:
                 raise ValueError("invalid response")
             check_responses = {}
@@ -986,4 +1020,5 @@ class Mahjong:
             print("=" * 20)
 
     def round_summary(self):
-        winner_score = self.players[self.winner].round_summary()
+        if self.winner is not None:
+            winner_score = self.players[self.winner].round_summary()
