@@ -11,7 +11,7 @@ def main():
     ctr = 0
     complete_games = 0
     draw_games = 0
-    while True:
+    while ctr <= 1_000_000:
         # to replace while True with standard 24 rounds or 1 round
         # associate round summary/game summary code need to behave correctly
         try:
@@ -46,6 +46,7 @@ def main():
             print(f"{game.tile_sequence.tiles}")
             break
         ctr += 1
+        sys.stdout.flush()
         if game.winner is None:
             draw_games += 1
             assert game.tile_sequence.is_empty()

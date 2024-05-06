@@ -707,6 +707,7 @@ class Player(State):
             return self.hand.get_hu_play_action(played_tile)
         call_actions = []
         if player == self.previous_player_idx:
+            # TODO if ting pai can shang any player
             call_actions += self.hand.get_shang_candidates(played_tile)
         call_actions += self.hand.get_peng_candidates(played_tile)
         call_actions += self.hand.get_gang_candidates(played_tile)
