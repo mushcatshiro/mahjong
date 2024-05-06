@@ -424,11 +424,8 @@ class Hand(State):
         """
         private method to address `peng` but allows `shang`
         """
-        # locked_tiles = self.gang_history + self.peng_history + self.shang_history
         non_locked_tiles: list = copy.deepcopy(self.tiles)
-        # for tile in locked_tiles:
-        #     if tile in non_locked_tiles:
-        #         non_locked_tiles.remove(tile)
+
         if exclude_tile not in non_locked_tiles:  # TODO add test
             return non_locked_tiles
         if exclude_all:
@@ -549,9 +546,6 @@ class Hand(State):
     def dp_search(self, tiles):
         """
         basic check if the hand is a winning hand
-        TODO
-        - return ting list
-        - dealing with an_gang?
         """
         rv = False
 
@@ -695,7 +689,6 @@ class Player(State):
             )
 
         action: PlayAction = self.play_turn_strategy(possible_actions)
-        # TODO test only `an_gang`, `jia_gang` and `discard` are allowed
         assert action.action in ["an_gang", "jia_gang", "discard"]
         play_result = self.hand.resolve(action)
         if play_result.need_replacement:
@@ -720,7 +713,6 @@ class Player(State):
         if self.hand.is_ting_pai():
             call_actions += self.hand.get_shang_candidates(played_tile)
         if player == self.previous_player_idx:
-            # TODO if ting pai can shang any player
             call_actions += self.hand.get_shang_candidates(played_tile)
         call_actions += self.hand.get_peng_candidates(played_tile)
         call_actions += self.hand.get_gang_candidates(played_tile)
@@ -878,21 +870,6 @@ class FormulaicPlayer(Player):
 
 
 class Mahjong:
-    """
-    TODO
-    - 东南西北圈/一局24圈
-    - backend numpy/torch or human readable
-    - simple visualization with print example below,
-
-      current round sequence 9,
-      idx house? hand          discarded
-      2   True   ""
-      3   False  "1万 2万 3万" "4万"
-      0   False  "1万 2万 3万" "4万 5万 6万"
-      1   False  "1万 2万 3万" "4万 5万 6万 7万"
-      note, discarded tiles are segregated by player
-    """
-
     def __init__(self, players: Dict[int, Player]):
         self.players: Dict[int, Player] = players
         self.tile_sequence = TilesSequence()
@@ -1034,6 +1011,7 @@ class Mahjong:
                     current_player = self.players[resolve_to]
                 elif play_result.need_replacement:
                     # TODO break didnt work previously, check if ever branched here
+                    raise
                     next_player_idx = self.players[resolve_to].next_player_idx
                     break
             else:

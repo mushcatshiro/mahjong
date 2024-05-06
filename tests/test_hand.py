@@ -431,7 +431,6 @@ def test_dp_search():
     - should test with generated combinations for 100% coverage
     """
     h = Hand(0)
-    # BUG dp search should look for `eyes` before moving to `peng` and `gang`
     h.add_tiles(["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "9索", "1索"])
     resp = h.dp_search(h.tiles)
     assert not resp
