@@ -50,3 +50,13 @@ def test_basics():
 
     with pytest.raises(AssertionError):
         ts.draw(1, jump=True)
+
+
+def test_only_flowers():
+    ts = TilesSequence()
+    ts.tiles = ["春", "夏", "秋", "冬", "梅", "蘭", "竹", "菊"]
+    assert ts.only_flowers()
+
+    ts = TilesSequence()
+    ts.tiles = ["春", "夏", "秋", "冬", "梅", "蘭", "竹", "1万"]
+    assert not ts.only_flowers()

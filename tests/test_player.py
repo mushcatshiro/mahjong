@@ -1,4 +1,4 @@
-from game import Player, TilesSequence, DummyPlayer
+from game import Player, TilesSequence, DummyPlayer, Hand, PlayAction
 
 
 class MockTilesSequence(TilesSequence):
@@ -167,6 +167,13 @@ def test_player_resolve_tile_replacement():
     assert len(p.hand.flower_tiles) == 8
     assert p.hand.tiles == ["1万"] * 4 + ["9万", "8万", "7万", "6万", "5万", "4万", "3万", "2万"]
 
+    # insufficient tiles for replacement
+    ts = MockTilesSequence(["1万", "1万", "夏", "春", "2万"])
+    p = Player(0, True)
+    p.initial_draw(ts, 4, False)
+    resp = p.resolve_tile_replacement(ts)
+    assert not resp.complete
+
 
 def test_play_turn():
     # fmt: off
@@ -188,6 +195,56 @@ def test_play_turn():
     p.initial_draw(ts, 1, False)  # not house
     resp = p.play_turn(ts)
     assert resp.hu
+
+    # test run out of tiles
+    ts = MockTilesSequence(["1万", "1万", "9万", "1筒", "春"])
+    p = DummyPlayer(0, False)
+    p.initial_draw(ts, 4, False)
+    resp = p.play_turn(ts)
+    assert resp.draw
+
+
+def test_play_turn_for_gang_replacement_corner_case(monkeypatch):
+    def mock_is_winning_hand(self):
+        return False
+
+    def mock_get_discardable_tiles(self):
+        return []
+
+    monkeypatch.setattr(Hand, "is_winning_hand", mock_is_winning_hand)
+    monkeypatch.setattr(Hand, "get_discardable_tiles", mock_get_discardable_tiles)
+
+    # test gang replacement out of tiles
+    ts = MockTilesSequence(["1万"])
+    p = DummyPlayer(0, False)
+    p.hand.peng_history += ["1万", "1万", "1万"]
+    resp = p.play_turn(ts)
+    assert resp.draw
+
+    # test gang replaced with flower tile and no more tiles
+    ts = MockTilesSequence(["1万", "春"])
+    p = DummyPlayer(0, False)
+    p.hand.peng_history += ["1万", "1万", "1万"]
+    resp = p.play_turn(ts)
+    assert resp.draw
+
+
+def test_play_turn_for_gang_replacement(monkeypatch):
+    def mock_is_winning_hand(self):
+        return False
+
+    def mock_play_turn_strategy(self, possible_actions):
+        return PlayAction(action="an_gang", move_tiles=["1万", "1万", "1万", "1万"])
+
+    monkeypatch.setattr(Hand, "is_winning_hand", mock_is_winning_hand)
+    monkeypatch.setattr(DummyPlayer, "play_turn_strategy", mock_play_turn_strategy)
+
+    ts = MockTilesSequence(["1万", "2万", "3万"])
+    p = DummyPlayer(0, False)
+    p.hand.add_tiles(["1万", "1万", "1万"])
+    resp = p.play_turn(ts)
+    assert resp.discarded_tile
+    assert not resp.draw
 
 
 def test_player_init():
@@ -247,6 +304,17 @@ def test_call(monkeypatch):
     play_actions = p.call("3万", 1)
     assert not play_actions
 
+    # test ting pai shang
+    ts = MockTilesSequence(
+        ["1万", "2万", "4万", "5万", "6万", "7万", "8万", "9万", "1筒", "2筒", "3筒", "4筒", "4筒"]
+    )
+    p = DummyPlayer(0, True)
+    for _ in range(3):
+        p.initial_draw(ts, 4, False)
+    p.initial_draw(ts, 1, False)
+    play_actions = p.call("3万", 2)
+    assert play_actions.action == "hu"
+
     # hu
     ts = MockTilesSequence(
         ["1万", "1万", "1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "1筒", "2筒"]
@@ -272,7 +340,7 @@ def test_call_resolve():
     assert resp.discarded_tile == play_action.discard_tile
 
     # ming gang
-    ts = MockTilesSequence(["1万", "1万", "1万", "6万", "1万", "4万"])
+    ts = MockTilesSequence(["1万", "1万", "1万", "6万", "2万", "4万"])
     p = DummyPlayer(0, True)
     p.initial_draw(ts, 4, False)
     play_action = p.call("1万", 3)
@@ -282,6 +350,30 @@ def test_call_resolve():
     assert "1万" in p.hand.gang_history
     assert len(p.hand.tiles) == 1
     assert resp.discarded_tile  # replace is handled internally
+
+    # ming gang replacement out of tiles
+    ts = MockTilesSequence(["1万", "1万", "1万", "6万"])
+    p = DummyPlayer(0, True)
+    p.initial_draw(ts, 4, False)
+    play_action = p.call("1万", 3)
+    assert play_action.action == "ming_gang"
+    resp = p.call_resolve(play_action, ts)
+    assert p.hand.distinct_tile_count["1万"] == 4
+    assert "1万" in p.hand.gang_history
+    assert len(p.hand.tiles) == 1
+    assert resp.draw
+
+    # ming gang replacement with flower tile and no more tiles
+    ts = MockTilesSequence(["1万", "1万", "1万", "2万", "春"])
+    p = DummyPlayer(0, True)
+    p.initial_draw(ts, 4, False)
+    play_action = p.call("1万", 3)
+    assert play_action.action == "ming_gang"
+    resp = p.call_resolve(play_action, ts)
+    assert p.hand.distinct_tile_count["1万"] == 4
+    assert "1万" in p.hand.gang_history
+    assert len(p.hand.tiles) == 1
+    assert resp.draw
 
     # shang
     ts = MockTilesSequence(["1万", "2万", "6万", "7万"])

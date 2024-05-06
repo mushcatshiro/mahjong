@@ -1,5 +1,7 @@
 from game import Hand, TilesSequence, PlayAction, PlayResult
 
+import pytest
+
 
 def reset_hand(h: Hand):
     h.tiles = []
@@ -243,6 +245,10 @@ def test_get_gang_candidates():
     assert h.get_gang_candidates() == []
     reset_hand(h)
 
+    h.add_tiles(["2万", "3万", "4万", "5万", "6万"])
+    assert h.get_gang_candidates(played_tile="1万") == []
+    reset_hand(h)
+
 
 def test_gang():
     h = Hand(0)
@@ -423,6 +429,17 @@ def test_get_valid_shang_sets():
     assert ["2万", "3万", "4万"] in valid_sequences
     reset_hand(h)
 
+    # 1/1/2/3
+    valid_sequences = h.get_valid_shang_sets(["1万", "1万", "2万", "2万", "3万"])
+    assert len(valid_sequences) == 1
+    assert valid_sequences[0] == ["1万", "2万", "3万"]
+    reset_hand(h)
+
+    # mixed 万 and 索
+    valid_sequences = h.get_valid_shang_sets(["1万", "2万", "3索"])
+    assert len(valid_sequences) == 0
+    reset_hand(h)
+
 
 def test_dp_search():
     """
@@ -450,6 +467,12 @@ def test_dp_search():
     h.add_tiles(["1索", "1索", "1万", "2万", "2筒", "2万", "3筒", "3万", "3万", "4万", "4筒"])
     resp = h.dp_search(h.tiles)
     assert resp
+    reset_hand(h)
+
+    # invalid hand
+    with pytest.raises(ValueError):
+        h.add_tiles(["1索", "1索", "1万", "2万", "2筒", "2万", "3筒", "3万", "3万", "4万"])
+        h.dp_search(h.tiles)
     reset_hand(h)
 
 

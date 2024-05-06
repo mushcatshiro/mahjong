@@ -405,7 +405,7 @@ class Hand(State):
                     )
                 ]
             else:
-                return []  # noqa
+                return []
 
     def resolve(self, action: PlayAction) -> PlayResult:
         resolve_to = (
@@ -608,6 +608,7 @@ class Hand(State):
                 rv = self._is_ting_pai(tmp_tiles)
                 if rv:
                     return rv
+        return rv
 
     def is_winning_hand(self, call_tile=None):
         # 十三幺
@@ -687,7 +688,6 @@ class Player(State):
             possible_actions += self.hand.get_gang_candidates(
                 drawed_tile=drawed_tile[0]
             )
-
         action: PlayAction = self.play_turn_strategy(possible_actions)
         assert action.action in ["an_gang", "jia_gang", "discard"]
         play_result = self.hand.resolve(action)
@@ -710,8 +710,6 @@ class Player(State):
         if self.hand.is_winning_hand(call_tile=played_tile):
             return self.hand.get_hu_play_action(played_tile)
         call_actions = []
-        if self.hand.is_ting_pai():
-            call_actions += self.hand.get_shang_candidates(played_tile)
         if player == self.previous_player_idx:
             call_actions += self.hand.get_shang_candidates(played_tile)
         call_actions += self.hand.get_peng_candidates(played_tile)
@@ -749,7 +747,7 @@ class Player(State):
         always return `PlayAction` object
         set `self.pending_resolve` to the function that will be called if `resolve` is True
         """
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def call_strategy(self, possible_actions, played_tile, **kwargs) -> PlayAction:
         """
@@ -757,10 +755,10 @@ class Player(State):
         always return `PlayAction` object
         set `self.pending_resolve` to the function that will be called if `resolve` is True
         """
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def gang_discard_strategy(self, possible_actions) -> PlayAction:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def round_summary(self):
         """
@@ -943,7 +941,9 @@ class Mahjong:
         elif "shang" in responses:
             return responses["shang"]
         else:
-            raise ValueError("no valid response")
+            raise ValueError(
+                "no valid response"
+            )  # pragma: no cover; for brute force testing
 
     def play_one_round(self):
         current_player = self.players[self.current_player_idx]
@@ -1011,11 +1011,13 @@ class Mahjong:
                     current_player = self.players[resolve_to]
                 elif play_result.need_replacement:
                     # TODO break didnt work previously, check if ever branched here
-                    raise
-                    next_player_idx = self.players[resolve_to].next_player_idx
-                    break
+                    raise ValueError(
+                        "replacement should be resolved at Player"
+                    )  # pragma: no cover; for brute force testing
             else:
-                raise ValueError("invalid response")
+                raise ValueError(
+                    "invalid response"
+                )  # pragma: no cover; for brute force testing
             check_responses = {}
 
         self.current_round_sequence += 1
