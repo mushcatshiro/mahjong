@@ -72,7 +72,6 @@ def test_get_shang_candidates():
     h.add_tiles(["1万", "2万", "5万"])
     assert len(h.get_shang_candidates("3万")) == 1
     assert h.get_shang_candidates("3万")[0] == PlayAction(
-        resolve=True,
         action="shang",
         target_tile="3万",
         move_tiles=["1万", "2万"],
@@ -102,7 +101,6 @@ def test_get_shang_candidates():
     h.add_tiles(["1万", "2万", "2万"])
     assert len(h.get_shang_candidates("3万")) == 1
     assert h.get_shang_candidates("3万")[0] == PlayAction(
-        resolve=True,
         action="shang",
         target_tile="3万",
         move_tiles=["1万", "2万"],
@@ -162,7 +160,6 @@ def test_get_peng_candidates():
     h.add_tiles(["2万", "2万", "3万"])
     assert len(h.get_peng_candidates("2万")) == 1
     assert h.get_peng_candidates("2万")[0] == PlayAction(
-        resolve=True,
         action="peng",
         target_tile="2万",
         move_tiles=["2万", "2万"],
@@ -173,7 +170,6 @@ def test_get_peng_candidates():
     h.add_tiles(["2万", "3万", "3万"])
     assert len(h.get_peng_candidates("3万")) == 1
     assert h.get_peng_candidates("3万")[0] == PlayAction(
-        resolve=True,
         action="peng",
         target_tile="3万",
         move_tiles=["3万", "3万"],
@@ -205,7 +201,6 @@ def test_get_gang_candidates():
     h.add_tiles(["2万", "2万", "2万"])
     assert len(h.get_gang_candidates(played_tile="2万")) == 1
     assert h.get_gang_candidates(played_tile="2万")[0] == PlayAction(
-        resolve=True,
         action="ming_gang",
         target_tile="2万",
         move_tiles=["2万", "2万", "2万"],
@@ -218,7 +213,6 @@ def test_get_gang_candidates():
     h.peng(action[0])
     assert len(h.get_gang_candidates(drawed_tile="3万")) == 1
     assert h.get_gang_candidates(drawed_tile="3万")[0] == PlayAction(
-        resolve=True,
         action="jia_gang",
         target_tile="3万",
         move_tiles=["3万", "3万", "3万"],
@@ -229,7 +223,7 @@ def test_get_gang_candidates():
     h.add_tiles(["3万"])
     assert len(h.get_gang_candidates(drawed_tile="3万")) == 1
     assert h.get_gang_candidates(drawed_tile="3万")[0] == PlayAction(
-        resolve=True, action="an_gang", move_tiles=["3万", "3万", "3万", "3万"]
+        action="an_gang", move_tiles=["3万", "3万", "3万", "3万"]
     )
     reset_hand(h)
 
@@ -308,9 +302,7 @@ def test_internal_get_discardable_tiles():
 
     h.add_tiles(["2万", "2万", "2万"])
     h.add_tiles(["2万"])
-    action = PlayAction(
-        resolve=True, action="an_gang", move_tiles=["2万", "2万", "2万", "2万"]
-    )
+    action = PlayAction(action="an_gang", move_tiles=["2万", "2万", "2万", "2万"])
     h.gang(action)
     assert h._get_discardable_tiles() == []
     reset_hand(h)
@@ -535,3 +527,7 @@ def test_resolve():
     assert h.is_locked(shang_history[2])
     assert play_result.discarded_tile == actions[0].discard_tile
     reset_hand(h)
+
+
+def test_is_ting_pai():
+    pass

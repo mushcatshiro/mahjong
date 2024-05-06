@@ -1,7 +1,5 @@
 from game import Player, TilesSequence, DummyPlayer
 
-import pytest
-
 
 class MockTilesSequence(TilesSequence):
     def __init__(self, tiles):

@@ -53,19 +53,6 @@ Tiles = {
     "竹": 1,
 }
 
-# `Tiles` for ndarray/tensor, using mask and element-wise multiplication
-Tiles2 = [
-    ["1万", "1万", "1万", "1万"],
-    ["2万", "2万", "2万", "2万"],
-    ["3万", "3万", "3万", "3万"],
-    ["4万", "4万", "4万", "4万"],
-    ["5万", "5万", "5万", "5万"],
-    ["6万", "6万", "6万", "6万"],
-    ["7万", "7万", "7万", "7万"],
-    ["8万", "8万", "8万", "8万"],
-    ["9万", "9万", "9万", "9万"],
-]
-
 SHANG_LUT = {
     "12": ["3"],
     "13": ["2"],
@@ -210,37 +197,25 @@ class PlayAction(State):
     - discard
     """
 
-    resolve: bool = False  # TODO needed? can be removed
     action: str = None
     target_tile: str = None
     move_tiles: List[str] = field(default_factory=list)
     discard_tile: str = None
 
-    RESOLVABLE_ACTIONS = [
-        "peng",
-        "ming_gang",
-        "jia_gang",
-        "an_gang",
-        "shang",
-        "hu",
-    ]
     REQUIRED_DISCARD = ["peng", "shang", "discard"]
 
     def __post_init__(self):
-        if self.resolve:
-            # assert self.target_tile is not None
-            assert self.action in self.RESOLVABLE_ACTIONS
-            if self.action in self.REQUIRED_DISCARD:
-                assert self.discard_tile is not None
-        else:
-            assert self.action not in self.RESOLVABLE_ACTIONS
-            if self.action in self.REQUIRED_DISCARD:
-                assert self.discard_tile is not None
-
-
-@dataclass
-class PossibleActions(State):
-    actions: List[PlayAction] = field(default_factory=list)
+        assert self.action in [
+            "peng",
+            "an_gang",
+            "ming_gang",
+            "jia_gang",
+            "shang",
+            "hu",
+            "discard",
+        ]
+        if self.action in self.REQUIRED_DISCARD:
+            assert self.discard_tile is not None
 
 
 @dataclass
@@ -267,7 +242,6 @@ class Hand(State):
     4 main methods to be called by `Player`:
     - `get_*_candidates`: to get possible actions
       - expected output is a list of `PlayAction` objects
-    - `resolve`: to resolve the action described in `PlayAction`
     - `is_winning_hand`: to check if the hand is a winning hand
       - checked after each draw and in call check
     - `dp_search`: to search for winning hand i.e. inform player minimum
@@ -315,7 +289,6 @@ class Hand(State):
                 for tile in free_tiles:
                     shang_candidates.append(
                         PlayAction(
-                            resolve=True,
                             action="shang",
                             target_tile=played_tile,
                             move_tiles=[
@@ -357,7 +330,6 @@ class Hand(State):
         return (
             [
                 PlayAction(
-                    resolve=True,
                     action="peng",
                     target_tile=played_tile,
                     move_tiles=[played_tile, played_tile],
@@ -405,7 +377,6 @@ class Hand(State):
             return (
                 [
                     PlayAction(
-                        resolve=True,
                         action="ming_gang",
                         target_tile=played_tile,
                         move_tiles=[played_tile, played_tile, played_tile],
@@ -420,7 +391,6 @@ class Hand(State):
                 action = "jia_gang"
                 return [
                     PlayAction(
-                        resolve=True,
                         action=action,
                         target_tile=drawed_tile,
                         move_tiles=[drawed_tile, drawed_tile, drawed_tile],
@@ -430,7 +400,6 @@ class Hand(State):
                 action = "an_gang"
                 return [
                     PlayAction(
-                        resolve=True,
                         action=action,
                         move_tiles=[drawed_tile, drawed_tile, drawed_tile, drawed_tile],
                     )
@@ -472,7 +441,7 @@ class Hand(State):
 
     def get_discardable_tiles(self):
         return [
-            PlayAction(resolve=False, action="discard", discard_tile=tile)
+            PlayAction(action="discard", discard_tile=tile)
             for tile in self._get_discardable_tiles()
         ]
 
@@ -604,6 +573,48 @@ class Hand(State):
                     return rv
         return rv
 
+    def _is_ting_pai(self, remaining_tiles):
+        if len(remaining_tiles) == 1:
+            return True
+
+        rv = False
+        valid_shang_sets = self.get_valid_shang_sets(remaining_tiles)
+        valid_peng_sets = self.get_valid_peng_sets(remaining_tiles)
+        valid_sets = valid_shang_sets + valid_peng_sets
+
+        # implies not able to form any sets of 3
+        if not valid_sets:
+            return rv
+
+        for valid_set in valid_sets:
+            new_remaining_tiles = copy.deepcopy(remaining_tiles)
+            for tile in valid_set:
+                new_remaining_tiles.remove(tile)
+            rv = self._dp_search(new_remaining_tiles)
+            if rv:
+                return rv
+        return rv
+
+    def is_ting_pai(self):
+        # TODO can be merged with dp_search by checking if remaining is 1
+        rv = False
+
+        if len(self.tiles) % 3 != 1:
+            raise ValueError(f"invalid hand: {self.tiles}")
+
+        valid_eye_sets = self.get_valid_eye_sets(self.tiles)
+        if not valid_eye_sets:
+            return rv
+        else:
+            for eye_set in valid_eye_sets:
+                tmp_tiles = copy.deepcopy(self.tiles)
+                for _ in range(2):
+                    tmp_tiles.remove(eye_set)
+
+                rv = self._is_ting_pai(tmp_tiles)
+                if rv:
+                    return rv
+
     def is_winning_hand(self, call_tile=None):
         # 十三幺
         # to use set, currently will consider tiles added and subsequently discarded
@@ -624,7 +635,7 @@ class Hand(State):
         return self.dp_search(tiles)
 
     def get_hu_play_action(self, target_tile):
-        return PlayAction(resolve=True, action="hu", target_tile=target_tile)
+        return PlayAction(action="hu", target_tile=target_tile)
 
     def get_hu_play_result(self):
         return PlayResult(hu=True)
@@ -706,6 +717,8 @@ class Player(State):
         if self.hand.is_winning_hand(call_tile=played_tile):
             return self.hand.get_hu_play_action(played_tile)
         call_actions = []
+        if self.hand.is_ting_pai():
+            call_actions += self.hand.get_shang_candidates(played_tile)
         if player == self.previous_player_idx:
             # TODO if ting pai can shang any player
             call_actions += self.hand.get_shang_candidates(played_tile)

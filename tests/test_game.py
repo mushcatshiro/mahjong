@@ -95,12 +95,10 @@ def test_resolve_call_priority():
     # hu has the highest priority
     resolved_to, _ = game.resolve_call_priority(
         {
-            "hu": [[0, PlayAction(resolve=True, action="hu")]],
+            "hu": [[0, PlayAction(action="hu")]],
             "peng": [
                 1,
-                PlayAction(
-                    resolve=True, action="peng", target_tile="1万", discard_tile="2万"
-                ),
+                PlayAction(action="peng", target_tile="1万", discard_tile="2万"),
             ],
         }
     )
@@ -110,15 +108,11 @@ def test_resolve_call_priority():
         {
             "peng": [
                 1,
-                PlayAction(
-                    resolve=True, action="peng", target_tile="1万", discard_tile="2万"
-                ),
+                PlayAction(action="peng", target_tile="1万", discard_tile="2万"),
             ],
             "shang": [
                 2,
-                PlayAction(
-                    resolve=True, action="shang", target_tile="1万", discard_tile="2万"
-                ),
+                PlayAction(action="shang", target_tile="1万", discard_tile="2万"),
             ],
         }
     )
@@ -128,13 +122,11 @@ def test_resolve_call_priority():
         {
             "ming_gang": [
                 2,
-                PlayAction(resolve=True, action="ming_gang", target_tile="1万"),
+                PlayAction(action="ming_gang", target_tile="1万"),
             ],
             "shang": [
                 1,
-                PlayAction(
-                    resolve=True, action="shang", target_tile="1万", discard_tile="2万"
-                ),
+                PlayAction(action="shang", target_tile="1万", discard_tile="2万"),
             ],
         }
     )
@@ -144,13 +136,11 @@ def test_resolve_call_priority():
         {
             "an_gang": [
                 2,
-                PlayAction(resolve=True, action="an_gang", target_tile="1万"),
+                PlayAction(action="an_gang", target_tile="1万"),
             ],
             "shang": [
                 1,
-                PlayAction(
-                    resolve=True, action="shang", target_tile="1万", discard_tile="2万"
-                ),
+                PlayAction(action="shang", target_tile="1万", discard_tile="2万"),
             ],
         }
     )
@@ -160,13 +150,11 @@ def test_resolve_call_priority():
         {
             "jia_gang": [
                 2,
-                PlayAction(resolve=True, action="jia_gang", target_tile="1万"),
+                PlayAction(action="jia_gang", target_tile="1万"),
             ],
             "shang": [
                 1,
-                PlayAction(
-                    resolve=True, action="shang", target_tile="1万", discard_tile="2万"
-                ),
+                PlayAction(action="shang", target_tile="1万", discard_tile="2万"),
             ],
         }
     )
@@ -175,8 +163,8 @@ def test_resolve_call_priority():
     resolved_to, _ = game.resolve_call_priority(
         {
             "hu": [
-                [1, PlayAction(resolve=True, action="hu")],
-                [2, PlayAction(resolve=True, action="hu")],
+                [1, PlayAction(action="hu")],
+                [2, PlayAction(action="hu")],
             ]
         }
     )
@@ -185,8 +173,8 @@ def test_resolve_call_priority():
     resolved_to, _ = game.resolve_call_priority(
         {
             "hu": [
-                [1, PlayAction(resolve=True, action="hu")],
-                [3, PlayAction(resolve=True, action="hu")],
+                [1, PlayAction(action="hu")],
+                [3, PlayAction(action="hu")],
             ]
         }
     )
@@ -196,9 +184,7 @@ def test_resolve_call_priority():
         {
             "shang": [
                 2,
-                PlayAction(
-                    resolve=True, action="shang", target_tile="1万", discard_tile="2万"
-                ),
+                PlayAction(action="shang", target_tile="1万", discard_tile="2万"),
             ],
         }
     )
