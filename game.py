@@ -4,6 +4,7 @@ import json
 import copy
 from typing import Dict, List, Union
 from dataclasses import dataclass, field
+from collections import defaultdict
 
 DEFAULT_REPLACEMENT_TILES = ("春", "夏", "秋", "冬", "梅", "蘭", "菊", "竹")
 
@@ -104,6 +105,10 @@ SHANG_EXCLUDE = (
 )
 
 SUITES = ["万", "筒", "索"]
+
+
+def tree():
+    return defaultdict(tree)  # pragma: no cover
 
 
 class State:
@@ -567,7 +572,7 @@ class Hand(State):
                     return rv
         return rv
 
-    def _is_ting_pai(self, remaining_tiles):
+    def _ting_pai_dp_search(self, remaining_tiles):
         if len(remaining_tiles) == 1:
             return True
 
@@ -589,7 +594,7 @@ class Hand(State):
                 return rv
         return rv
 
-    def is_ting_pai(self):
+    def ting_pai_dp_search(self):
         # TODO can be merged with dp_search by checking if remaining is 1
         rv = False
 
@@ -610,6 +615,18 @@ class Hand(State):
                     return rv
         return rv
 
+    def is_ting_pai(self):
+        """
+        TODO seems like a tree data structure fits the most
+        construct a tree for all possible of eyes
+        then create child based on remaining tiles until reaches leaf -> using bfs?
+        leaf should have an attribute indicating `ting_pai`, `hu`
+        traverse the tree once more to find `ting_pai` or `hu`
+        十三幺 and 对对胡 probably need some other clever way to check
+        """
+        resp = self.ting_pai_dp_search()
+        return True if len(resp["ungrouped"]) == 1 else False
+
     def is_winning_hand(self, call_tile=None):
         # 十三幺
         # to use set, currently will consider tiles added and subsequently discarded
@@ -628,6 +645,16 @@ class Hand(State):
         if call_tile:
             tiles.append(call_tile)
         return self.dp_search(tiles)
+
+    def search(self):
+        tiles = copy.deepcopy(self.tiles)
+        root = tree()
+        root["ungrouped"]
+        root["grouped"]
+
+        valid_eye_sets = self.get_valid_eye_sets(tiles)
+        for eye_set in valid_eye_sets:
+            root["grouped"][eye_set]
 
     def get_hu_play_action(self, target_tile):
         return PlayAction(action="hu", target_tile=target_tile)
