@@ -4,12 +4,9 @@ from game import Mahjong, Player, PlayAction, DummyPlayer
 class HumanPlayer(Player):
     def play_turn_strategy(self, possible_actions):
         print(f"hand: {sorted(self.hand.tiles)}")
-        if self.hand.peng_history:
-            print(f"peng_history: {self.hand.peng_history}")
-        if self.hand.shang_history:
-            print(f"shang_history: {self.hand.shang_history}")
-        if self.hand.gang_history:
-            print(f"gang_history: {self.hand.gang_history}")
+        print(f"peng_history: {self.hand.peng_history}")
+        print(f"shang_history: {self.hand.shang_history}")
+        print(f"gang_history: {self.hand.gang_history}")
         print(f"possible actions: ")
         for idx, action in enumerate(possible_actions):
             print(f"{idx}: {action}")
@@ -24,8 +21,8 @@ class HumanPlayer(Player):
         print("possible actions: ")
         for idx, action in enumerate(possible_actions):
             print(f"{idx}: {action}")
-        resp = input("Choose an action: ")
-        assert len(possible_actions) < resp
+        resp = int(input("Choose an action: "))
+        assert len(possible_actions) > resp
         print(f"action: {possible_actions[resp]}")
         return possible_actions[resp]
 
@@ -33,6 +30,13 @@ class HumanPlayer(Player):
 class MahjongClient(Mahjong):
     def __init__(self, players):
         super().__init__(players)
+
+    def resolve_call(self, responses):
+        print(f"responses: {responses}")
+        play_result, resolve_to = super().resolve_call(responses)
+        print(f"resolve_to: {resolve_to}")
+        print(f"play_result: {play_result}")
+        return play_result, resolve_to
 
     def play_one_round(self):
         print(f"current round sequence {self.current_round_sequence}")
@@ -49,7 +53,7 @@ def main():
         game = MahjongClient(
             {0: HumanPlayer(0), 1: DummyPlayer(1), 2: DummyPlayer(2), 3: DummyPlayer(3)}
         )
-        # game.start()
+        game.start()
         input("Press Enter to continue or ctrl+c to exit...")
 
 

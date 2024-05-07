@@ -935,6 +935,13 @@ class Mahjong:
                 "no valid response"
             )  # pragma: no cover; for brute force testing
 
+    def resolve_call(self, responses):
+        resolve_to, play_action = self.resolve_call_priority(responses)
+        play_result: PlayResult = self.players[resolve_to].call_resolve(
+            play_action, self.tile_sequence
+        )
+        return play_result, resolve_to
+
     def play_one_round(self):
         current_player = self.players[self.current_player_idx]
         play_result: PlayResult = current_player.play_turn(self.tile_sequence)
@@ -973,18 +980,12 @@ class Mahjong:
                         player.player_idx,
                         play_action,
                     ]
-            print(f"check_responses: {check_responses}")
             if not check_responses:
                 self.discarded_pool.append(play_result.discarded_tile)
                 next_player_idx = current_player.next_player_idx
                 break
             elif len(check_responses) >= 1:
-                resolve_to, play_action = self.resolve_call_priority(check_responses)
-                print(f"resolve_to: {resolve_to}; play_action: {play_action}")
-                play_result: PlayResult = self.players[resolve_to].call_resolve(
-                    play_action, self.tile_sequence
-                )
-                print(f"play_result: {play_result}")
+                play_result, resolve_to = self.resolve_call(check_responses)
                 if play_result.hu:
                     self.winner = resolve_to
                     return
