@@ -805,15 +805,11 @@ class DummyPlayer(Player):
     def play_turn_strategy(self, possible_actions):
         if self.debug:
             print(f"hand: {sorted(self.hand.tiles)}")
-            if self.hand.peng_history:
-                print(f"peng_history: {self.hand.peng_history}")
-            if self.hand.shang_history:
-                print(f"shang_history: {self.hand.shang_history}")
-            if self.hand.gang_history:
-                print(f"gang_history: {self.hand.gang_history}")
+            print(f"peng_history: {self.hand.peng_history}")
+            print(f"shang_history: {self.hand.shang_history}")
+            print(f"gang_history: {self.hand.gang_history}")
         for action in possible_actions:
             if action.action == "hu":
-                print("hu exists")
                 return action
         if self.stragetgy == "dummy":
             action = possible_actions[0]
@@ -828,15 +824,11 @@ class DummyPlayer(Player):
         if self.debug:
             print(f"hand: {sorted(self.hand.tiles)}")
             print(f"played_tile: {played_tile}")
-            if self.hand.peng_history:
-                print(f"peng_history: {self.hand.peng_history}")
-            if self.hand.shang_history:
-                print(f"shang_history: {self.hand.shang_history}")
-            if self.hand.gang_history:
-                print(f"gang_history: {self.hand.gang_history}")
+            print(f"peng_history: {self.hand.peng_history}")
+            print(f"shang_history: {self.hand.shang_history}")
+            print(f"gang_history: {self.hand.gang_history}")
         for action in possible_actions:
             if action.action == "hu":
-                print("hu exists")
                 return action
         if self.stragetgy == "dummy":
             action = possible_actions[0]
@@ -855,35 +847,6 @@ class DummyPlayer(Player):
             action = random.choice(possible_actions)
         print(f"gang discard action chosen: {action}")
         return action
-
-
-class HumanPlayer(Player):
-    def play_turn_strategy(self, possible_actions):
-        print(f"hand: {sorted(self.hand.tiles)}")
-        if self.hand.peng_history:
-            print(f"peng_history: {self.hand.peng_history}")
-        if self.hand.shang_history:
-            print(f"shang_history: {self.hand.shang_history}")
-        if self.hand.gang_history:
-            print(f"gang_history: {self.hand.gang_history}")
-        print(f"possible actions: ")
-        for idx, action in enumerate(possible_actions):
-            print(f"{idx}: {action}")
-        resp = int(input("Choose an action: "))
-        assert len(possible_actions) > resp
-        print(f"action: {possible_actions[resp]}")
-        return possible_actions[resp]
-
-    def call_strategy(self, possible_actions, played_tile) -> PlayAction:
-        print(f"hand: {sorted(self.hand.tiles)}")
-        print(f"played_tile: {played_tile}")
-        print("possible actions: ")
-        for idx, action in enumerate(possible_actions):
-            print(f"{idx}: {action}")
-        resp = input("Choose an action: ")
-        assert len(possible_actions) < resp
-        print(f"action: {possible_actions[resp]}")
-        return possible_actions[resp]
 
 
 class StatsPlayer(Player):
@@ -974,11 +937,7 @@ class Mahjong:
 
     def play_one_round(self):
         current_player = self.players[self.current_player_idx]
-        # check if current_player is `HumanPlayer`
-        if isinstance(current_player, HumanPlayer):
-            print(f"discarded pool: {self.discarded_pool}")
         play_result: PlayResult = current_player.play_turn(self.tile_sequence)
-        print(f"play_result: {play_result}")
         if play_result.hu:
             self.winner = current_player.player_idx
             return
@@ -990,7 +949,6 @@ class Mahjong:
             for _, player in self.players.items():
                 if player.player_idx == current_player.player_idx:
                     continue
-                print(f"call player: {player.player_idx}")
                 player: Player
                 play_action = player.call(
                     play_result.discarded_tile, current_player.player_idx
@@ -1052,14 +1010,11 @@ class Mahjong:
 
     def play(self):
         while not self.winner:
-            print(f"current round sequence {self.current_round_sequence}")
-            print(f"current player idx {self.current_player_idx}")
             if self.tile_sequence.is_empty():
                 break
             self.play_one_round()
             if self.winner is not None:
                 break
-            print("=" * 20)
 
     def round_summary(self):
         if self.winner is not None:
