@@ -19,7 +19,7 @@ def test_up_to_deal(monkeypatch, execution_number):
     monkeypatch.setattr(Mahjong, "round_summary", lambda x: x)
 
     game = Mahjong({0: Player(0), 1: Player(1), 2: Player(2), 3: Player(3)})
-    game.start()
+    game.start_game()
     for player_idx in game.round_player_sequence:
         if game.players[player_idx].house:
             house_player_idx = player_idx
@@ -86,7 +86,7 @@ def test_house_winning_immediately(monkeypatch):
         }
     )
     game.tile_sequence = ts
-    game.start()
+    game.start_game()
     assert game.winner == 0
 
 
@@ -253,7 +253,7 @@ def test_play_with_multiple_resolve_conditions(monkeypatch):
         }
     )
     game.tile_sequence = ts
-    game.start()
+    game.start_game()
     assert game.round_player_sequence == [0, 1, 2, 3]
     # fmt: off
     assert game.players[0].hand.tiles == ["1万", "1万", "1万", "1索", "2索", "3索", "4索", "5索", "6索", "7索", "8索", "9索", "9筒"]
@@ -295,7 +295,7 @@ def test_play_with_multiple_resolve_conditions(monkeypatch):
         }
     )
     game.tile_sequence = ts
-    game.start()
+    game.start_game()
     assert game.round_player_sequence == [0, 1, 2, 3]
     assert game.winner == 1
     assert game.players[2].hand.peng_history == ["1万", "1万", "1万"]
@@ -346,10 +346,59 @@ def test_play_shang_peng(monkeypatch):
         }
     )
     game.tile_sequence = ts
-    game.start()
+    game.start_game()
     assert sorted(game.players[1].hand.shang_history) == sorted(["1万", "2万", "3万"])
     assert game.players[3].hand.peng_history == ["3索", "3索", "3索"]
     assert (
         game.current_player_idx == 1
     )  # is 1 because 0 will finish the turn and move to 1
     assert game.winner is None
+
+
+def test_quan_feng(monkeypatch):
+    def mock_deal(self):
+        pass
+
+    def mock_play(self):
+        pass
+
+    def mock_round_summary(self):
+        # check if self.history exists
+        print("in mock round summary")
+        self.history.append(self.quan_feng)
+
+    monkeypatch.setattr(Mahjong, "deal", mock_deal)
+    monkeypatch.setattr(Mahjong, "play", mock_play)
+    monkeypatch.setattr(Mahjong, "round_summary", mock_round_summary)
+
+    g = Mahjong(
+        {
+            0: DummyPlayer(0),
+            1: DummyPlayer(1),
+            2: DummyPlayer(2),
+            3: DummyPlayer(3),
+        }
+    )
+    g.history = []
+    g.start_full_game()
+    # fmt: off
+    assert g.history == ["东", "东", "东", "东", "南", "南", "南", "南", "西", "西", "西", "西", "北", "北", "北", "北"]
+    # fmt: on
+
+
+@patch("random.randint", side_effect=[2, 2, 0, 2, 3, 2, 1, 2])
+def test_men_feng(monkeypatch):
+    def mock_randint(a, b):
+        return 1
+
+    g = Mahjong(
+        {
+            0: DummyPlayer(0),
+            1: DummyPlayer(1),
+            2: DummyPlayer(2),
+            3: DummyPlayer(3),
+        }
+    )
+    g.tile_sequence(["东", "南", "西", "北", "东", "南", "西", "北"])
+    # g.start()
+    # assert

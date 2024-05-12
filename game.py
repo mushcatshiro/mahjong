@@ -6,105 +6,16 @@ from typing import Dict, List, Union
 from dataclasses import dataclass, field
 from collections import defaultdict
 
-DEFAULT_REPLACEMENT_TILES = ("春", "夏", "秋", "冬", "梅", "蘭", "菊", "竹")
-
-
-Tiles = {
-    "1万": 4,
-    "2万": 4,
-    "3万": 4,
-    "4万": 4,
-    "5万": 4,
-    "6万": 4,
-    "7万": 4,
-    "8万": 4,
-    "9万": 4,
-    "1筒": 4,
-    "2筒": 4,
-    "3筒": 4,
-    "4筒": 4,
-    "5筒": 4,
-    "6筒": 4,
-    "7筒": 4,
-    "8筒": 4,
-    "9筒": 4,
-    "1索": 4,
-    "2索": 4,
-    "3索": 4,
-    "4索": 4,
-    "5索": 4,
-    "6索": 4,
-    "7索": 4,
-    "8索": 4,
-    "9索": 4,
-    "東": 4,
-    "南": 4,
-    "西": 4,
-    "北": 4,
-    "白": 4,
-    "發": 4,
-    "中": 4,
-    "春": 1,
-    "夏": 1,
-    "秋": 1,
-    "冬": 1,
-    "梅": 1,
-    "蘭": 1,
-    "菊": 1,
-    "竹": 1,
-}
-
-SHANG_LUT = {
-    "12": ["3"],
-    "13": ["2"],
-    "23": ["1", "4"],
-    "24": ["3"],
-    "34": ["2", "5"],
-    "35": ["4"],
-    "45": ["3", "6"],
-    "46": ["5"],
-    "56": ["4", "7"],
-    "57": ["6"],
-    "67": ["5", "8"],
-    "68": ["7"],
-    "78": ["6", "9"],
-    "79": ["8"],
-    "89": ["7"],
-}
-
-REVERSED_SHANG_LUT = {
-    "1": ["23"],
-    "2": ["13", "34"],
-    "3": ["12", "24", "45"],
-    "4": ["23", "35", "56"],
-    "5": ["34", "46", "67"],
-    "6": ["45", "57", "78"],
-    "7": ["56", "68", "89"],
-    "8": ["67", "79"],
-    "9": ["78"],
-}
-
-SHANG_REF = [
-    "123",
-    "234",
-    "345",
-    "456",
-    "567",
-    "678",
-    "789",
-]
-
-SHANG_EXCLUDE = (
-    "東",
-    "南",
-    "西",
-    "北",
-    "白",
-    "發",
-    "中",
+from tiles import (
+    HUAS,
+    FENGS,
+    Tiles,
+    SHANG_LUT,
+    SHANG_EXCLUDE,
+    REVERSED_SHANG_LUT,
+    SHANG_REF,
+    SUITES,
 )
-
-SUITES = ["万", "筒", "索"]
 
 
 def tree():
@@ -183,7 +94,7 @@ class TilesSequence(State):
         return len(self.tiles) == 0
 
     def only_flowers(self):
-        rv = [1 if x in DEFAULT_REPLACEMENT_TILES else 0 for x in self.tiles]
+        rv = [1 if x in HUAS else 0 for x in self.tiles]
         if all(rv):
             return True
         return False
@@ -258,11 +169,21 @@ class Hand(State):
       all possible tiles
     """
 
-    def __init__(self, player_idx: int, replacement_tiles=DEFAULT_REPLACEMENT_TILES):
+    def __init__(self, player_idx: int, replacement_tiles=HUAS):
         self.tiles = []
         self.player_idx = player_idx
         self.tiles_history = {}
         self.replacement_tiles = [] if not replacement_tiles else replacement_tiles
+        self.flower_tiles = []
+        self.distinct_tile_count = {}
+        self.peng_history = []
+        self.gang_history = []
+        self.shang_history = []
+
+    def reset(self):
+        self.tiles = []
+        self.tiles_history = {}
+        self.replacement_tiles = []
         self.flower_tiles = []
         self.distinct_tile_count = {}
         self.peng_history = []
@@ -354,12 +275,12 @@ class Hand(State):
         """
         if action.action == "ming_gang":
             for tile in action.move_tiles:
-                self.remove_tile(tile, "ming-move")
+                self.remove_tile(tile, "ming-gang-move")
             self.gang_history += [action.target_tile] * 4
             self.distinct_tile_count[action.target_tile] = 4
         elif action.action == "an_gang":
             for tile in action.move_tiles:
-                self.remove_tile(tile, "an-move")
+                self.remove_tile(tile, "an-gang-move")
             self.gang_history += [action.move_tiles[0]] * 4
             self.distinct_tile_count[action.move_tiles[0]] = 4
         elif action.action == "jia_gang":
@@ -662,6 +583,11 @@ class Hand(State):
     def get_hu_play_result(self):
         return PlayResult(hu=True)
 
+    def prepare_hand_for_round_summary(self):
+        for k, v in self.distinct_tile_count.items():
+            if v == 0:
+                del self.distinct_tile_count[k]
+
 
 class Player(State):
     def __init__(self, player_idx, house=False):
@@ -672,7 +598,11 @@ class Player(State):
         self.hand = Hand(player_idx)
         self.action_history = []
         self.house = house
+        self.men_feng = None
         self.replacement_tile_count = 0
+        self.is_zi_mo = False
+        self.is_hai_di_lao_yue = False
+        self.is_gang_shang_kai_hua = False
 
     def initial_draw(self, tile_sequence: TilesSequence, total, jump: bool):
         tiles = tile_sequence.draw(total, jump)
@@ -699,6 +629,7 @@ class Player(State):
         possible_actions = []
         if self.house and len(self.hand.tiles) == 14:
             if self.hand.is_winning_hand():
+                self.is_zi_mo = True
                 return self.hand.get_hu_play_result()
             possible_actions += self.hand.get_discardable_tiles()
         else:
@@ -709,6 +640,7 @@ class Player(State):
                 return PlayResult(draw=True)
 
             if self.hand.is_winning_hand():
+                self.is_zi_mo = True
                 return self.hand.get_hu_play_result()
 
             possible_actions += self.hand.get_discardable_tiles()
@@ -735,6 +667,7 @@ class Player(State):
 
     def call(self, played_tile, player) -> PlayAction:
         if self.hand.is_winning_hand(call_tile=played_tile):
+            # TODO integrate gang_shang_kai_hua and hai_di_lao_yue
             return self.hand.get_hu_play_action(played_tile)
         call_actions = []
         if player == self.previous_player_idx:
@@ -792,6 +725,7 @@ class Player(State):
         for winner to calculate fan,
         for other players to calculate how far they are from winning?
         """
+        # self.hand.prepare_hand_for_round_summary()
         return
 
 
@@ -860,16 +794,29 @@ class FormulaicPlayer(Player):
 class Mahjong:
     def __init__(self, players: Dict[int, Player]):
         self.players: Dict[int, Player] = players
-        self.tile_sequence = TilesSequence()
+        self.tile_sequence = None
         self.current_player_idx = 0
         self.round_player_sequence = []
         self.current_round_sequence = 0
         self.winner = None
         self.discarded_pool = []  # TODO testing
         self.debug = False
+        self.quan_feng = None
+        self.FENGS = FENGS
+        self.current_game_round = -1
+
+    def reset(self):
+        self.tile_sequence = TilesSequence()
+        self.current_round_sequence = 0
+        self.winner = None
+        self.discarded_pool = []
+        self.quan_feng = None
+        for player in self.players.values():
+            player.hand.reset()
 
     def start(self):
         # throw dice twice
+        self.current_game_round += 1
         val_player_sequence = random.randint(1, 13)
         # 东 0 南 1 西 2 北 3
         self.current_player_idx = (val_player_sequence - 1) % 4
@@ -877,12 +824,23 @@ class Mahjong:
         self.round_player_sequence = [x for x in range(self.current_player_idx, 4)] + [
             x for x in range(0, self.current_player_idx)
         ]
+        for feng, player_idx in zip(self.FENGS, self.round_player_sequence):
+            self.players[player_idx].men_feng = feng
+        self.quan_feng = self.FENGS[self.current_game_round % 4]
 
         val_start_sequence = random.randint(1, 13) + val_player_sequence
         self.tile_sequence.shuffle(val_start_sequence)
+
+    def start_game(self):
+        self.reset()
+        self.start()
         self.deal()
         self.play()
         self.round_summary()
+
+    def start_full_game(self):
+        while self.current_game_round < 15:
+            self.start_game()
 
     def deal(self):
         # (4, 4, 4) * 3, 2 跳, 1, 1, 1
