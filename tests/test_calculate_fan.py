@@ -89,6 +89,83 @@ def test_duan_yao():
     assert not calculate_fan.duan_yao(["2万", "3万", "4万", "5万", "6万", "7万", "8万", "白"])
 
 
+def test_shi_san_yao():
+    assert calculate_fan.shi_san_yao(
+        ["1万", "9万", "1筒", "9筒", "1索", "9索", "东", "南", "西", "北", "中", "發", "白", "白"]
+    )
+    assert calculate_fan.shi_san_yao(
+        ["1万", "1万", "9万", "1筒", "9筒", "1索", "9索", "东", "南", "西", "北", "中", "發", "白"]
+    )
+
+
+def test_yi_se_shuang_long_hui():
+    # assumes that lao shao fu is calculated correctly
+    # fmt: off
+    assert calculate_fan.yi_se_shuang_long_hui(
+        ["1万", "2万", "3万", "7万", "8万", "9万", "1万", "2万", "3万", "7万", "8万", "9万", "5万", "5万"],
+        {"1万": 2, "2万": 2, "3万": 2, "7万": 2, "8万": 2, "9万": 2, "5万": 2},
+    )
+    assert not calculate_fan.yi_se_shuang_long_hui(
+        ["1万", "2万", "3万", "7万", "8万", "9万", "1万", "2万", "3万", "7万", "8万", "9万", "6万", "6万"],
+        {"1万": 2, "2万": 2, "3万": 2, "7万": 2, "8万": 2, "9万": 2, "6万": 2},
+    )
+    # fmt: on
+
+
+def test_si_an_ke():
+    assert calculate_fan.si_an_ke({"1万": 4, "2万": 4, "3万": 4, "4万": 4}, [])
+    assert not calculate_fan.si_an_ke(
+        {"1万": 4, "2万": 4, "3万": 4, "4万": 4}, ["4万", "4万", "4万", "4万"]
+    )
+
+
+def test_zi_yi_se():
+    assert calculate_fan.zi_yi_se(
+        ["西", "西", "西", "北", "北", "北", "中", "中", "發", "發", "發", "白", "白", "白"]
+    )
+    assert not calculate_fan.zi_yi_se(
+        ["西", "西", "西", "北", "北", "北", "1索", "1索", "發", "發", "發", "白", "白", "白"]
+    )
+
+
+def test_qing_yao_jiu():
+    # fmt: off
+    assert calculate_fan.qing_yao_jiu(
+        ["1万", "1万", "1万", "9万", "9万", "9万", "1筒", "1筒", "1筒", "9筒", "9筒", "9筒", "1索", "1索"]
+    )
+    assert not calculate_fan.qing_yao_jiu(
+        ["1万", "1万", "1万", "9万", "9万", "9万", "1筒", "1筒", "1筒", "9筒", "9筒", "9筒", "2索", "2索"]
+    )
+    assert not calculate_fan.qing_yao_jiu(
+        ["1万", "1万", "1万", "9万", "9万", "9万", "1筒", "1筒", "1筒", "9筒", "9筒", "9筒", "白", "白"]
+    )
+    # fmt: on
+
+
+def test_lian_qi_dui():
+    # fmt: off
+    assert calculate_fan.lian_qi_dui(
+        ["1万", "1万", "2万", "2万", "3万", "3万", "4万", "4万", "5万", "5万", "6万", "6万", "7万", "7万"]
+    )
+    assert calculate_fan.lian_qi_dui(
+        ["1万", "1万", "2万", "2万", "3万", "3万", "4万", "4万", "5万", "5万", "6万", "6万", "7万", "7万"]
+    )
+    assert not calculate_fan.lian_qi_dui(
+        ["1万", "1万", "2万", "3万", "4万", "3万", "4万", "5万", "5万", "6万", "7万", "6万", "7万", "8万"]
+    )
+    assert not calculate_fan.lian_qi_dui(
+        ["1万", "1万", "白", "白", "3万", "3万", "4万", "4万", "5万", "5万", "6万", "6万", "7万", "7万", "8万"]
+    )
+    # fmt: on
+
+
+def test_si_gang():
+    assert calculate_fan.si_gang({"1万": 4, "2万": 4, "3万": 4, "4万": 4, "5万": 2}, "5万")
+    assert not calculate_fan.si_gang(
+        {"1万": 4, "2万": 3, "3万": 3, "4万": 2, "5万": 3}, "4万"
+    )
+
+
 def test_jiu_lian_bao_deng():
     # fmt: off
     assert calculate_fan.jiu_lian_bao_deng(["1万", "1万", "1万", "2万", "3万", "4万", "5万", "5万", "6万", "7万", "8万", "9万", "9万", "9万"])

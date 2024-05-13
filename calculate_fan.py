@@ -1,6 +1,16 @@
-FENGS = ("东", "南", "西", "北")
-JIANS = ("中", "发", "白")
-HUAS = ("春", "夏", "秋", "冬", "梅", "蘭", "菊", "竹")
+from tiles import (
+    FENGS,
+    JIANS,
+    HUAS,
+    SHANGS,
+)
+
+
+class Fan:
+    def __init__(self):
+        self.total_fan = 0
+        self.fan_names = []
+        self.cal_wu_zi = True
 
 
 # -------- helper functions --------
@@ -40,10 +50,31 @@ def has_jian_ke(tiles):
     return False
 
 
+def get_suites(tiles):
+    suites = {}
+    for tile in tiles:
+        if len(tile) == 2:
+            if tile[1] not in suites:
+                suites[tile[1]] = [tile[0]]
+            else:
+                suites[tile[1]].append(tile[0])
+    return suites
+
+
+def check_specials(tiles):
+    if shi_san_yao(tiles):
+        return SHISANYAO
+    if qi_xing_bu_kao(tiles):
+        return QIXINGBUKAO
+    if quan_bu_kao(tiles):
+        return QUANBUKAO
+    return None
+
+
 # -------- 1番 --------
 
 
-def _hua_pai(tiles):
+def hua_pai(tiles):
     # 每花1番。花牌补花成和计自摸，不计杠上开花
     pass
 
@@ -53,7 +84,7 @@ def zi_mo(history):
     return history[-1][0] == "HU"
 
 
-def dan_qi_dui_zi(tiles):
+def dan_qi_dui_zi(tiles, history):
     # if drawed tile forms eye to hu
     # 只听一张牌，等待这张牌的胡牌形式只有一种
     pass
@@ -85,41 +116,89 @@ def wu_zi(tiles):
 
 def ming_gang(history):
     # allow both ming gang and jia gang
-    pass
+    for action in history:
+        if "ming-gang-move" in action or "jia-gang-move" in action:
+            return True
+    return False
 
 
 def que_yi_men(tiles):
     # has only two suits
-    pass
+    suite_ctr = set()
+    for tile in tiles:
+        if len(tile) == 2:
+            suite_ctr.add(tile[1])
+    return len(suite_ctr) == 2
 
 
-def yao_jiu_ke(tiles):
+def yao_jiu_ke(distinct_tiles):
     # 111, 999, 1111, 9999 and FENGS
     # for each count 1
-    pass
+    total_yao_jiu_ke = 0
+    for k, v in distinct_tiles.items():
+        if v == 3 and k in ("1万", "9万", "1筒", "9筒", "1索", "9索") + FENGS:
+            total_yao_jiu_ke += 1
+    return total_yao_jiu_ke
 
 
-def lao_shao_fu(tiles):
+def lao_shao_fu(merged_suites: dict):
+    # combine hand + shang history
     # 123 and 789 of a single suite
     # for each count 1
-    pass
+    total_lao_shao_fu = 0
+    for suite in merged_suites.values():
+        if ("1" in suite and "2" in suite and "3" in suite) and (
+            "7" in suite and "8" in suite and "9" in suite
+        ):
+            total_lao_shao_fu += 1
+    return total_lao_shao_fu
 
 
-def lian_liu(tiles):
+def lian_liu(suites: dict):
     # 一种花色的连续六张牌
     # for each count 1
-    pass
+    total_lian_liu = 0
+    for tiles in suites.values():
+        if len(tiles) >= 6:
+            fptr = 0
+            bptr = 6
+            while bptr <= len(tiles):
+                if int(tiles[fptr][0]) + 5 == int(tiles[fptr + 5][0]):
+                    total_lian_liu += 1
+                    fptr = bptr
+                    bptr += 6
+    return total_lian_liu
 
 
-def xi_xiang_feng(tiles):
+def xi_xiang_feng(merged_suites: dict):
+    # BUG
     # 2 suites of same shang i.e. 123
     # for each count 1
+    total_xi_xiang_feng = 0
+    combi = {}
+    for suite, tiles in merged_suites.items():
+        for fptr in range(0, len(tiles), 3):
+            grp = tiles[fptr : fptr + 3]
+            if grp in SHANGS:
+                if grp not in combi:
+                    combi[grp] = 1
+                else:
+                    combi[grp] += 1
+
     pass
 
 
-def yi_ban_gao(tiles):
+def yi_ban_gao(merged_suites: dict):
+    # BUG
     # one suite 2x of shang
     # for each count 1
+    total_yi_ban_gao = 0
+    for suite, tiles in merged_suites.items():
+        for fptr in range(0, len(tiles), 3):
+            grp = tiles[fptr : fptr + 3]
+            if grp in SHANGS:
+                if tiles.count(grp) == 2:
+                    total_yi_ban_gao += 1
     pass
 
 
@@ -129,16 +208,27 @@ def yi_ban_gao(tiles):
 def duan_yao(tiles):
     # no 1, 9， FENGS, JIANS
     # cal_wu_zi = False
-    pass
+    for tile in tiles:
+        if tile[0] in ("1", "9") + FENGS + JIANS:
+            return False
+    return True
 
 
-def an_gang(history):
-    pass
+def an_gang(distinct_tiles):
+    total_an_gang = 0
+    for k, v in distinct_tiles.items():
+        if v == 4:
+            total_an_gang += 1
+    return total_an_gang
 
 
-def shuang_an_ke(tiles):
+def shuang_an_ke(distinct_tiles):
     # 2x an ke or an gang
-    pass
+    ctr = 0
+    for k, v in distinct_tiles.items():
+        if v == 4 or v == 3:
+            ctr += 1
+    return ctr == 2
 
 
 def shuang_tong_ke(tiles):
@@ -154,13 +244,13 @@ def si_gui_yi(tiles):
 
 
 def ping_hu(tiles):
-    # 四副顺子及序数牌。边，坎，单调将。不计无字牌
+    # 四副顺子及序数牌。边，坎，单调将不影响。不计无字牌
     # cal_wu_zi = False
     pass
 
 
 def men_qian_qing(history):
-    # 没吃，碰，杠。和他家出的牌
+    # 没吃，碰，明杠。和他家出的牌
     # cal_zi_mo = False
     pass
 
@@ -173,17 +263,203 @@ def men_feng_ke(tiles):
 
 def quan_feng_ke(tiles):
     # 与圈风相同的风刻
-    # cal_yao_jie_ke = False for this tile
+    # cal_yao_jiu_ke = False for this tile
     pass
 
 
-# -------- 2番 --------
-
-
-def he_jue_zhang(tiles):
-    # 和牌池、桌面已亮明的第四张牌
-    # 抢杠和不计和绝张
+def jian_ke(tiles):
+    # 中，发，白的刻子
+    # cal_yao_jiu_ke = False for this tile
     pass
+
+
+# -------- 64番 --------
+
+
+def yi_se_shuang_long_hui(tiles, distinct_tiles):
+    # 一色双龙会，一种花色两副老少副和本花色5的将牌
+    # cal_qi_dui = False
+    # cal_qing_yi_se = False
+    # cal_ping_hu = False
+    # cal_lao_shao_fu = False
+    # cal_yi_ban_gao = False
+    # cal_wu_zi = False
+    # based on `lao_shao_fu`, if rv == 2 then check yi_se_shuang_long_hui
+    suite = tiles[0][1]
+    if "5" + suite not in distinct_tiles or distinct_tiles["5" + suite] != 2:
+        return False
+    return True
+
+
+def si_an_ke(distinct_tiles, gang_history):
+    # 四暗刻，四个暗刻
+    # cal_peng_peng_hu = False
+    # cal_bu_qiu_ren = False
+    # cal_men_qian_qing = False
+    if gang_history:
+        return False
+    if len(distinct_tiles) != 4:
+        return False
+    for k, v in distinct_tiles.items():
+        if v != 4:
+            return False
+    return True
+
+
+def zi_yi_se(tiles):
+    # 字一色，全部由字牌组成的和牌
+    # cal_hun_yao_jiu = False
+    # cal_peng_peng_hu = False
+    # cal_quan_dai_yao = False
+    # cal_yao_jiu_ke = False
+    for tile in tiles:
+        if tile not in JIANS + FENGS:
+            return False
+    return True
+
+
+def xiao_san_yuan(tiles):
+    # 小三元，中发白两副刻子第三副为将
+    # cal_shuang_jian_ke = False
+    # cal_jian_ke = False
+    # cal_yao_jiu_ke = False for the two 刻子
+    pass
+
+
+def xiao_si_xi(tiles):
+    # 小四喜，东南西北三副刻子第四副为将
+    # cal_san_feng_ke = False
+    # cal_yao_jiu_ke = False
+    pass
+
+
+def qing_yao_jiu(tiles):
+    # 清幺九，和牌时全是幺九牌
+    # cal_hun_yao_jiu = False
+    # cal_peng_peng_hu = False
+    # cal_quan_dai_yao = False
+    # cal_shuang_tong_ke = False
+    # cal_yao_jiu_ke = False
+    # cal_wu_zi = False
+    for tile in tiles:
+        if tile[0] not in ("1", "9"):
+            return False
+    return True
+
+
+# -------- 88番 --------
+
+
+def shi_san_yao(tiles):
+    # 十三幺，由一种花色的1、9序数牌和字牌组成的和牌
+    # cal_hun_yao_jiu = False
+    # cal_wu_men_qi = False
+    # cal_bu_qiu_ren = False
+    # cal_men_qian_qing = False
+    # cal_dan_qi_dui_zi = False
+    ref = ["1万", "9万", "1筒", "9筒", "1索", "9索"] + list(FENGS) + list(JIANS)
+    for r in ref:
+        if sorted(tiles) == sorted(ref + [r]):
+            return True
+    return False
+
+
+def lian_qi_dui(tiles):
+    # 连七对，一个花色序数相连的七个对子成和牌
+    # cal_qing_yi_se = False
+    # cal_qi_dui = False
+    # cal_bu_qiu_ren = False
+    # cal_men_qian_qing = False
+    # cal_wu_zi = False
+    # cal_dan_qi_dui_zi = False
+    tiles = sorted(tiles)
+    bptr = 0
+    fptr = 1
+    prev = -1
+    while fptr < len(tiles):
+        if tiles[fptr] in JIANS + FENGS or tiles[bptr] in JIANS + FENGS:
+            return False
+        if tiles[fptr] != tiles[bptr]:
+            return False
+        if fptr == 1:
+            prev = tiles[fptr][0]
+        else:
+            if int(tiles[fptr][0]) - 1 != int(prev):
+                return False
+            prev = tiles[fptr][0]
+        bptr += 2
+        fptr += 2
+    return True
+
+
+def si_gang(distinct_tiles: dict, eyes):
+    # 四杠，和牌中有四个杠，暗杠加计暗刻番
+    # cal_peng_peng_hu = False
+    # cal_dan_qi_dui_zi = False
+    if len(distinct_tiles) != 5:
+        return False
+    for tile, count in distinct_tiles.items():
+        if tile == eyes:
+            continue
+        if count != 4:
+            return False
+    return True
+
+
+def jiu_lian_bao_deng(tiles):
+    # 九莲宝灯，一种花色序数牌1112345678999+本花色任何牌成和牌
+    # cal_qing_yi_se = False
+    # cal_bu_qiu_ren = False
+    # cal_men_qian_qing = False
+    # cal_wu_zi = False
+    # cal_yao_jiu_ke = False x1?
+    suite = tiles[0][1]
+    nums = [tile[0] for tile in tiles]
+    for tile in tiles:
+        if len(tile) == 1:
+            return False
+        if tile[1] != suite:
+            return False
+    nums = sorted(nums)
+    ref = ["1", "1", "1", "2", "3", "4", "5", "6", "7", "8", "9", "9", "9"]
+    for i in range(1, 10):
+        if nums == sorted(ref + [str(i)]):
+            return True
+    return False
+
+
+def lv_yi_se(tiles):
+    # 绿一色，由23468索及发财组成的和牌
+    # cal_hun_yi_se = False
+    # if no fa then cal_qing_yi_se = True
+    for tile in tiles:
+        if len(tile) == 1 and tile in FENGS + ("中", "白"):
+            return False
+        if tile == "發":
+            continue
+        if tile[1] in ("筒", "万"):
+            return False
+        if tile[0] in ("1", "5", "7", "9"):
+            return False
+    return True
+
+
+def da_san_yuan(tiles):
+    # 大三元，中发白三副刻子
+    # cal_shang_jian_ke = False
+    # cal_jian_ke = False
+    # cal_yao_jiu_ke = False for the three 刻子
+    pass
+
+
+def da_si_xi(tiles):
+    # 大四喜，东南西北四副刻子
+    # cal_san_feng_ke = False
+    # cal_peng_peng_hu = False
+    # cal_quan_feng_ke = False
+    # cal_men_feng_ke = False
+    # cal_yao_jiu_ke = False
+    return True
 
 
 def calculate_fan(
@@ -191,6 +467,20 @@ def calculate_fan(
 ):
     """ """
     total_fan = 0
+    fan_name = []
+
+    # TODO move to `PlayResult`?
+    # check for 13幺、七星不靠、全不靠
+    special_combi = check_specials(tiles)
+    if special_combi:
+        fan_name.append(special_combi)
+        total_fan += FANMAP[special_combi]
+        # 全不靠、七星不靠可复合组合龙
+        # exclude 不求人、门前请
+        # if 自摸
+
+    # TODO move to `PlayResult`?
+    # check for 七对、连七对
 
     if has_feng_ke(tiles):
         feng_ke_count = count_feng_ke(tiles)
