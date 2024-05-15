@@ -51,6 +51,7 @@ def has_jian_ke(tiles):
 
 
 def get_suites(tiles):
+    # BUG need to align across all fn calls
     suites = {}
     for tile in tiles:
         if len(tile) == 2:
@@ -59,16 +60,6 @@ def get_suites(tiles):
             else:
                 suites[tile[1]].append(tile[0])
     return suites
-
-
-def check_specials(tiles):
-    if shi_san_yao(tiles):
-        return SHISANYAO
-    if qi_xing_bu_kao(tiles):
-        return QIXINGBUKAO
-    if quan_bu_kao(tiles):
-        return QUANBUKAO
-    return None
 
 
 # -------- 1番 --------
@@ -84,10 +75,12 @@ def zi_mo(history):
     return history[-1][0] == "HU"
 
 
-def dan_qi_dui_zi(tiles, history):
+def dan_qi_dui_zi(distinct_tiles, history):
     # if drawed tile forms eye to hu
     # 只听一张牌，等待这张牌的胡牌形式只有一种
-    pass
+    if distinct_tiles[history[f"{len(history)}-hu-add"]] == 2:
+        return True
+    return False
 
 
 def kan_zhang(tiles):
@@ -98,7 +91,7 @@ def kan_zhang(tiles):
     pass
 
 
-def bian_du(tiles):
+def bian_du(tiles, history):
     # 123 or 1233, 3 is bian du
     # 12345, 4 is not
     # 789 or 7899, 7 is bian du
@@ -271,6 +264,209 @@ def jian_ke(tiles):
     # 中，发，白的刻子
     # cal_yao_jiu_ke = False for this tile
     pass
+
+
+# -------- 24番 --------
+
+
+def quan_xiao(tiles):
+    # 由序数123组成的和牌
+    # cal_xiao_yu_wu = False
+    # cal_wu_zi = False
+    for tile in tiles:
+        if len(tile) == 1:
+            return False
+        if tile[0] not in ("1", "2", "3"):
+            return False
+    return True
+
+
+def quan_zhong(tiles):
+    # 由序数456组成的和牌
+    # cal_duan_yao = False
+    # cal_wu_zi = False
+    for tile in tiles:
+        if len(tile) == 1:
+            return False
+        if tile[0] not in ("4", "5", "6"):
+            return False
+    return True
+
+
+def quan_da(tiles):
+    # 由序数789组成的和牌
+    # cal_da_yu_wu = False
+    # cal_wu_zi = False
+    for tile in tiles:
+        if len(tile) == 1:
+            return False
+        if tile[0] not in ("7", "8", "9"):
+            return False
+    return True
+
+
+def yi_se_san_jie_gao(tiles):
+    # 一色三节高，一种花色三副依次递增1的刻子
+    # 111, 222, 333
+    # cal_yi_se_san_tong_shun = False
+    pass
+
+
+def yi_se_san_tong_shun(distinct_tiles, merged_suites_list: dict):
+    # 一色三同顺，一种花色三副序数相同的顺子
+    # 123, 123, 123
+    # cal_san_se_san_bu_gao = False
+    # cal_yi_ban_gao = False
+    pass
+
+
+def qing_yi_se(tiles, merged_suites_list):
+    # 由一种花色的序数牌组成的和牌
+    # cal_wu_zi = False
+    for tile in tiles:
+        if len(tile) == 1:
+            return False
+    if len(merged_suites_list) != 1:
+        return False
+    return True
+
+
+def quan_shuang_ke(tiles):
+    # 由双序数牌（2，4，6，8）组成的刻子、将牌
+    # cal_peng_peng_hu = False
+    # cal_duan_yao = False
+    # cal_wu_zi = False
+    for tile in tiles:
+        if len(tile) == 1:
+            return False
+        if tile[0] not in ("2", "4", "6", "8"):
+            return False
+    return True
+
+
+def qi_xing_bu_kao(distinct_tiles, merged_suites_list: dict):
+    # 由东南西北中发白，加上一种花色的147，另一种花色的258，第三种花色的369组成的和牌
+    # 特殊牌型
+    # cal_quan_bu_kao = False
+    # cal_wu_men_qi = False
+    # cal_bu_qiu_ren = False
+    # cal_men_qian_qing = False
+    if len(distinct_tiles) != 14:
+        return False
+    for tile in JIANS + FENGS:
+        if tile not in distinct_tiles:
+            return False
+    comb_1 = "147"
+    comb_2 = "258"
+    comb_3 = "369"
+    ref = {}
+    for suite, tiles in merged_suites_list.items():
+        joined = "".join(tiles)
+        if (
+            joined == comb_1
+            or joined == comb_2
+            or joined == comb_3
+            or joined == comb_1[:-1]
+            or joined == comb_2[:-1]
+            or joined == comb_3[:-1]
+            or joined == comb_1[1:]
+            or joined == comb_2[1:]
+            or joined == comb_3[1:]
+        ):
+            ref[suite] = joined
+        else:
+            return False
+    if len(ref) != 3:
+        return False
+    return True
+
+
+def qi_dui(distinct_tiles):
+    # 七对，由7个对子组成的和牌
+    # cal_dan_qi_dui_zi = False
+    # cal_bu_qiu_ren = False
+    # cal_men_qian_qing = False
+    if len(distinct_tiles) != 7:
+        return False
+    return True
+
+
+# -------- 32番 --------
+
+
+def hun_yao_jiu(tiles):
+    # 混幺九，由字牌和序数牌1、9组成的和牌
+    # cal_yao_jiu_ke = False
+    # cal_peng_peng_hu = False
+    # cal_quan_dai_yao = False
+    for tile in tiles:
+        if len(tile) == 1:
+            continue
+        if tile[0] not in ("1", "9"):
+            return False
+    return True
+
+
+def san_gang(tiles):
+    # 三杠，和牌中有三个杠
+    # 暗杠加计暗刻番
+    pass
+
+
+def yi_se_si_bu_gao(tiles):
+    # 一色四步高，一种花色四副依次递增1，2的顺子
+    # cal_san_se_san_bu_gao = False
+    # cal_lian_liu = False
+    # cal_lao_shao_fu = False
+    pass
+
+
+# -------- 48番 --------
+
+
+def yi_se_si_jie_gao(merged_suites_list):
+    # 一色四节高，一种花色四副依次递增1的刻子
+    # cal_yi_se_san_tong_shun = False
+    # cal_yi_se_san_jie_gao = False
+    # cal_peng_peng_hu = False
+    distinct = {}
+    for tile in merged_suites_list:
+        if tile not in distinct:
+            distinct[tile] = 1
+        else:
+            distinct[tile] += 1
+    if len(distinct) != 4:
+        return False
+    keys = [x[0] for x in list(distinct.keys())]
+    if (
+        int(keys[0]) + 1 == int(keys[1])
+        and int(keys[1]) + 1 == int(keys[2])
+        and int(keys[2]) + 1 == int(keys[3])
+    ):
+        return True
+    return False
+
+
+def yi_se_si_tong_shun(merged_suites_list):
+    # 一色四同顺，一种花色四副序数相同的顺子
+    # cal_yi_se_san_tong_shun = False
+    # cal_yi_se_san_jie_gao = False
+    # cal_qi_dui = False
+    # cal_si_gui_yi = False
+    # cal_yi_ban_gao = False
+    # assume suite is same and input is without eyes
+    distinct = {}
+    for tile in merged_suites_list:
+        if tile not in distinct:
+            distinct[tile] = 1
+        else:
+            distinct[tile] += 1
+    if len(distinct) != 3:
+        return False
+    keys = [x[0] for x in list(distinct.keys())]
+    if int(keys[0]) + 1 == int(keys[1]) and int(keys[1]) + 1 == int(keys[2]):
+        return True
+    return False
 
 
 # -------- 64番 --------
