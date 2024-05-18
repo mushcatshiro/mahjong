@@ -662,6 +662,9 @@ class Hand(State):
     def get_hu_play_result(self):
         return PlayResult(hu=True)
 
+    def calculate_fan(self):
+        pass
+
 
 class Player(State):
     def __init__(self, player_idx, house=False):
@@ -815,7 +818,8 @@ class DummyPlayer(Player):
             action = possible_actions[0]
         else:
             action = random.choice(possible_actions)
-        print(f"turn action chosen: {action}")
+        if self.debug:
+            print(f"turn action chosen: {action}")
         return action
 
     def call_strategy(self, possible_actions, played_tile):
@@ -834,7 +838,8 @@ class DummyPlayer(Player):
             action = possible_actions[0]
         else:
             action = random.choice(possible_actions)
-        print(f"call action chosen: {action}")
+        if self.debug:
+            print(f"call action chosen: {action}")
         return action
 
     def gang_discard_strategy(self, possible_actions) -> PlayAction:
@@ -845,7 +850,8 @@ class DummyPlayer(Player):
             action = possible_actions[0]
         else:
             action = random.choice(possible_actions)
-        print(f"gang discard action chosen: {action}")
+        if self.debug:
+            print(f"gang discard action chosen: {action}")
         return action
 
 
