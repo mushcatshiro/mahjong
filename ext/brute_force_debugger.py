@@ -7,6 +7,17 @@ sys.path.append(".")
 from game import Mahjong, DummyPlayer
 
 
+def print_details(player):
+    # fmt: off
+    if player.house:
+        print(f"Player {player.player_idx} is house")
+    print(f"Player {player.player_idx} history: \n\n{yaml.dump(player.hand.tiles_history, allow_unicode=True, sort_keys=False)}")
+    print(f"Player {player.player_idx} hand: {player.hand.tiles}; flower: {player.hand.flower_tiles}")
+    print(f"Player {player.player_idx} peng: {player.hand.peng_history};\n gang: {player.hand.gang_history};\n shang: {player.hand.shang_history}")
+    print("\n")
+    # fmt: on
+
+
 def main(rounds, debug):
     # TODO support random house
     ctr = 0
@@ -35,40 +46,36 @@ def main(rounds, debug):
             print(f"Exception occurred {e}: ")
             print("".join(traceback.format_exception(*sys.exc_info())))
             for i, player in game.players.items():
-                if player.house:
-                    print(f"Player {i} is house")
-                print(
-                    f"Player {i} history: \n\n{yaml.dump(player.hand.tiles_history, allow_unicode=True, sort_keys=False)}"
-                )
-                print(
-                    f"Player {i} hand: {player.hand.tiles}; flower: {player.hand.flower_tiles}"
-                )
-                print(
-                    f"Player {i} peng: {player.hand.peng_history}; gang: {player.hand.gang_history}; shang: {player.hand.shang_history}"
-                )
-                print("\n")
+                print_details(player)
             print(f"{game.tile_sequence.tiles}")
             break
-        ctr += 1
-        end = time.monotonic()
-        sys.stdout.flush()
-        if game.winner is None:
-            draw_games += 1
-            assert game.tile_sequence.is_empty()
-            draw_game_time_avg = (
-                (draw_game_time_avg * (draw_games - 1)) + (end - start)
-            ) / draw_games
-            print(f"{ctr} draw game time avg: {draw_game_time_avg}")
         else:
-            complete_games += 1
-            assert game.winner is not None
-            winning_game_time_avg = (
-                (winning_game_time_avg * (complete_games - 1)) + (end - start)
-            ) / complete_games
-            print(f"{ctr} winning game time avg: {winning_game_time_avg}")
-        # print(f"game {ctr} took {end - start} seconds")
+            end = time.monotonic()
+            if game.winner is None:
+                draw_games += 1
+                assert game.tile_sequence.is_empty()
+                draw_game_time_avg = (
+                    (draw_game_time_avg * (draw_games - 1)) + (end - start)
+                ) / draw_games
+                print(f"{ctr} draw game time avg: {draw_game_time_avg}")
+            else:
+                complete_games += 1
+                assert game.winner is not None
+                winning_game_time_avg = (
+                    (winning_game_time_avg * (complete_games - 1)) + (end - start)
+                ) / complete_games
+                print(f"{ctr} winning game time avg: {winning_game_time_avg}")
+            if debug:
+                for i, player in game.players.items():
+                    print_details(player)
+        finally:
+            ctr += 1
+            sys.stdout.flush()
+
     print(
-        f"total games: {ctr}; complete games: {complete_games}; draw games: {draw_games}"
+        f"total games: {ctr}; "
+        f"complete games: {complete_games} @ avg {winning_game_time_avg}s; "
+        f"draw games: {draw_games} @ avg {draw_game_time_avg}s;"
     )
 
 
