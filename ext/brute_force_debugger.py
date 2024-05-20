@@ -6,12 +6,23 @@ sys.path.append(".")
 from game import Mahjong, DummyPlayer
 
 
-def main():
+def print_details(player):
+    # fmt: off
+    if player.house:
+        print(f"Player {player.player_idx} is house")
+    print(f"Player {player.player_idx} history: \n\n{yaml.dump(player.hand.tiles_history, allow_unicode=True, sort_keys=False)}")
+    print(f"Player {player.player_idx} hand: {player.hand.tiles}; flower: {player.hand.flower_tiles}")
+    print(f"Player {player.player_idx} peng: {player.hand.peng_history};\n gang: {player.hand.gang_history};\n shang: {player.hand.shang_history}")
+    print("\n")
+    # fmt: on
+
+
+def main(max_games):
     # TODO support random house
     ctr = 0
     complete_games = 0
     draw_games = 0
-    while ctr <= 1_000_000:
+    while ctr <= max_games:
         # to replace while True with standard 24 rounds or 1 round
         # associate round summary/game summary code need to behave correctly
         try:
@@ -31,28 +42,21 @@ def main():
             print(f"Exception occurred {e}: ")
             print("".join(traceback.format_exception(*sys.exc_info())))
             for i, player in game.players.items():
-                if player.house:
-                    print(f"Player {i} is house")
-                print(
-                    f"Player {i} history: \n\n{yaml.dump(player.hand.tiles_history, allow_unicode=True, sort_keys=False)}"
-                )
-                print(
-                    f"Player {i} hand: {player.hand.tiles}; flower: {player.hand.flower_tiles}"
-                )
-                print(
-                    f"Player {i} peng: {player.hand.peng_history}; gang: {player.hand.gang_history}; shang: {player.hand.shang_history}"
-                )
-                print("\n")
+                print_details(player)
             print(f"{game.tile_sequence.tiles}")
             break
-        ctr += 1
-        sys.stdout.flush()
-        if game.winner is None:
-            draw_games += 1
-            assert game.tile_sequence.is_empty()
         else:
-            complete_games += 1
-            assert game.winner is not None
+            if game.winner is None:
+                draw_games += 1
+                assert game.tile_sequence.is_empty()
+            else:
+                complete_games += 1
+                assert game.winner is not None
+            for i, player in game.players.items():
+                print_details(player)
+        finally:
+            ctr += 1
+            sys.stdout.flush()
     print(
         f"total games: {ctr}; complete games: {complete_games}; draw games: {draw_games}"
     )
@@ -60,6 +64,10 @@ def main():
 
 if __name__ == "__main__":
     import random
+    import argparse
 
     random.seed(0)
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--max_games", type=int, default=1_000_000)
+    args = parser.parse_args()
+    main(args.max_games)

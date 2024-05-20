@@ -266,6 +266,168 @@ def jian_ke(tiles):
     pass
 
 
+# -------- 12番 --------
+
+
+def san_feng_ke(tiles):
+    # 三风刻
+    # cal_yao_jiu_ke = False for the three tiles
+    pass
+
+
+def xiao_yu_wu(tiles):
+    # 由1234组成的和牌
+    # cal_wu_zi = False
+    for tile in tiles:
+        if len(tile) == 1:
+            return False
+        if tile[0] not in ("1", "2", "3", "4"):
+            return False
+    return True
+
+
+def da_yu_wu(tiles):
+    # 由6789组成的和牌
+    # cal_wu_zi = False
+    for tile in tiles:
+        if len(tile) == 1:
+            return False
+        if tile[0] not in ("6", "7", "8", "9"):
+            return False
+    return True
+
+
+def zu_he_long(merged_suites: dict):
+    # BUG zu_he_long and associated functions are not ready
+    # to remove zu_he_long tiles for further processing
+    # 一种花色的147、第二种花色的258、第三种花色的369的特殊顺子
+    ref = {}
+    for suite, tiles in merged_suites.items():
+        joined = "".join(tiles)
+        if "147" in joined or "258" in joined or "369" in joined:
+            ref[suite] = joined
+    return len(ref) == 3
+
+
+def quan_bu_kao(distinct_tiles, merged_suites):
+    # 东南西北中发白、147（索）、258（万）、369（饼）共16张牌中任意14张可胡
+    # 这里索、万、饼位置可以互换
+    # cal_wu_men_qi = False
+    # cal_bu_qiu_ren = False
+    # cal_dan_qi_dui_zi = False
+    # might want to slim down qi_xing_bu_kao by
+    comb_1 = "147"
+    comb_2 = "258"
+    comb_3 = "369"
+    ref = {}
+    ctr = 0
+    for suite, tiles in merged_suites.items():
+        joined = "".join(tiles)
+        if (
+            joined == comb_1
+            or joined == comb_2
+            or joined == comb_3
+            or joined == comb_1[:-1]
+            or joined == comb_2[:-1]
+            or joined == comb_3[:-1]
+            or joined == comb_1[1:]
+            or joined == comb_2[1:]
+            or joined == comb_3[1:]
+        ):
+            ref[suite] = joined
+            ctr += len(tiles)
+            # for tile in tiles:
+            #     tiles.remove(tile + suite)
+        else:
+            return False
+    if len(ref) != 3:
+        return False
+    expected_zi = 14 - ctr
+    zi_ctr = 0
+    for tile in distinct_tiles:
+        if tile in FENGS + JIANS:
+            zi_ctr += 1
+    # commented portion seems to be implied
+    # for tile in tiles:
+    #     if tile not in FENGS + JIANS:
+    #         return False
+    return zi_ctr == expected_zi
+
+
+# -------- 16番 --------
+
+
+def san_an_ke(distinct_tiles, gang_history, peng_history):
+    # 三暗刻/杠
+    ke_ctr = 0
+    for k, v in distinct_tiles.items():
+        if v == 3 or v == 4:
+            if k not in gang_history and k not in peng_history:
+                ke_ctr += 1
+    return ke_ctr == 3
+
+
+def san_tong_ke(tiles):
+    # 三同刻，三中花色序数相同的刻子
+    # cal_shuang_tong_ke = False for the three tiles
+    pass
+
+
+def quan_dai_wu(tiles):
+    # 每副顺子、刻子、将牌都有序数牌5
+    # cal_duan_yao = False
+    # cal_wu_zi = False
+    ctr = 0
+    for tile in tiles:
+        if tile in FENGS + JIANS:
+            return False
+        if tile[0] == "5":
+            ctr += 1
+    return ctr >= 6
+
+
+def yi_se_san_bu_gao(merged_suites: dict):
+    # 一色三步高，由一种花色序数依次递增1或2的三副顺子组成的和牌
+    # 123，234或123，345皆可
+    for suite, tiles in merged_suites.items():
+        if len(tiles) == 9:
+            return True
+    return False
+
+
+def san_se_shuang_long_hui(merged_suites: dict):
+    # 三色双龙会，三种花色，两种花色的两副老少副和第三种花色5的将牌
+    # cal_ping_hu = False
+    # cal_lao_shao_fu = False
+    # cal_xi_xiang_feng = False
+    # cal_wu_zi = False
+    if len(merged_suites) != 3:
+        return False
+    lao_shao_fu_suite = []
+    jiang_pai_suite = ""
+    for suite, tiles in merged_suites.items():
+        joined = "".join(tiles)
+        if joined != "123789" and joined != "55":
+            return False
+        if joined == "123789":
+            lao_shao_fu_suite.append(suite)
+        if joined == "55":
+            jiang_pai_suite = suite
+    if jiang_pai_suite in lao_shao_fu_suite or len(lao_shao_fu_suite) != 2:
+        return False
+    return True
+
+
+def qing_long(merged_suites: dict):
+    # 一种花色的123，456，789的三副顺子
+    # cal_lian_liu = False
+    # cal_lao_shao_fu = False
+    for suite, tiles in merged_suites.items():
+        if "123456789" == "".join(tiles):
+            return True
+    return False
+
+
 # -------- 24番 --------
 
 
@@ -312,7 +474,7 @@ def yi_se_san_jie_gao(tiles):
     pass
 
 
-def yi_se_san_tong_shun(distinct_tiles, merged_suites_list: dict):
+def yi_se_san_tong_shun(distinct_tiles, merged_suites: dict):
     # 一色三同顺，一种花色三副序数相同的顺子
     # 123, 123, 123
     # cal_san_se_san_bu_gao = False
@@ -320,13 +482,13 @@ def yi_se_san_tong_shun(distinct_tiles, merged_suites_list: dict):
     pass
 
 
-def qing_yi_se(tiles, merged_suites_list):
+def qing_yi_se(tiles, merged_suites):
     # 由一种花色的序数牌组成的和牌
     # cal_wu_zi = False
     for tile in tiles:
         if len(tile) == 1:
             return False
-    if len(merged_suites_list) != 1:
+    if len(merged_suites) != 1:
         return False
     return True
 
@@ -344,7 +506,7 @@ def quan_shuang_ke(tiles):
     return True
 
 
-def qi_xing_bu_kao(distinct_tiles, merged_suites_list: dict):
+def qi_xing_bu_kao(distinct_tiles, merged_suites: dict):
     # 由东南西北中发白，加上一种花色的147，另一种花色的258，第三种花色的369组成的和牌
     # 特殊牌型
     # cal_quan_bu_kao = False
@@ -360,7 +522,7 @@ def qi_xing_bu_kao(distinct_tiles, merged_suites_list: dict):
     comb_2 = "258"
     comb_3 = "369"
     ref = {}
-    for suite, tiles in merged_suites_list.items():
+    for suite, tiles in merged_suites.items():
         joined = "".join(tiles)
         if (
             joined == comb_1
@@ -424,13 +586,13 @@ def yi_se_si_bu_gao(tiles):
 # -------- 48番 --------
 
 
-def yi_se_si_jie_gao(merged_suites_list):
+def yi_se_si_jie_gao(merged_suites):
     # 一色四节高，一种花色四副依次递增1的刻子
     # cal_yi_se_san_tong_shun = False
     # cal_yi_se_san_jie_gao = False
     # cal_peng_peng_hu = False
     distinct = {}
-    for tile in merged_suites_list:
+    for tile in merged_suites:
         if tile not in distinct:
             distinct[tile] = 1
         else:
@@ -447,7 +609,7 @@ def yi_se_si_jie_gao(merged_suites_list):
     return False
 
 
-def yi_se_si_tong_shun(merged_suites_list):
+def yi_se_si_tong_shun(merged_suites):
     # 一色四同顺，一种花色四副序数相同的顺子
     # cal_yi_se_san_tong_shun = False
     # cal_yi_se_san_jie_gao = False
@@ -456,7 +618,7 @@ def yi_se_si_tong_shun(merged_suites_list):
     # cal_yi_ban_gao = False
     # assume suite is same and input is without eyes
     distinct = {}
-    for tile in merged_suites_list:
+    for tile in merged_suites:
         if tile not in distinct:
             distinct[tile] = 1
         else:
