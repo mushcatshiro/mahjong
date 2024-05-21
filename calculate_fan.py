@@ -266,6 +266,189 @@ def jian_ke(tiles):
     pass
 
 
+# -------- 4番 --------
+
+
+def he_jue_zhang(tiles):
+    # 和牌池、桌面已亮明的第四张牌
+    # 抢杠和不计和绝张
+    pass
+
+
+def shuang_ming_gang(history, gang_history):
+    # 2x ming gang (strictly 2x)
+    # if 1 ming 1 an => 5番
+    if len(gang_history) != 8:
+        return False
+    ming_gang_ctr = 0
+    for action in history:
+        if "ming-gang-move" in action or "jia-gang-move" in action:
+            ming_gang_ctr += 1
+    return ming_gang_ctr == 2
+
+
+def bu_qiu_ren(history, gang_history, peng_history, shang_history):
+    # 没碰，明杠，吃，自摸和牌
+    # cal_zi_mo = False
+    if gang_history or peng_history or shang_history:
+        return False
+    if f"{len(history)}-hu-add-add" in history:
+        return False
+    return True
+
+
+def quan_dai_yao(tiles):
+    # 每副顺子、刻子、将牌都有幺九牌
+    pass
+
+
+# -------- 6番 --------
+
+
+def shuang_jian_ke(tiles):
+    # 2x jian ke
+    # cal_jian_ke = False for the two tiles
+    pass
+
+
+def shuang_an_gang(distinct_tiles, gang_history):
+    # 2x an gang
+    # cal_shuang_an_ke = False for the two tiles
+    if gang_history:
+        return False
+    an_gang_ctr = 0
+    for k, v in distinct_tiles.items():
+        if v == 4:
+            an_gang_ctr += 1
+    return an_gang_ctr == 2
+
+
+def quan_qiu_ren(peng_history, gang_history, history, tiles, distinct_tiles):
+    # 吃，碰，明杠x4，和他家的牌
+    # cal_dan_qi_dui_zi = False
+    # cal_zi_mo = False
+    remaining = len(tiles) - (len(gang_history) + len(peng_history))
+    if remaining != 2:
+        return False
+    if (
+        f"{len(history)}-hu-add-add" in history
+        and distinct_tiles[history[f"{len(history)}-hu-add-add"]] == 2
+    ):
+        return True
+    return False
+
+
+def wu_men_qi(merged_suites, distinct_tiles):
+    # 和牌有索、筒、万、风、箭牌
+    if len(merged_suites) != 3:
+        return False
+    feng_ctr = 0
+    jian_ctr = 0
+    for tile, count in distinct_tiles.items():
+        if tile in FENGS:
+            feng_ctr += 1
+        if tile in JIANS:
+            jian_ctr += 1
+    if feng_ctr == 0 or jian_ctr == 0:
+        return False
+    return True
+
+
+def san_se_san_bu_gao(tiles):
+    # 三色三步高
+    # 三种花色序数依次递增1的三幅顺子，123，234，345
+    pass
+
+
+def hun_yi_se(merged_suites: dict, tiles):
+    # 混一色
+    # 由一种花色序数牌及字牌组成的和牌
+    if len(merged_suites) != 1:
+        return False
+    suite = list(merged_suites.keys())[0]
+    l = len(tiles) - len(merged_suites[suite])
+    if l == 0:
+        return False
+    return True
+
+
+def peng_peng_hu(distinct_tiles: dict):
+    # 由四副刻子（或杠）组成的和牌
+    # TODO can be checked earlier and just append `peng_peng_hu`?
+    if len(distinct_tiles) != 5:
+        return False
+    set_ctr = 0
+    for k, v in distinct_tiles.items():
+        if v == 3 or v == 4:
+            set_ctr += 1
+    if set_ctr != 4:
+        return False
+    return True
+
+
+# -------- 8番 --------
+
+
+def qiang_gang_hu(history):
+    # 和他家明刻加杠的牌，不计和绝张
+    # cal_he_jue_zhang = False
+    pass
+
+
+def gang_shang_kai_hua(history):
+    # 和开杠后摸进的牌、不计自摸
+    # 杠来的花补花不计杠上开花
+    pass
+
+
+def hai_di_lao_yue(history):
+    # 和牌时本局打出的最后一张牌
+    # 不计自摸
+    pass
+
+
+def miao_shou_hui_chun(tiles):
+    # 摸最后一张牌成和牌
+    # 不计自摸
+    pass
+
+
+def wu_fan_he(tiles):
+    # 和牌时，计算不出其他番种的和牌
+    pass
+
+
+def san_se_san_jie_gao(tiles):
+    # 三色三节高
+    # 三种花色依次递增1的三副刻子
+    pass
+
+
+def san_se_san_tong_shun(tiles):
+    # 三色三同顺
+    # 三种花色序数相同的三副顺子
+    # cal_xi_xiang_feng = False
+    pass
+
+
+def tui_bu_dao(tiles):
+    # 一、二、三、四、五、八、九筒
+    # 二、四、五、六、八、九索
+    # 白
+    # 不计缺一门
+    tong_candits = ("1筒", "2筒", "3筒", "4筒", "5筒", "8筒", "9筒")
+    suo_candits = ("2索", "4索", "5索", "6索", "8索", "9索")
+    for tile in tiles:
+        if tile not in tong_candits + suo_candits + ("白",):
+            return False
+    return True
+
+
+def hua_long(tiles):
+    # 一种花色的123、第二种花色的456、第三种花色的789三副顺子
+    pass
+
+
 # -------- 12番 --------
 
 
