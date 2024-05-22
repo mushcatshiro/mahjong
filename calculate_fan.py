@@ -65,9 +65,9 @@ def get_suites(tiles):
 # -------- 1番 --------
 
 
-def hua_pai(tiles):
+def hua_pai(flower_tiles):
     # 每花1番。花牌补花成和计自摸，不计杠上开花
-    pass
+    return len(flower_tiles)
 
 
 def dan_qi_dui_zi(distinct_tiles, history):
