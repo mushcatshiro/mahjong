@@ -99,6 +99,130 @@ def test_shi_san_yao():
     )
 
 
+def test_shuang_ming_gang():
+    assert calculate_fan.shuang_ming_gang(
+        {"1-ming-gang-move": "1万", "2-ming-gang-move": "2万"},
+        ["1万", "1万", "1万", "1万", "2万", "2万", "2万", "2万"],
+    )
+    assert not calculate_fan.shuang_ming_gang(
+        {"1-ming-gang-move": "1万", "2-an-gang-move": "2万"},
+        ["1万", "1万", "1万", "1万", "2万", "2万", "2万", "2万"],
+    )
+
+
+def test_bu_qiu_ren():
+    assert calculate_fan.bu_qiu_ren(
+        {"1-turn-draw-add": "1万"},
+        [],
+        [],
+        []
+    )
+    assert not calculate_fan.bu_qiu_ren(
+        {"1-hu-add-add": "1万"},
+        [],
+        [],
+        []
+    )
+    assert not calculate_fan.bu_qiu_ren(
+        {"1-turn-draw-add": "1万"},
+        ["1万", "1万", "1万", "1万"],
+        [],
+        []
+    )
+
+
+def test_shuang_an_gang():
+    assert calculate_fan.shuang_an_gang(
+        {"1万": 4, "2万": 4, "3万": 1, "4万": 1, "5万": 1, "6万": 1, "7万": 1, "8万": 1, "9万": 2},
+        [],
+    )
+    assert not calculate_fan.shuang_an_gang(
+        {"1万": 4, "2万": 4, "3万": 1, "4万": 1, "5万": 1, "6万": 1, "7万": 1, "8万": 1, "9万": 2},
+        ["1万", "1万", "1万", "1万"],
+    )
+    assert not calculate_fan.shuang_an_gang(
+        {"1万": 4, "2万": 4, "3万": 4, "4万": 1, "5万": 1, "6万": 1, "7万": 2},
+        [],
+    )
+
+
+def test_quan_qiu_ren():
+    assert calculate_fan.quan_qiu_ren(
+        ["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万"],
+        [],
+        {"1-hu-add-add": "5万"},
+        ["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万", "5万", "5万"],
+        {"1万": 3, "2万": 3, "3万": 3, "4万": 3, "5万": 2}
+    )
+    # one an ke
+    assert not calculate_fan.quan_qiu_ren(
+        ["2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万"],
+        [],
+        {"1-hu-add-add": "5万"},
+        ["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万", "5万", "5万"],
+        {"1万": 3, "2万": 3, "3万": 3, "4万": 3, "5万": 2}
+    )
+    # zi mo
+    assert not calculate_fan.quan_qiu_ren(
+        ["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万"],
+        [],
+        {"1-turn-draw-add": "5万"},
+        ["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万", "5万", "5万"],
+        {"1万": 3, "2万": 3, "3万": 3, "4万": 3, "5万": 2}
+    )
+
+def test_wu_men_qi():
+    assert calculate_fan.wu_men_qi(
+        {
+            "万": ["1", "2", "3"],
+            "筒": ["4", "5", "6"],
+            "索": ["7", "8", "9"],
+        },
+        {
+            "1万": 1, "2万": 1, "3万": 1,
+            "4筒": 1, "5筒": 1, "6筒": 1,
+            "7索": 1, "8索": 1, "9索": 1,
+            "东": 3, "白": 2,
+        }
+    )
+    assert not calculate_fan.wu_men_qi(
+        {"万": ["1", "2", "3", "4", "5", "6", "7", "8", "9"]},
+        {
+            "1万": 1, "2万": 1, "3万": 1, "4万": 1, "5万": 1, "6万": 1, "7万": 1,
+            "8万": 1, "9万": 1, "东": 3, "南": 2}
+    )
+
+
+def test_hun_yi_se():
+    assert calculate_fan.hun_yi_se(
+        {"万": ["1", "2", "3", "4", "5", "6", "7", "8", "9"]},
+        ["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "东", "东", "东", "南", "南"]
+    )
+    assert not calculate_fan.hun_yi_se(
+        {"万": ["1", "1", "1", "2", "3", "4", "5", "6", "7", "7", "8", "8", "9", "9"]},
+        ["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "7万", "8万", "9万", "1万", "1万"]
+    )
+
+
+def test_peng_peng_hu():
+    assert calculate_fan.peng_peng_hu(
+        {"1万": 3, "2万": 3, "3万": 3, "4万": 3, "5万": 2},
+    )
+
+
+def test_tui_bu_dao():
+    assert calculate_fan.tui_bu_dao(
+        ["1筒", "2筒", "3筒", "1筒", "2筒", "3筒", "6索", "6索", "6索", "8索",  "8索",  "8索", "白", "白"]
+    )
+    assert not calculate_fan.tui_bu_dao(
+        ["1筒", "2筒", "3筒", "1筒", "2筒", "3筒", "6索", "6索", "6索", "8索",  "8索",  "8索", "發", "發"]
+    )
+    assert not calculate_fan.tui_bu_dao(
+        ["1万", "2万", "3筒", "1筒", "2筒", "3筒", "6索", "6索", "6索", "8索",  "8索",  "8索", "白", "白"]
+    )
+
+
+
 def test_xiao_yu_wu():
     assert calculate_fan.xiao_yu_wu(
         ["1万", "2万", "3万", "4万", "4万", "1万", "2万", "3万", "1筒", "2筒", "3筒", "1索", "2索", "3索"]
@@ -124,12 +248,15 @@ def test_da_yu_wu():
 
 
 def test_zu_he_long():
-    assert calculate_fan.zu_he_long(
+    exists, _ = calculate_fan.zu_he_long(
         {"万": ["1", "4", "7"], "筒": ["2", "5", "8"], "索": ["3", "6", "9"]}
     )
-    assert calculate_fan.zu_he_long(
+    assert exists
+    exists, ref = calculate_fan.zu_he_long(
         {"万": ["1", "4", "7", "7", "8", "9"], "筒": ["2", "5", "8"], "索": ["3", "6", "9"]}
     )
+    assert exists
+    assert ref == {"万": ["1", "4", "7"], "筒": ["2", "5", "8"], "索": ["3", "6", "9"]}
 
 
 def test_quan_bu_kao():
