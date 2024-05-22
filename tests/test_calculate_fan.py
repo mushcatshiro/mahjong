@@ -248,12 +248,15 @@ def test_da_yu_wu():
 
 
 def test_zu_he_long():
-    assert calculate_fan.zu_he_long(
+    exists, _ = calculate_fan.zu_he_long(
         {"万": ["1", "4", "7"], "筒": ["2", "5", "8"], "索": ["3", "6", "9"]}
     )
-    assert calculate_fan.zu_he_long(
+    assert exists
+    exists, ref = calculate_fan.zu_he_long(
         {"万": ["1", "4", "7", "7", "8", "9"], "筒": ["2", "5", "8"], "索": ["3", "6", "9"]}
     )
+    assert exists
+    assert ref == {"万": ["1", "4", "7"], "筒": ["2", "5", "8"], "索": ["3", "6", "9"]}
 
 
 def test_quan_bu_kao():
