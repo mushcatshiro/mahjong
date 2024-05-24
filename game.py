@@ -117,6 +117,8 @@ class PlayAction(State):
     target_tile: str = None
     move_tiles: List[str] = field(default_factory=list)
     discard_tile: str = None
+    is_jue_zhang: bool = False
+    is_qiang_gang_hu: bool = False
 
     REQUIRED_DISCARD = ["peng", "shang", "discard"]
 
@@ -183,7 +185,6 @@ class Hand(State):
     def reset(self):
         self.tiles = []
         self.tiles_history = {}
-        self.replacement_tiles = []
         self.flower_tiles = []
         self.distinct_tile_count = {}
         self.peng_history = []
@@ -600,9 +601,7 @@ class Player(State):
         self.house = house
         self.men_feng = None
         self.replacement_tile_count = 0
-        self.is_zi_mo = False
-        self.is_hai_di_lao_yue = False
-        self.is_gang_shang_kai_hua = False
+        self.winning_conditions = []
 
     def initial_draw(self, tile_sequence: TilesSequence, total, jump: bool):
         tiles = tile_sequence.draw(total, jump)
@@ -629,18 +628,22 @@ class Player(State):
         possible_actions = []
         if self.house and len(self.hand.tiles) == 14:
             if self.hand.is_winning_hand():
-                self.is_zi_mo = True
+                self.winning_conditions.append("自摸")
                 return self.hand.get_hu_play_result()
             possible_actions += self.hand.get_discardable_tiles()
         else:
             drawed_tile = tile_sequence.draw()  # guaranteed
+            if tile_sequence.is_empty():
+                self.winning_conditions.append("妙手回春")
             self.replacement_tile_count += self.hand.add_tiles(drawed_tile, "turn-draw")
             replacement_result = self.resolve_tile_replacement(tile_sequence)
+            if tile_sequence.is_empty():
+                self.winning_conditions.append("妙手回春")
             if not replacement_result.complete:
                 return PlayResult(draw=True)
 
             if self.hand.is_winning_hand():
-                self.is_zi_mo = True
+                self.winning_conditions.append("自摸")
                 return self.hand.get_hu_play_result()
 
             possible_actions += self.hand.get_discardable_tiles()
@@ -696,6 +699,9 @@ class Player(State):
             replacement_result = self.resolve_tile_replacement(tile_sequence)
             if not replacement_result.complete:
                 return PlayResult(draw=True)
+            if self.hand.is_winning_hand():
+                self.winning_conditions.append("杠上开花")
+                return self.hand.get_hu_play_result()
             possible_discards = self.hand.get_discardable_tiles()
             discard_play_action = self.gang_discard_strategy(possible_discards)
             play_result = self.hand.resolve(discard_play_action)
@@ -866,8 +872,17 @@ class Mahjong:
         hu > peng/gang > shang
         multiple players can hu, player who sits right (1st) to the player that
         played tile wins
+        ```
+        responses = {
+            "hu": [[0, PlayAction], [1, PlayAction]],
+            "peng": [0, PlayAction],
+        }
+        ```
         """
+        is_qiang_gang_hu = False
         if "hu" in responses:
+            if "ming_gang" in responses or "jia_gang" in responses:
+                is_qiang_gang_hu = True
             if len(responses["hu"]) > 1:
                 hu_order = [x for x in range(self.current_player_idx, 4)] + [
                     x for x in range(0, self.current_player_idx)
@@ -876,9 +891,15 @@ class Mahjong:
                 for player_idx in hu_order:
                     for response in responses["hu"]:
                         if player_idx == response[0]:
-                            return response
+                            player_idx = response[0]
+                            play_action = response[1]
+                            play_action.is_qiang_gang_hu = is_qiang_gang_hu
+                            return [player_idx, play_action]
             else:
-                return responses["hu"][0]
+                player_idx = responses["hu"][0][0]
+                play_action = responses["hu"][0][1]
+                play_action.is_qiang_gang_hu = is_qiang_gang_hu
+                return [player_idx, play_action]
         elif "peng" in responses:
             return responses["peng"]
         elif "ming_gang" in responses:

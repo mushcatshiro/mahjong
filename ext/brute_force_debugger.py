@@ -1,6 +1,7 @@
 import sys
 import yaml
 import time
+import datetime as dt
 
 sys.path.append(".")
 
@@ -13,7 +14,7 @@ def print_details(player):
         print(f"Player {player.player_idx} is house")
     print(f"Player {player.player_idx} history: \n\n{yaml.dump(player.hand.tiles_history, allow_unicode=True, sort_keys=False)}")
     print(f"Player {player.player_idx} hand: {player.hand.tiles}; flower: {player.hand.flower_tiles}")
-    print(f"Player {player.player_idx} peng: {player.hand.peng_history};\n gang: {player.hand.gang_history};\n shang: {player.hand.shang_history}")
+    print(f"Player {player.player_idx}\n peng: {player.hand.peng_history};\n gang: {player.hand.gang_history};\n shang: {player.hand.shang_history}")
     print("\n")
     # fmt: on
 
@@ -25,6 +26,8 @@ def main(rounds, debug):
     draw_game_time_avg = 0
     complete_games = 0
     draw_games = 0
+    print(f"Starting {rounds} games in debug mode: {debug}...")
+    start_time = dt.datetime.now()
     while ctr <= rounds:
         # to replace while True with standard 24 rounds or 1 round
         # associate round summary/game summary code need to behave correctly
@@ -38,7 +41,7 @@ def main(rounds, debug):
                     3: DummyPlayer(3, debug=debug, strategy="random"),
                 }
             )
-            game.start()
+            game.start_game()
         except Exception as e:
             # print stack trace
             import traceback
@@ -71,11 +74,16 @@ def main(rounds, debug):
         finally:
             ctr += 1
             sys.stdout.flush()
+    end_time = dt.datetime.now()
 
     print(
-        f"total games: {ctr}; "
-        f"complete games: {complete_games} @ avg {winning_game_time_avg}s; "
-        f"draw games: {draw_games} @ avg {draw_game_time_avg}s;"
+        "Brute force debugger complete\n"
+        f"Started @ {start_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+        f"Ended   @ {end_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+        f"Time taken to complete all games: {end_time - start_time}\n"
+        f"Total games played              : {ctr}\n"
+        f"Complete games                  : {complete_games} @ avg {winning_game_time_avg}s\n"
+        f"Draw games                      : {draw_games} @ avg {draw_game_time_avg}s"
     )
 
 

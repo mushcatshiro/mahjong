@@ -966,19 +966,19 @@ def da_si_xi(tiles):
     return True
 
 
-def calculate_win_mode_fan(rf: ResultFan):
+def calculate_win_mode_fan(rf: ResultFan, winning_condition: list):
     # 妙手回春: 摸最后一张牌成和牌、不计自摸
-    if True:
+    if "妙手回春" in winning_condition:
         rf.fan_names.append("妙手回春")
         rf.total_fan += 8
         rf.exclude = ["自摸"]
-    # 海底捞月: 和牌时本局打出的最后一张牌、不计自摸
-    if True:
+    # 海底捞月: 和本局打出的最后一张牌、不计自摸
+    if "海底捞月" in winning_condition:
         rf.fan_names.append("海底捞月")
         rf.total_fan += 8
         rf.exclude = ["自摸"]
     # 杠上开花: 和开杠后摸进的牌、不计自摸；不计杠来的花补花
-    if True:
+    if "杠上开花" in winning_condition:
         rf.fan_names.append("杠上开花")
         rf.total_fan += 8
         rf.exclude = ["自摸"]
@@ -1011,7 +1011,7 @@ def calculate_win_mode_fan(rf: ResultFan):
         rf.fan_names.append("单骑对子")
         rf.total_fan += 1
     # 自摸
-    if "自摸" not in rf.exclude and f"{len(history)}-hu-add-add" in history:
+    if "自摸" not in rf.exclude and "自摸" in winning_condition:
         rf.fan_names.append("自摸")
         rf.total_fan += 1
 

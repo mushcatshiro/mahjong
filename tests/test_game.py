@@ -192,6 +192,49 @@ def test_resolve_call_priority():
     )
     assert resolved_to == 2
 
+    resolved_to, play_action = game.resolve_call_priority(
+        {
+            "hu": [
+                [1, PlayAction(action="hu", target_tile="1万")],
+            ],
+            "ming_gang": [
+                2,
+                PlayAction(action="ming_gang", target_tile="1万"),
+            ],
+        }
+    )
+    assert resolved_to == 1
+    assert play_action.is_qiang_gang_hu
+
+    resolved_to, play_action = game.resolve_call_priority(
+        {
+            "hu": [
+                [1, PlayAction(action="hu", target_tile="1万")],
+            ],
+            "jia_gang": [
+                2,
+                PlayAction(action="jia_gang", target_tile="1万"),
+            ],
+        }
+    )
+    assert resolved_to == 1
+    assert play_action.is_qiang_gang_hu
+
+    resolved_to, play_action = game.resolve_call_priority(
+        {
+            "hu": [
+                [1, PlayAction(action="hu", target_tile="1万")],
+                [3, PlayAction(action="hu", target_tile="1万")],
+            ],
+            "jia_gang": [
+                2,
+                PlayAction(action="jia_gang", target_tile="1万"),
+            ],
+        }
+    )
+    assert resolved_to == 1
+    assert play_action.is_qiang_gang_hu
+
 
 def _test_play_one_round():
     import os, json
