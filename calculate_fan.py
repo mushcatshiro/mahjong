@@ -71,7 +71,8 @@ def hua_pai(flower_tiles):
 
 
 def dan_qi_dui_zi(distinct_tiles, history):
-    # 只听一张将牌，等待这张牌的胡牌形式只有一种
+    # 只听一张牌，等待这张牌的胡牌形式只有一种
+    # BUG what if it is used for another pack?
     if distinct_tiles[history[f"{len(history)}-hu-add"]] == 2:
         return True
     return False
