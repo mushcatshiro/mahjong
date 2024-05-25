@@ -181,6 +181,7 @@ class Hand(State):
         self.distinct_tile_count = {}
         self.peng_history = []
         self.gang_history = []
+        self.an_gang_history = []
         self.shang_history = []
 
     def reset(self):
@@ -190,6 +191,7 @@ class Hand(State):
         self.distinct_tile_count = {}
         self.peng_history = []
         self.gang_history = []
+        self.an_gang_history = []
         self.shang_history = []
 
     def shang(self, action: PlayAction):
@@ -283,7 +285,7 @@ class Hand(State):
         elif action.action == "an_gang":
             for tile in action.move_tiles:
                 self.remove_tile(tile, "an-gang-move")
-            self.gang_history += [action.move_tiles[0]] * 4
+            self.an_gang_history += [action.move_tiles[0]] * 4
             self.distinct_tile_count[action.move_tiles[0]] = 4
         elif action.action == "jia_gang":
             for tile in action.move_tiles:

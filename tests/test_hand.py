@@ -273,7 +273,7 @@ def test_gang():
     play_result: PlayResult = h.gang(action[0])
     assert play_result.need_replacement
     assert h.tiles == []
-    assert h.gang_history == ["2万", "2万", "2万", "2万"]
+    assert h.an_gang_history == ["2万", "2万", "2万", "2万"]
     assert h.is_locked("2万")
     reset_hand(h)
 
@@ -503,7 +503,7 @@ def test_resolve():
     assert len(actions) == 1
     play_result = h.resolve(actions[0])
     assert h.tiles == ["3万"]
-    assert h.gang_history == ["2万", "2万", "2万", "2万"]
+    assert h.an_gang_history == ["2万", "2万", "2万", "2万"]
     assert h.is_locked("2万")
     assert not h.is_locked("3万")
     assert play_result.need_replacement

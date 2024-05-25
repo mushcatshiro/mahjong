@@ -301,16 +301,10 @@ def shuang_jian_ke(tiles):
     pass
 
 
-def shuang_an_gang(distinct_tiles, gang_history):
+def shuang_an_gang(an_gang_history):
     # 2x an gang
     # cal_shuang_an_ke = False for the two tiles
-    if gang_history:
-        return False
-    an_gang_ctr = 0
-    for k, v in distinct_tiles.items():
-        if v == 4:
-            an_gang_ctr += 1
-    return an_gang_ctr == 2
+    return (len(an_gang_history) / 4) == 2
 
 
 def quan_qiu_ren(peng_history, gang_history, history, tiles, distinct_tiles):
