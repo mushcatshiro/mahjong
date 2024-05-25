@@ -239,7 +239,10 @@ def ping_hu(tiles):
 
 def men_qian_qing(history):
     # 没吃，碰，明杠。和他家出的牌
-    pass
+    for entry in history:
+        if "shang" in entry or "peng" in entry or "gang" in entry:
+            return False
+    return True
 
 
 def men_feng_ke(tiles):
@@ -276,7 +279,7 @@ def shuang_ming_gang(history, gang_history):
 
 
 def bu_qiu_ren(history, gang_history, peng_history, shang_history):
-    # 没碰，明杠，吃，自摸和牌
+    """没碰，明杠，吃，自摸和牌"""
     if gang_history or peng_history or shang_history:
         return False
     if f"{len(history)}-hu-add-add" in history:
@@ -312,6 +315,7 @@ def shuang_an_gang(distinct_tiles, gang_history):
 
 def quan_qiu_ren(peng_history, gang_history, history, tiles, distinct_tiles):
     # 吃，碰，明杠x4，和他家的牌
+    # BUG hu-add-add tile can be more than 2
     remaining = len(tiles) - (len(gang_history) + len(peng_history))
     if remaining != 2:
         return False
@@ -967,7 +971,16 @@ def da_si_xi(tiles):
     return True
 
 
-def calculate_win_mode_fan(rf: ResultFan, winning_condition: list):
+def calculate_win_mode_fan(
+    rf: ResultFan,
+    winning_condition: list,
+    history,
+    tiles,
+    distinct_tiles,
+    peng_history,
+    gang_history,
+    shang_history,
+):
     # 妙手回春: 摸最后一张牌成和牌、不计自摸
     if "妙手回春" in winning_condition:
         rf.fan_names.append("妙手回春")
@@ -984,7 +997,7 @@ def calculate_win_mode_fan(rf: ResultFan, winning_condition: list):
         rf.total_fan += 8
         rf.exclude = ["自摸"]
     # 抢杠和: 和他家明刻加杠的牌，不计和绝张
-    if True:
+    if "抢杠和" in winning_condition:
         rf.fan_names.append("抢杠和")
         rf.total_fan += 8
         rf.exclude = ["和绝张"]
@@ -993,24 +1006,26 @@ def calculate_win_mode_fan(rf: ResultFan, winning_condition: list):
         rf.fan_names.append("全求人")
         rf.total_fan += 6
         rf.exclude = ["单骑对子", "自摸"]
-    # 不求人
+    # 不求人: 不计门前清、自摸
     if bu_qiu_ren(history, gang_history, peng_history, shang_history):
         rf.fan_names.append("不求人")
         rf.total_fan += 4
-        rf.exclude = ["自摸"]
+        rf.exclude = ["自摸", "门前清"]
     # 和绝张: 和牌池、桌面已亮明的第四张牌
-    if "和绝张" not in rf.exclude and True:
-        rf.fan_names.append("和绝张")
-        rf.total_fan += 4
+    # if "和绝张" not in rf.exclude and True:
+    #     rf.fan_names.append("和绝张")
+    #     rf.total_fan += 4
     # 门前清
-    if men_qian_qing(history):
+    if "门前清" not in rf.exclude and (
+        men_qian_qing(history) and "自摸" in winning_condition
+    ):
         rf.fan_names.append("门前清")
         rf.total_fan += 2
         rf.exclude = ["自摸"]
     # 边张、坎张、单骑对子
-    if dan_qi_dui_zi(distinct_tiles, history):
-        rf.fan_names.append("单骑对子")
-        rf.total_fan += 1
+    # if dan_qi_dui_zi(distinct_tiles, history):
+    #     rf.fan_names.append("单骑对子")
+    #     rf.total_fan += 1
     # 自摸
     if "自摸" not in rf.exclude and "自摸" in winning_condition:
         rf.fan_names.append("自摸")

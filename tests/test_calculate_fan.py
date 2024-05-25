@@ -546,3 +546,95 @@ def test_lv_yi_se():
         ["1索", "2索", "3索", "4索", "5索", "6索", "7索", "8索", "9索", "东"]
     )
     assert calculate_fan.lv_yi_se(["2索", "3索", "4索", "6索", "8索", "發"])
+
+
+def test_calculate_win_mode_fan():
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_win_mode_fan(
+        rf,
+        winning_condition=["妙手回春"],
+        history={},
+        tiles=[],
+        distinct_tiles={},
+        peng_history=[],
+        gang_history=[],
+        shang_history=[],
+    )
+    assert rf.fan_names == ["妙手回春", "不求人"]
+    assert rf.exclude == ["自摸", "门前清"]
+    assert rf.total_fan == 12
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_win_mode_fan(
+        rf,
+        winning_condition=["海底捞月"],
+        history={"1-peng-add-add": "1万"},
+        tiles=[],
+        distinct_tiles={},
+        peng_history=["1万", "1万", "1万"],
+        gang_history=[],
+        shang_history=[],
+    )
+    assert rf.fan_names == ["海底捞月"]
+    assert rf.exclude == ["自摸"]
+    assert rf.total_fan == 8
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_win_mode_fan(
+        rf,
+        winning_condition=["杠上开花"],
+        history={"1-gang-add-add": "1万"},
+        tiles=[],
+        distinct_tiles={},
+        peng_history=[],
+        gang_history=["1万", "1万", "1万", "1万"],
+        shang_history=[],
+    )
+    assert rf.fan_names == ["杠上开花"]
+    assert rf.exclude == ["自摸"]
+    assert rf.total_fan == 8
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_win_mode_fan(
+        rf,
+        winning_condition=["抢杠和", "自摸"],
+        history={"1-hu-add-add": "1万"},
+        tiles=[],
+        distinct_tiles={},
+        peng_history=[],
+        gang_history=[],
+        shang_history=["1万", "2万", "3万"],
+    )
+    assert rf.fan_names == ["抢杠和", "门前清"]
+    assert rf.exclude == ["自摸"]
+    assert rf.total_fan == 10
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_win_mode_fan(
+        rf,
+        winning_condition=[],
+        history={"1-shang-add-add": "1万", "2-hu-add-add": "發"},
+        tiles=["發", "發"],
+        distinct_tiles={"發": 2},
+        peng_history=[],
+        gang_history=[],
+        shang_history=["1万", "2万", "3万"],
+    )
+    assert rf.fan_names == ["全求人"]
+    assert rf.exclude == ["单骑对子", "自摸"]
+    assert rf.total_fan == 6
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_win_mode_fan(
+        rf,
+        winning_condition=["自摸"],
+        history={"1-shang-add-add": "1万", "2-turn-draw-add": "1万"},
+        tiles=[],
+        distinct_tiles={},
+        peng_history=[],
+        gang_history=[],
+        shang_history=["1万", "2万", "3万"],
+    )
+    assert rf.fan_names == ["自摸"]
+    assert rf.exclude == []
+    assert rf.total_fan == 1
