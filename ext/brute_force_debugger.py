@@ -6,6 +6,7 @@ import datetime as dt
 sys.path.append(".")
 
 from game import Mahjong, DummyPlayer
+from ext.data_collector import DummyPlayerWithSave
 
 
 def print_details(player):
@@ -26,9 +27,18 @@ def main(rounds, debug):
     draw_game_time_avg = 0
     complete_games = 0
     draw_games = 0
+
+    # stats
+    win_condition_stats = {}
+
     print(f"Starting {rounds} games in debug mode: {debug}...")
     start_time = dt.datetime.now()
+
     while ctr <= rounds:
+        if ctr % (rounds // 10) == 0 and ctr != 0:
+            print(
+                f"Progress: {ctr}/{rounds} games played after {dt.datetime.now() - start_time}"
+            )
         # to replace while True with standard 24 rounds or 1 round
         # associate round summary/game summary code need to behave correctly
         try:
@@ -60,14 +70,20 @@ def main(rounds, debug):
                 draw_game_time_avg = (
                     (draw_game_time_avg * (draw_games - 1)) + (end - start)
                 ) / draw_games
-                print(f"{ctr} draw game time avg: {draw_game_time_avg}")
+                # print(f"{ctr} draw game time avg: {draw_game_time_avg}")
             else:
                 complete_games += 1
                 assert game.winner is not None
                 winning_game_time_avg = (
                     (winning_game_time_avg * (complete_games - 1)) + (end - start)
                 ) / complete_games
-                print(f"{ctr} winning game time avg: {winning_game_time_avg}")
+                # print(f"{ctr} winning game time avg: {winning_game_time_avg}")
+                player = game.players[game.winner]
+                for win_condition in player.winning_conditions:
+                    if win_condition not in win_condition_stats:
+                        win_condition_stats[win_condition] = 1
+                    else:
+                        win_condition_stats[win_condition] += 1
             if debug:
                 for i, player in game.players.items():
                     print_details(player)
@@ -85,6 +101,10 @@ def main(rounds, debug):
         f"Complete games                  : {complete_games} @ avg {winning_game_time_avg}s\n"
         f"Draw games                      : {draw_games} @ avg {draw_game_time_avg}s"
     )
+    print("-" * 80)
+    print("Winning condition stats:")
+    for win_condition, count in win_condition_stats.items():
+        print(f"- {win_condition}: {count}")
 
 
 if __name__ == "__main__":
@@ -95,5 +115,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--rounds", default=1_000_000, type=int)
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--players", default="drdr")
     args = parser.parse_args()
     main(args.rounds, args.debug)

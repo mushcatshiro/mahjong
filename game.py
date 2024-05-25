@@ -119,6 +119,7 @@ class PlayAction(State):
     discard_tile: str = None
     is_jue_zhang: bool = False
     is_qiang_gang_hu: bool = False
+    is_hai_di_lao_yue: bool = False
 
     REQUIRED_DISCARD = ["peng", "shang", "discard"]
 
@@ -494,60 +495,13 @@ class Hand(State):
                     return rv
         return rv
 
-    def _ting_pai_dp_search(self, remaining_tiles):
-        if len(remaining_tiles) == 1:
-            return True
-
-        rv = False
-        valid_shang_sets = self.get_valid_shang_sets(remaining_tiles)
-        valid_peng_sets = self.get_valid_peng_sets(remaining_tiles)
-        valid_sets = valid_shang_sets + valid_peng_sets
-
-        # implies not able to form any sets of 3
-        if not valid_sets:
-            return rv
-
-        for valid_set in valid_sets:
-            new_remaining_tiles = copy.deepcopy(remaining_tiles)
-            for tile in valid_set:
-                new_remaining_tiles.remove(tile)
-            rv = self._dp_search(new_remaining_tiles)
-            if rv:
-                return rv
-        return rv
-
-    def ting_pai_dp_search(self):
-        # TODO can be merged with dp_search by checking if remaining is 1
-        rv = False
-
-        if len(self.tiles) % 3 != 1:
-            raise ValueError(f"invalid hand: {self.tiles}")
-
-        valid_eye_sets = self.get_valid_eye_sets(self.tiles)
-        if not valid_eye_sets:
-            return rv
-        else:
-            for eye_set in valid_eye_sets:
-                tmp_tiles = copy.deepcopy(self.tiles)
-                for _ in range(2):
-                    tmp_tiles.remove(eye_set)
-
-                rv = self._is_ting_pai(tmp_tiles)
-                if rv:
-                    return rv
-        return rv
-
-    def is_ting_pai(self):
-        """
-        TODO seems like a tree data structure fits the most
-        construct a tree for all possible of eyes
-        then create child based on remaining tiles until reaches leaf -> using bfs?
-        leaf should have an attribute indicating `ting_pai`, `hu`
-        traverse the tree once more to find `ting_pai` or `hu`
-        十三幺 and 对对胡 probably need some other clever way to check
-        """
-        resp = self.ting_pai_dp_search()
-        return True if len(resp["ungrouped"]) == 1 else False
+    def get_packs(self):
+        tiles = copy.deepcopy(self.tiles)
+        potential_packs = []
+        potential_packs += self.get_valid_shang_sets(tiles)
+        potential_packs += self.get_valid_peng_sets(tiles)
+        potential_packs += self.get_gang_candidates(tiles)
+        potential_packs += self.get_valid_eye_sets(tiles)
 
     def is_winning_hand(self, call_tile=None):
         # 十三幺
@@ -567,16 +521,6 @@ class Hand(State):
         if call_tile:
             tiles.append(call_tile)
         return self.dp_search(tiles)
-
-    def search(self):
-        tiles = copy.deepcopy(self.tiles)
-        root = tree()
-        root["ungrouped"]
-        root["grouped"]
-
-        valid_eye_sets = self.get_valid_eye_sets(tiles)
-        for eye_set in valid_eye_sets:
-            root["grouped"][eye_set]
 
     def get_hu_play_action(self, target_tile):
         return PlayAction(action="hu", target_tile=target_tile)
@@ -637,7 +581,7 @@ class Player(State):
                 self.winning_conditions.append("妙手回春")
             self.replacement_tile_count += self.hand.add_tiles(drawed_tile, "turn-draw")
             replacement_result = self.resolve_tile_replacement(tile_sequence)
-            if tile_sequence.is_empty():
+            if "妙手回春" not in self.winning_conditions and tile_sequence.is_empty():
                 self.winning_conditions.append("妙手回春")
             if not replacement_result.complete:
                 return PlayResult(draw=True)
@@ -686,6 +630,12 @@ class Player(State):
         self, action: PlayAction, tile_sequence: TilesSequence
     ) -> PlayResult:
         if action.action == "hu":
+            if action.is_hai_di_lao_yue:
+                self.winning_conditions.append("海底捞月")
+            if action.is_qiang_gang_hu:
+                self.winning_conditions.append("抢杠胡")
+            if action.is_jue_zhang:
+                self.winning_conditions.append("和绝张")
             self.hand.add_tiles([action.target_tile], "hu-add")
             return self.hand.get_hu_play_result()
         play_result: PlayResult = self.hand.resolve(action)
@@ -898,7 +848,7 @@ class Mahjong:
                             return [player_idx, play_action]
             else:
                 player_idx = responses["hu"][0][0]
-                play_action = responses["hu"][0][1]
+                play_action: PlayAction = responses["hu"][0][1]
                 play_action.is_qiang_gang_hu = is_qiang_gang_hu
                 return [player_idx, play_action]
         elif "peng" in responses:
@@ -920,6 +870,9 @@ class Mahjong:
 
     def resolve_call(self, responses):
         resolve_to, play_action = self.resolve_call_priority(responses)
+        if self.tile_sequence.is_empty():
+            play_action: PlayAction
+            play_action.is_hai_di_lao_yue = True
         play_result: PlayResult = self.players[resolve_to].call_resolve(
             play_action, self.tile_sequence
         )

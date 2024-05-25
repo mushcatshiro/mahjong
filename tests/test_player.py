@@ -27,7 +27,7 @@ def test_player_deal_stage_without_replacement():
             "6筒",
             "7筒",
             "8筒",
-        ]
+        ]  # fmt: off
     )
     p = Player(0, True)
 
@@ -195,6 +195,7 @@ def test_play_turn():
     p.initial_draw(ts, 1, False)  # not house
     resp = p.play_turn(ts)
     assert resp.hu
+    assert p.winning_conditions == ["妙手回春", "自摸"]
 
     # test run out of tiles
     ts = MockTilesSequence(["1万", "1万", "9万", "1筒", "春"])
