@@ -724,6 +724,7 @@ class Player(State):
         raise NotImplementedError  # pragma: no cover
 
     def gang_discard_strategy(self, possible_actions) -> PlayAction:
+        # TODO to make in to general `discard_strategy`?
         raise NotImplementedError  # pragma: no cover
 
     def round_summary(self):

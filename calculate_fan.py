@@ -70,10 +70,10 @@ def hua_pai(flower_tiles):
     return len(flower_tiles)
 
 
-def dan_qi_dui_zi(distinct_tiles, history):
+def dan_qi_dui_zi(eyes, history):
     # 只听一张牌，等待这张牌的胡牌形式只有一种
     # BUG what if it is used for another pack?
-    if distinct_tiles[history[f"{len(history)}-hu-add"]] == 2:
+    if history[f"{len(history)}-hu-add"] == eyes:
         return True
     return False
 
