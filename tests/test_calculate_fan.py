@@ -99,6 +99,27 @@ def test_shi_san_yao():
     )
 
 
+def test_men_qian_qing():
+    assert calculate_fan.men_qian_qing(
+        {"1-turn-draw-add": "1万"},
+    )
+    assert not calculate_fan.men_qian_qing(
+        {"1-shang-add-add": "1万"},
+    )
+    assert not calculate_fan.men_qian_qing(
+        {"1-peng-add-add": "1万"},
+    )
+    assert not calculate_fan.men_qian_qing(
+        {"1-ming_gang-move": "1万"},
+    )
+    assert not calculate_fan.men_qian_qing(
+        {"1-jia_gang-move": "1万"},
+    )
+    assert calculate_fan.men_qian_qing(
+        {"1-an-gang-move": "1万"},
+    )
+
+
 def test_shuang_ming_gang():
     assert calculate_fan.shuang_ming_gang(
         {"1-ming-gang-move": "1万", "2-ming-gang-move": "2万"},
@@ -147,25 +168,25 @@ def test_quan_qiu_ren():
     assert calculate_fan.quan_qiu_ren(
         ["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万"],
         [],
-        {"1-hu-add-add": "5万"},
+        [],
         ["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万", "5万", "5万"],
-        {"1万": 3, "2万": 3, "3万": 3, "4万": 3, "5万": 2}
+        {"1-hu-add-add": "5万"},
     )
     # one an ke
     assert not calculate_fan.quan_qiu_ren(
         ["2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万"],
         [],
-        {"1-hu-add-add": "5万"},
+        [],
         ["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万", "5万", "5万"],
-        {"1万": 3, "2万": 3, "3万": 3, "4万": 3, "5万": 2}
+        {"1-hu-add-add": "5万"},
     )
     # zi mo
     assert not calculate_fan.quan_qiu_ren(
         ["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万"],
         [],
-        {"1-turn-draw-add": "5万"},
+        [],
         ["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万", "5万", "5万"],
-        {"1万": 3, "2万": 3, "3万": 3, "4万": 3, "5万": 2}
+        {"1-turn-draw-add": "5万"},
     )
 
 def test_wu_men_qi():

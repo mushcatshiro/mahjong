@@ -535,6 +535,9 @@ class Hand(State):
             if v == 0:
                 del self.distinct_tile_count[k]
 
+    def get_showable_tiles(self):
+        return self.gang_history + self.peng_history + self.shang_history
+
 
 class Player(State):
     def __init__(self, player_idx, house=False):
@@ -872,9 +875,20 @@ class Mahjong:
 
     def resolve_call(self, responses):
         resolve_to, play_action = self.resolve_call_priority(responses)
-        if self.tile_sequence.is_empty():
-            play_action: PlayAction
-            play_action.is_hai_di_lao_yue = True
+        if play_action.action == "hu":
+            if self.tile_sequence.is_empty():
+                play_action: PlayAction
+                play_action.is_hai_di_lao_yue = True
+            called_tile = play_action.target_tile
+            showed_tiles = []
+            ctr = 0
+            for player in self.players.values():
+                showed_tiles += player.hand.get_showable_tiles()
+            for tile in showed_tiles:
+                if tile == called_tile:
+                    ctr += 1
+            if ctr == 3:
+                play_action.is_jue_zhang = True
         play_result: PlayResult = self.players[resolve_to].call_resolve(
             play_action, self.tile_sequence
         )

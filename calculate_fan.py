@@ -240,7 +240,12 @@ def ping_hu(tiles):
 def men_qian_qing(history):
     # 没吃，碰，明杠。和他家出的牌
     for entry in history:
-        if "shang" in entry or "peng" in entry or "gang" in entry:
+        if (
+            "shang" in entry
+            or "peng" in entry
+            or "ming_gang" in entry
+            or "jia_gang" in entry
+        ):
             return False
     return True
 
@@ -307,16 +312,16 @@ def shuang_an_gang(an_gang_history):
     return (len(an_gang_history) / 4) == 2
 
 
-def quan_qiu_ren(peng_history, gang_history, history, tiles, distinct_tiles):
+def quan_qiu_ren(peng_history, gang_history, shang_history, tiles: list, history):
     # 吃，碰，明杠x4，和他家的牌
     # BUG hu-add-add tile can be more than 2
-    remaining = len(tiles) - (len(gang_history) + len(peng_history))
-    if remaining != 2:
+
+    for tile in peng_history + gang_history + shang_history:
+        tiles.remove(tile)
+    if len(tiles) != 2:
         return False
-    if (
-        f"{len(history)}-hu-add-add" in history
-        and distinct_tiles[history[f"{len(history)}-hu-add-add"]] == 2
-    ):
+    hu_key = f"{len(history)}-hu-add-add"
+    if (hu_key in history) and (history[hu_key]) == tiles[0]:
         return True
     return False
 
@@ -658,6 +663,7 @@ def qi_xing_bu_kao(distinct_tiles, merged_suites: dict):
     # cal_wu_men_qi = False
     # cal_bu_qiu_ren = False
     # cal_men_qian_qing = False
+    # BUG 331 condition not considered
     if len(distinct_tiles) != 14:
         return False
     for tile in JIANS + FENGS:
@@ -996,7 +1002,7 @@ def calculate_win_mode_fan(
         rf.total_fan += 8
         rf.exclude = ["和绝张"]
     # 全球人
-    if quan_qiu_ren(peng_history, gang_history, history, tiles, distinct_tiles):
+    if quan_qiu_ren(peng_history, gang_history, shang_history, tiles, history):
         rf.fan_names.append("全求人")
         rf.total_fan += 6
         rf.exclude = ["单骑对子", "自摸"]
@@ -1006,9 +1012,9 @@ def calculate_win_mode_fan(
         rf.total_fan += 4
         rf.exclude = ["自摸", "门前清"]
     # 和绝张: 和牌池、桌面已亮明的第四张牌
-    # if "和绝张" not in rf.exclude and True:
-    #     rf.fan_names.append("和绝张")
-    #     rf.total_fan += 4
+    if "和绝张" not in rf.exclude and True:
+        rf.fan_names.append("和绝张")
+        rf.total_fan += 4
     # 门前清
     if "门前清" not in rf.exclude and (
         men_qian_qing(history) and "自摸" in winning_condition
