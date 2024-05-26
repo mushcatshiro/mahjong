@@ -73,25 +73,54 @@ def hua_pai(flower_tiles):
 def dan_qi_dui_zi(eyes, history):
     # 只听一张牌，等待这张牌的胡牌形式只有一种
     # BUG what if it is used for another pack?
-    if history[f"{len(history)}-hu-add"] == eyes:
+    if (
+        f"{len(history)}-hu-add" in history
+        and history[f"{len(history)}-hu-add"] == eyes
+    ):
         return True
     return False
 
 
-def kan_zhang(tiles):
-    # if drawed tile is in between two tiles and leads to hu
-    # 4556, 5 is kan zhang
-    # 45567, 6 is not
+def kan_zhang(merged_suites, history):
+    # 4556(5)计，45567(6)不计
     # 只听一张牌，等待这张牌的胡牌形式只有一种
-    pass
+    if f"{len(history)}-hu-add" not in history:
+        return False
+    hu_tile = history[f"{len(history)}-hu-add"]
+    if len(hu_tile) == 1:
+        return False
+    num, suite = hu_tile[0], hu_tile[1]
+    if int(num) < 2 or int(num) > 8:
+        return False
+    pattern = f"{int(num) - 1}{num}{num}{num}{int(num) + 1}"
+    if pattern in "".join(merged_suites[suite]):
+        return True
+    return False
 
 
-def bian_du(tiles, history):
-    # 123 or 1233, 3 is bian du
-    # 12345, 4 is not
-    # 789 or 7899, 7 is bian du
+def bian_du(merged_suites, history):
+    # 12(3)，1233(3)，(7)89，(7)7789计
+    # 12345(3)，56789(7) 不计
     # 只听一张牌，等待这张牌的胡牌形式只有一种
-    pass
+    if f"{len(history)}-hu-add" not in history:
+        return False
+    hu_tile = history[f"{len(history)}-hu-add"]
+    if len(hu_tile) == 1:
+        return False
+    num, suite = hu_tile[0], hu_tile[1]
+    if num == "3":
+        joined = "".join(merged_suites[suite])
+        if "4" in joined or "5" in joined:
+            return False
+        if "12333" in joined or "123" in joined:
+            return True
+    if num == "7":
+        joined = "".join(merged_suites[suite])
+        if "6" in joined or "5" in joined:
+            return False
+        if "77789" in joined or "789" in joined:
+            return True
+    return False
 
 
 def wu_zi(tiles):
@@ -312,12 +341,11 @@ def shuang_an_gang(an_gang_history):
     return (len(an_gang_history) / 4) == 2
 
 
-def quan_qiu_ren(peng_history, gang_history, shang_history, tiles: list, history):
+def quan_qiu_ren(tiles: list, an_gang_history, history):
     # 吃，碰，明杠x4，和他家的牌
     # BUG hu-add-add tile can be more than 2
-
-    for tile in peng_history + gang_history + shang_history:
-        tiles.remove(tile)
+    if an_gang_history:
+        return False
     if len(tiles) != 2:
         return False
     hu_key = f"{len(history)}-hu-add-add"
@@ -980,6 +1008,8 @@ def calculate_win_mode_fan(
     peng_history,
     gang_history,
     shang_history,
+    an_gang_history,
+    merged_suites=None,
 ):
     # 妙手回春: 摸最后一张牌成和牌、不计自摸
     if "妙手回春" in winning_condition:
@@ -1002,7 +1032,7 @@ def calculate_win_mode_fan(
         rf.total_fan += 8
         rf.exclude = ["和绝张"]
     # 全球人
-    if quan_qiu_ren(peng_history, gang_history, shang_history, tiles, history):
+    if quan_qiu_ren(tiles, an_gang_history, history):
         rf.fan_names.append("全求人")
         rf.total_fan += 6
         rf.exclude = ["单骑对子", "自摸"]
@@ -1012,7 +1042,7 @@ def calculate_win_mode_fan(
         rf.total_fan += 4
         rf.exclude = ["自摸", "门前清"]
     # 和绝张: 和牌池、桌面已亮明的第四张牌
-    if "和绝张" not in rf.exclude and True:
+    if "和绝张" not in rf.exclude and False:
         rf.fan_names.append("和绝张")
         rf.total_fan += 4
     # 门前清
@@ -1023,9 +1053,16 @@ def calculate_win_mode_fan(
         rf.total_fan += 2
         rf.exclude = ["自摸"]
     # 边张、坎张、单骑对子
-    # if dan_qi_dui_zi(distinct_tiles, history):
-    #     rf.fan_names.append("单骑对子")
-    #     rf.total_fan += 1
+    if False or "自摸" not in winning_condition:
+        if dan_qi_dui_zi(distinct_tiles, history):
+            rf.fan_names.append("单骑对子")
+            rf.total_fan += 1
+        if bian_du(merged_suites, history):
+            rf.fan_names.append("边张")
+            rf.total_fan += 1
+        if kan_zhang(merged_suites, history):
+            rf.fan_names.append("坎张")
+            rf.total_fan += 1
     # 自摸
     if "自摸" not in rf.exclude and "自摸" in winning_condition:
         rf.fan_names.append("自摸")

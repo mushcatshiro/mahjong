@@ -166,26 +166,20 @@ def test_shuang_an_gang():
 
 def test_quan_qiu_ren():
     assert calculate_fan.quan_qiu_ren(
-        ["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万"],
+        ["5万", "5万"],
         [],
-        [],
-        ["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万", "5万", "5万"],
         {"1-hu-add-add": "5万"},
     )
     # one an ke
     assert not calculate_fan.quan_qiu_ren(
-        ["2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万"],
+        ["1万", "1万", "1万", "5万", "5万"],
         [],
-        [],
-        ["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万", "5万", "5万"],
         {"1-hu-add-add": "5万"},
     )
     # zi mo
     assert not calculate_fan.quan_qiu_ren(
-        ["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万"],
+        ["5万", "5万"],
         [],
-        [],
-        ["1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万", "5万", "5万"],
         {"1-turn-draw-add": "5万"},
     )
 
@@ -577,6 +571,8 @@ def test_calculate_win_mode_fan():
         peng_history=[],
         gang_history=[],
         shang_history=[],
+        an_gang_history=[],
+        # merged_suites={},
     )
     assert rf.fan_names == ["妙手回春", "不求人"]
     assert rf.exclude == ["自摸", "门前清"]
@@ -592,6 +588,8 @@ def test_calculate_win_mode_fan():
         peng_history=["1万", "1万", "1万"],
         gang_history=[],
         shang_history=[],
+        an_gang_history=[],
+        # merged_suites={},
     )
     assert rf.fan_names == ["海底捞月"]
     assert rf.exclude == ["自摸"]
@@ -607,6 +605,8 @@ def test_calculate_win_mode_fan():
         peng_history=[],
         gang_history=["1万", "1万", "1万", "1万"],
         shang_history=[],
+        an_gang_history=[],
+        # merged_suites={},
     )
     assert rf.fan_names == ["杠上开花"]
     assert rf.exclude == ["自摸"]
@@ -622,6 +622,8 @@ def test_calculate_win_mode_fan():
         peng_history=[],
         gang_history=[],
         shang_history=["1万", "2万", "3万"],
+        an_gang_history=[],
+        # merged_suites={},
     )
     assert rf.fan_names == ["抢杠和", "门前清"]
     assert rf.exclude == ["自摸"]
@@ -637,6 +639,8 @@ def test_calculate_win_mode_fan():
         peng_history=[],
         gang_history=[],
         shang_history=["1万", "2万", "3万"],
+        an_gang_history=[],
+        # merged_suites={},
     )
     assert rf.fan_names == ["全求人"]
     assert rf.exclude == ["单骑对子", "自摸"]
@@ -652,6 +656,8 @@ def test_calculate_win_mode_fan():
         peng_history=[],
         gang_history=[],
         shang_history=["1万", "2万", "3万"],
+        an_gang_history=[],
+        # merged_suites={},
     )
     assert rf.fan_names == ["自摸"]
     assert rf.exclude == []

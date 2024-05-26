@@ -183,6 +183,7 @@ class Hand(State):
         self.gang_history = []
         self.an_gang_history = []
         self.shang_history = []
+        self.is_dan_qi_dui_zi = True
 
     def reset(self):
         self.tiles = []
@@ -485,8 +486,10 @@ class Hand(State):
 
         valid_eye_sets = self.get_valid_eye_sets(tiles)
         if not valid_eye_sets:
+            self.is_dan_qi_dui_zi = True
             return rv
         else:
+            self.is_dan_qi_dui_zi = False
             for eye_set in valid_eye_sets:
                 tmp_tiles = copy.deepcopy(tiles)
                 for _ in range(2):
@@ -641,6 +644,8 @@ class Player(State):
                 self.winning_conditions.append("抢杠胡")
             if action.is_jue_zhang:
                 self.winning_conditions.append("和绝张")
+            if self.hand.is_dan_qi_dui_zi:
+                self.winning_conditions.append("单骑对子")
             self.hand.add_tiles([action.target_tile], "hu-add")
             return self.hand.get_hu_play_result()
         play_result: PlayResult = self.hand.resolve(action)
