@@ -18,10 +18,6 @@ from tiles import (
 )
 
 
-def tree():
-    return defaultdict(tree)  # pragma: no cover
-
-
 class State:
     """
     consider the following:
@@ -90,7 +86,6 @@ class TilesSequence(State):
         return rv
 
     def is_empty(self):
-        # convienence method
         return len(self.tiles) == 0
 
     def only_flowers(self):
@@ -175,8 +170,8 @@ class Hand(State):
     def __init__(self, player_idx: int, replacement_tiles=HUAS):
         self.tiles = []
         self.player_idx = player_idx
-        self.tiles_history = {}
         self.replacement_tiles = [] if not replacement_tiles else replacement_tiles
+        self.tiles_history = {}
         self.flower_tiles = []
         self.distinct_tile_count = {}
         self.peng_history = []
@@ -194,6 +189,7 @@ class Hand(State):
         self.gang_history = []
         self.an_gang_history = []
         self.shang_history = []
+        self.is_dan_qi_dui_zi = True
 
     def shang(self, action: PlayAction):
         for tile in action.move_tiles:
@@ -249,7 +245,6 @@ class Hand(State):
         return PlayResult(discarded_tile=action.discard_tile)
 
     def get_peng_candidates(self, played_tile):
-        """ """
         discardables = self._get_discardable_tiles(
             exclude_tile=played_tile, exclude_all=True
         )
@@ -297,7 +292,6 @@ class Hand(State):
         return PlayResult(need_replacement=True)
 
     def get_gang_candidates(self, played_tile=None, drawed_tile=None):
-        """"""
         check = played_tile if played_tile else drawed_tile
         # ensuring the tile is in the hand
         if not check:
@@ -671,7 +665,6 @@ class Player(State):
         """
         implementation details:
         always return `PlayAction` object
-        set `self.pending_resolve` to the function that will be called if `resolve` is True
         """
         raise NotImplementedError  # pragma: no cover
 
@@ -679,7 +672,6 @@ class Player(State):
         """
         implementation details:
         always return `PlayAction` object
-        set `self.pending_resolve` to the function that will be called if `resolve` is True
         """
         raise NotImplementedError  # pragma: no cover
 
