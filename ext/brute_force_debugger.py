@@ -31,8 +31,10 @@ def main(rounds, debug):
     # stats
     win_condition_stats = {}
 
-    print(f"Starting {rounds} games in debug mode: {debug}...")
     start_time = dt.datetime.now()
+    print(
+        f"Starting {rounds} games {'in debug mode' if debug else ''} @ {start_time}..."
+    )
 
     while ctr <= rounds:
         if ctr % (rounds // 10) == 0 and ctr != 0:
@@ -91,6 +93,7 @@ def main(rounds, debug):
             ctr += 1
             sys.stdout.flush()
     end_time = dt.datetime.now()
+    # minus off winning condition processing time
 
     print(
         "Brute force debugger complete\n"
