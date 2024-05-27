@@ -480,10 +480,8 @@ class Hand(State):
 
         valid_eye_sets = self.get_valid_eye_sets(tiles)
         if not valid_eye_sets:
-            self.is_dan_qi_dui_zi = True
             return rv
         else:
-            self.is_dan_qi_dui_zi = False
             for eye_set in valid_eye_sets:
                 tmp_tiles = copy.deepcopy(tiles)
                 for _ in range(2):
@@ -518,6 +516,8 @@ class Hand(State):
             return True
         tiles = copy.deepcopy(self.tiles)
         if call_tile:
+            if not self.get_valid_eye_sets(tiles):
+                self.is_dan_qi_dui_zi = True
             tiles.append(call_tile)
         return self.dp_search(tiles)
 
