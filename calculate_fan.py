@@ -10,7 +10,7 @@ class ResultFan:
     def __init__(self):
         self.total_fan = 0
         self.fan_names = []
-        self.exclude = []
+        self.exclude = set()
 
 
 # -------- helper functions --------
@@ -50,10 +50,10 @@ def has_jian_ke(tiles):
     return False
 
 
-def get_suites(tiles):
+def get_suites(tiles, shang_history=[]):
     # BUG need to align across all fn calls
     suites = {}
-    for tile in tiles:
+    for tile in tiles + shang_history:
         if len(tile) == 2:
             if tile[1] not in suites:
                 suites[tile[1]] = [tile[0]]
@@ -70,23 +70,12 @@ def hua_pai(flower_tiles):
     return len(flower_tiles)
 
 
-def dan_qi_dui_zi(eyes, history):
-    # 只听一张牌，等待这张牌的胡牌形式只有一种
-    # BUG what if it is used for another pack?
-    if (
-        f"{len(history)}-hu-add" in history
-        and history[f"{len(history)}-hu-add"] == eyes
-    ):
-        return True
-    return False
-
-
 def kan_zhang(merged_suites, history):
     # 4556(5)计，45567(6)不计
     # 只听一张牌，等待这张牌的胡牌形式只有一种
-    if f"{len(history)}-hu-add" not in history:
+    if f"{len(history)}-hu-add-add" not in history:
         return False
-    hu_tile = history[f"{len(history)}-hu-add"]
+    hu_tile = history[f"{len(history)}-hu-add-add"]
     if len(hu_tile) == 1:
         return False
     num, suite = hu_tile[0], hu_tile[1]
@@ -102,23 +91,20 @@ def bian_du(merged_suites, history):
     # 12(3)，1233(3)，(7)89，(7)7789计
     # 12345(3)，56789(7) 不计
     # 只听一张牌，等待这张牌的胡牌形式只有一种
-    if f"{len(history)}-hu-add" not in history:
+    if f"{len(history)}-hu-add-add" not in history:
         return False
-    hu_tile = history[f"{len(history)}-hu-add"]
+    hu_tile = history[f"{len(history)}-hu-add-add"]
     if len(hu_tile) == 1:
         return False
     num, suite = hu_tile[0], hu_tile[1]
+    joined = "".join(merged_suites[suite])
+    if "5" in joined:
+        return False
     if num == "3":
-        joined = "".join(merged_suites[suite])
-        if "4" in joined or "5" in joined:
-            return False
-        if "12333" in joined or "123" in joined:
+        if "123" in joined or "112233" in joined:
             return True
     if num == "7":
-        joined = "".join(merged_suites[suite])
-        if "6" in joined or "5" in joined:
-            return False
-        if "77789" in joined or "789" in joined:
+        if "789" in joined or "778899" in joined:
             return True
     return False
 
@@ -1009,40 +995,43 @@ def calculate_win_mode_fan(
     gang_history,
     shang_history,
     an_gang_history,
-    merged_suites=None,
 ):
     # 妙手回春: 摸最后一张牌成和牌、不计自摸
     if "妙手回春" in winning_condition:
         rf.fan_names.append("妙手回春")
         rf.total_fan += 8
-        rf.exclude = ["自摸"]
+        rf.exclude.add("自摸")
     # 海底捞月: 和本局打出的最后一张牌、不计自摸
     if "海底捞月" in winning_condition:
         rf.fan_names.append("海底捞月")
         rf.total_fan += 8
-        rf.exclude = ["自摸"]
+        rf.exclude.add("自摸")
     # 杠上开花: 和开杠后摸进的牌、不计自摸；不计杠来的花补花
     if "杠上开花" in winning_condition:
         rf.fan_names.append("杠上开花")
         rf.total_fan += 8
-        rf.exclude = ["自摸"]
+        rf.exclude.add("自摸")
     # 抢杠和: 和他家明刻加杠的牌，不计和绝张
     if "抢杠和" in winning_condition:
         rf.fan_names.append("抢杠和")
         rf.total_fan += 8
-        rf.exclude = ["和绝张"]
+        rf.exclude.add("和绝张")
     # 全球人
     if quan_qiu_ren(tiles, an_gang_history, history):
         rf.fan_names.append("全求人")
         rf.total_fan += 6
-        rf.exclude = ["单骑对子", "自摸"]
+        rf.exclude.add("单骑对子")
+        rf.exclude.add("自摸")
     # 不求人: 不计门前清、自摸
-    if bu_qiu_ren(history, gang_history, peng_history, shang_history):
+    if "自摸" in winning_condition and bu_qiu_ren(
+        history, gang_history, peng_history, shang_history
+    ):
         rf.fan_names.append("不求人")
         rf.total_fan += 4
-        rf.exclude = ["自摸", "门前清"]
+        rf.exclude.add("自摸")
+        rf.exclude.add("门前清")
     # 和绝张: 和牌池、桌面已亮明的第四张牌
-    if "和绝张" not in rf.exclude and False:
+    if "和绝张" not in rf.exclude and "和绝张" in winning_condition:
         rf.fan_names.append("和绝张")
         rf.total_fan += 4
     # 门前清
@@ -1051,10 +1040,11 @@ def calculate_win_mode_fan(
     ):
         rf.fan_names.append("门前清")
         rf.total_fan += 2
-        rf.exclude = ["自摸"]
+        rf.exclude.add("自摸")
     # 边张、坎张、单骑对子
-    if False or "自摸" not in winning_condition:
-        if dan_qi_dui_zi(distinct_tiles, history):
+    if "自摸" not in winning_condition:
+        merged_suites = get_suites(tiles, shang_history)
+        if "单骑对子" in winning_condition:
             rf.fan_names.append("单骑对子")
             rf.total_fan += 1
         if bian_du(merged_suites, history):

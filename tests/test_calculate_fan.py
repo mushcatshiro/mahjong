@@ -14,6 +14,64 @@ def test_get_suites():
     }
 
 
+def test_kan_zhang():
+    assert calculate_fan.kan_zhang(
+        {"万": ["4", "5", "5", "5", "6"]},
+        {"1-hu-add-add": "5万"},
+    )
+    assert not calculate_fan.kan_zhang(
+        {"万": ["4", "5", "5", "5", "6"]},
+        {"1-turn-draw-add": "5万"},
+    )
+    assert not calculate_fan.kan_zhang(
+        {"万": ["4", "5", "5", "5", "6"]},
+        {"1-hu-add-add": "西"},
+    )
+    assert not calculate_fan.kan_zhang(
+        {"万": ["1", "2", "2", "2", "3"]},
+        {"1-hu-add-add": "1万"},
+    )
+    assert not calculate_fan.kan_zhang(
+        {"万": ["7", "8", "8", "8", "9"]},
+        {"1-hu-add-add": "9万"},
+    )
+    assert not calculate_fan.kan_zhang(
+        {"万": ["4", "5", "5", "6", "7"]},
+        {"1-hu-add-add": "5万"},
+    )
+
+
+def test_bian_du():
+    assert calculate_fan.bian_du(
+        {"万": ["1", "2", "3"]},
+        {"1-hu-add-add": "3万"},
+    )
+    assert calculate_fan.bian_du(
+        {"万": ["1", "1", "2", "2", "3", "3"]},
+        {"1-hu-add-add": "3万"},
+    )
+    assert calculate_fan.bian_du(
+        {"万": ["7", "8", "9"]},
+        {"1-hu-add-add": "7万"},
+    )
+    assert calculate_fan.bian_du(
+        {"万": ["7", "7", "8", "8", "9", "9"]},
+        {"1-hu-add-add": "7万"},
+    )
+    assert not calculate_fan.bian_du(
+        {"万": ["1", "2", "3", "3", "4", "5"]},
+        {"1-hu-add-add": "5万"},
+    )
+    assert not calculate_fan.bian_du(
+        {"万": ["5", "6", "7", "7", "8", "9"]},
+        {"1-hu-add-add": "3万"},
+    )
+    assert not calculate_fan.bian_du(
+        {"万": ["5", "6", "7", "7", "8", "9"]},
+        {"1-hu-add-add": "7万"},
+    )
+
+
 def test_wu_zi():
     assert calculate_fan.wu_zi(["1万", "9万", "1筒", "9筒"])
     assert not calculate_fan.wu_zi(["1筒", "2筒", "3筒", "西"])
@@ -234,7 +292,6 @@ def test_tui_bu_dao():
     )
 
 
-
 def test_xiao_yu_wu():
     assert calculate_fan.xiao_yu_wu(
         ["1万", "2万", "3万", "4万", "4万", "1万", "2万", "3万", "1筒", "2筒", "3筒", "1索", "2索", "3索"]
@@ -339,7 +396,6 @@ def test_qing_long():
     assert not calculate_fan.qing_long(
         merged_suites
     )
-
 
 
 def test_quan_xiao():
@@ -564,7 +620,7 @@ def test_calculate_win_mode_fan():
     rf = calculate_fan.ResultFan()
     calculate_fan.calculate_win_mode_fan(
         rf,
-        winning_condition=["妙手回春"],
+        winning_condition=["妙手回春", "自摸"],
         history={},
         tiles=[],
         distinct_tiles={},
@@ -572,10 +628,9 @@ def test_calculate_win_mode_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
-        # merged_suites={},
     )
     assert rf.fan_names == ["妙手回春", "不求人"]
-    assert rf.exclude == ["自摸", "门前清"]
+    assert rf.exclude == {"自摸", "门前清"}
     assert rf.total_fan == 12
 
     rf = calculate_fan.ResultFan()
@@ -589,10 +644,9 @@ def test_calculate_win_mode_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
-        # merged_suites={},
     )
     assert rf.fan_names == ["海底捞月"]
-    assert rf.exclude == ["自摸"]
+    assert rf.exclude == {"自摸", }
     assert rf.total_fan == 8
 
     rf = calculate_fan.ResultFan()
@@ -606,10 +660,9 @@ def test_calculate_win_mode_fan():
         gang_history=["1万", "1万", "1万", "1万"],
         shang_history=[],
         an_gang_history=[],
-        # merged_suites={},
     )
     assert rf.fan_names == ["杠上开花"]
-    assert rf.exclude == ["自摸"]
+    assert rf.exclude == {"自摸", }
     assert rf.total_fan == 8
 
     rf = calculate_fan.ResultFan()
@@ -623,10 +676,9 @@ def test_calculate_win_mode_fan():
         gang_history=[],
         shang_history=["1万", "2万", "3万"],
         an_gang_history=[],
-        # merged_suites={},
     )
     assert rf.fan_names == ["抢杠和", "门前清"]
-    assert rf.exclude == ["自摸"]
+    assert rf.exclude == {"自摸", "和绝张"}
     assert rf.total_fan == 10
 
     rf = calculate_fan.ResultFan()
@@ -640,10 +692,9 @@ def test_calculate_win_mode_fan():
         gang_history=[],
         shang_history=["1万", "2万", "3万"],
         an_gang_history=[],
-        # merged_suites={},
     )
     assert rf.fan_names == ["全求人"]
-    assert rf.exclude == ["单骑对子", "自摸"]
+    assert rf.exclude == {"单骑对子", "自摸"}
     assert rf.total_fan == 6
 
     rf = calculate_fan.ResultFan()
@@ -657,8 +708,71 @@ def test_calculate_win_mode_fan():
         gang_history=[],
         shang_history=["1万", "2万", "3万"],
         an_gang_history=[],
-        # merged_suites={},
     )
     assert rf.fan_names == ["自摸"]
-    assert rf.exclude == []
+    assert rf.exclude == set()
+    assert rf.total_fan == 1
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_win_mode_fan(
+        rf,
+        winning_condition=["和绝张"],
+        history={},
+        tiles=[],
+        distinct_tiles={},
+        peng_history=[],
+        gang_history=[],
+        shang_history=[],
+        an_gang_history=[],
+    )
+    assert rf.fan_names == ["和绝张"]
+    assert rf.exclude == set()
+    assert rf.total_fan == 4
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_win_mode_fan(
+        rf,
+        winning_condition=[],
+        history={"1-hu-add-add": "3万"},
+        tiles=["1万", "2万", "3万"],
+        distinct_tiles={},
+        peng_history=[],
+        gang_history=[],
+        shang_history=[],
+        an_gang_history=[],
+    )
+    assert rf.fan_names == ["边张"]
+    assert rf.exclude == set()
+    assert rf.total_fan == 1
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_win_mode_fan(
+        rf,
+        winning_condition=[],
+        history={"1-hu-add-add": "5万"},
+        tiles=["4万", "5万", "5万", "5万", "6万"],
+        distinct_tiles={},
+        peng_history=[],
+        gang_history=[],
+        shang_history=[],
+        an_gang_history=[],
+    )
+    assert rf.fan_names == ["坎张"]
+    assert rf.exclude == set()
+    assert rf.total_fan == 1
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_win_mode_fan(
+        rf,
+        winning_condition=["单骑对子"],
+        history={},
+        tiles=[],
+        distinct_tiles={},
+        peng_history=[],
+        gang_history=[],
+        shang_history=[],
+        an_gang_history=[],
+    )
+    assert rf.fan_names == ["单骑对子"]
+    assert rf.exclude == set()
     assert rf.total_fan == 1
