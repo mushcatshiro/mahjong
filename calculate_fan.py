@@ -12,6 +12,9 @@ class ResultFan:
         self.fan_names = []
         self.exclude = set()
 
+    def __repr__(self):
+        return f"{self.total_fan} {self.fan_names} {self.exclude}"
+
 
 # -------- helper functions --------
 
@@ -1062,10 +1065,6 @@ def calculate_win_mode_fan(
 def calculate_fan(
     tiles, shang_history, peng_history, gang_history, history, round_wind, player_wind
 ):
-    """ """
-    total_fan = 0
-    fan_name = []
-
     # TODO move to `PlayResult`?
     # check for 13幺、七星不靠、全不靠
     special_combi = check_specials(tiles)
@@ -1118,11 +1117,3 @@ def calculate_fan(
 
     hua_count = count_hua(tiles)
     total_fan += hua_count * 1
-
-    # 不求人
-    if is_bu_qiu_ren(history):
-        total_fan += 4
-        check_zi_mo = False
-
-    if check_zi_mo and is_zi_mo(history):
-        total_fan += 1

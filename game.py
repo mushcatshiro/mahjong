@@ -528,8 +528,8 @@ class Hand(State):
         return PlayResult(hu=True)
 
     def prepare_hand_for_round_summary(self):
-        for k, v in self.distinct_tile_count.items():
-            if v == 0:
+        for k in list(self.distinct_tile_count.keys()):
+            if self.distinct_tile_count[k] == 0:
                 del self.distinct_tile_count[k]
 
     def get_showable_tiles(self):
@@ -684,7 +684,22 @@ class Player(State):
         for winner to calculate fan,
         for other players to calculate how far they are from winning?
         """
-        # self.hand.prepare_hand_for_round_summary()
+        self.hand.prepare_hand_for_round_summary()
+        import calculate_fan
+
+        rf = calculate_fan.ResultFan()
+        calculate_fan.calculate_win_mode_fan(
+            rf,
+            self.winning_conditions,
+            self.hand.tiles_history,
+            self.hand.tiles,
+            self.hand.distinct_tile_count,
+            self.hand.peng_history,
+            self.hand.gang_history,
+            self.hand.shang_history,
+            self.hand.an_gang_history,
+        )
+        print(rf)
         return
 
 
@@ -968,4 +983,4 @@ class Mahjong:
 
     def round_summary(self):
         if self.winner is not None:
-            winner_score = self.players[self.winner].round_summary()
+            self.players[self.winner].round_summary()
