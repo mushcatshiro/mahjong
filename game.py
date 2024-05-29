@@ -115,6 +115,7 @@ class PlayAction(State):
     is_jue_zhang: bool = False
     is_qiang_gang_hu: bool = False
     is_hai_di_lao_yue: bool = False
+    hu_by: str = ""
 
     REQUIRED_DISCARD = ["peng", "shang", "discard"]
 
@@ -127,6 +128,7 @@ class PlayAction(State):
             "shang",
             "hu",
             "discard",
+            "pass",
         ]
         if self.action in self.REQUIRED_DISCARD:
             assert self.discard_tile is not None
@@ -178,7 +180,6 @@ class Hand(State):
         self.gang_history = []
         self.an_gang_history = []
         self.shang_history = []
-        self.is_dan_qi_dui_zi = True
 
     def reset(self):
         self.tiles = []
@@ -189,7 +190,6 @@ class Hand(State):
         self.gang_history = []
         self.an_gang_history = []
         self.shang_history = []
-        self.is_dan_qi_dui_zi = True
 
     def shang(self, action: PlayAction):
         for tile in action.move_tiles:
@@ -199,7 +199,7 @@ class Hand(State):
         self.remove_tile(action.discard_tile, "shang-discard")
         return PlayResult(discarded_tile=action.discard_tile)
 
-    def get_shang_candidates(self, played_tile):
+    def get_shang_candidates(self, played_tile, is_hu=False):
         if played_tile in SHANG_EXCLUDE:
             return []
         shang_candidates = []
@@ -210,19 +210,20 @@ class Hand(State):
                 f"{tile_group[0]}{suite}" in self.tiles
                 and f"{tile_group[1]}{suite}" in self.tiles
             ):
-                free_tiles = copy.deepcopy(self.tiles)
+                free_tiles = copy.deepcopy(self.tiles)  # can deduplicate here
                 free_tiles.remove(f"{tile_group[0]}{suite}")
                 free_tiles.remove(f"{tile_group[1]}{suite}")
                 for tile in free_tiles:
                     shang_candidates.append(
                         PlayAction(
-                            action="shang",
+                            action="hu" if is_hu else "shang",
                             target_tile=played_tile,
                             move_tiles=[
                                 f"{tile_group[0]}{suite}",
                                 f"{tile_group[1]}{suite}",
                             ],
                             discard_tile=tile,
+                            hu_by="shang" if is_hu else "",
                         )
                     )
                 free_tiles = None
@@ -244,7 +245,7 @@ class Hand(State):
         self.remove_tile(action.discard_tile, "peng-discard")
         return PlayResult(discarded_tile=action.discard_tile)
 
-    def get_peng_candidates(self, played_tile):
+    def get_peng_candidates(self, played_tile, is_hu=False):
         discardables = self._get_discardable_tiles(
             exclude_tile=played_tile, exclude_all=True
         )
@@ -256,10 +257,11 @@ class Hand(State):
         return (
             [
                 PlayAction(
-                    action="peng",
+                    action="hu" if is_hu else "peng",
                     target_tile=played_tile,
                     move_tiles=[played_tile, played_tile],
                     discard_tile=discard_tile,
+                    hu_by="peng" if is_hu else "",
                 )
                 for discard_tile in discardables
             ]
@@ -291,7 +293,7 @@ class Hand(State):
             self.distinct_tile_count[action.target_tile] = 4
         return PlayResult(need_replacement=True)
 
-    def get_gang_candidates(self, played_tile=None, drawed_tile=None):
+    def get_gang_candidates(self, played_tile=None, drawed_tile=None, is_hu=False):
         check = played_tile if played_tile else drawed_tile
         # ensuring the tile is in the hand
         if not check:
@@ -302,9 +304,10 @@ class Hand(State):
             return (
                 [
                     PlayAction(
-                        action="ming_gang",
+                        action="hu" if is_hu else "ming_gang",
                         target_tile=played_tile,
                         move_tiles=[played_tile, played_tile, played_tile],
+                        hu_by="ming_gang" if is_hu else "",
                     )
                 ]
                 if self.distinct_tile_count[played_tile] == 3
@@ -316,17 +319,19 @@ class Hand(State):
                 action = "jia_gang"
                 return [
                     PlayAction(
-                        action=action,
+                        action="hu" if is_hu else action,
                         target_tile=drawed_tile,
                         move_tiles=[drawed_tile, drawed_tile, drawed_tile],
+                        hu_by="jia_gang" if is_hu else "",
                     )
                 ]
             elif self.distinct_tile_count[drawed_tile] == 4:
                 action = "an_gang"
                 return [
                     PlayAction(
-                        action=action,
+                        action="hu" if is_hu else action,
                         move_tiles=[drawed_tile, drawed_tile, drawed_tile, drawed_tile],
+                        hu_by="an_gang" if is_hu else "",
                     )
                 ]
             else:
@@ -516,13 +521,8 @@ class Hand(State):
             return True
         tiles = copy.deepcopy(self.tiles)
         if call_tile:
-            if not self.get_valid_eye_sets(tiles):
-                self.is_dan_qi_dui_zi = True
             tiles.append(call_tile)
         return self.dp_search(tiles)
-
-    def get_hu_play_action(self, target_tile):
-        return PlayAction(action="hu", target_tile=target_tile)
 
     def get_hu_play_result(self):
         return PlayResult(hu=True)
@@ -548,6 +548,13 @@ class Player(State):
         self.men_feng = None
         self.replacement_tile_count = 0
         self.winning_conditions = []
+        self.result_fan = None
+
+    def reset(self):
+        self.hand.reset()
+        self.action_history = []
+        self.winning_conditions = []
+        self.result_fan = None
 
     def initial_draw(self, tile_sequence: TilesSequence, total, jump: bool):
         tiles = tile_sequence.draw(total, jump)
@@ -615,14 +622,23 @@ class Player(State):
         return play_result
 
     def call(self, played_tile, player) -> PlayAction:
-        if self.hand.is_winning_hand(call_tile=played_tile):
-            # TODO integrate gang_shang_kai_hua and hai_di_lao_yue
-            return self.hand.get_hu_play_action(played_tile)
+        # to include pass option
         call_actions = []
-        if player == self.previous_player_idx:
-            call_actions += self.hand.get_shang_candidates(played_tile)
-        call_actions += self.hand.get_peng_candidates(played_tile)
-        call_actions += self.hand.get_gang_candidates(played_tile)
+        is_hu = self.hand.is_winning_hand(call_tile=played_tile)
+        call_actions += self.hand.get_peng_candidates(played_tile, is_hu)
+        call_actions += self.hand.get_gang_candidates(played_tile, is_hu)
+
+        if is_hu:
+            call_actions += self.hand.get_shang_candidates(played_tile, is_hu)
+            # 1. allow skip hu 2. track winning conditions
+        elif player == self.previous_player_idx:
+            call_actions += self.hand.get_shang_candidates(played_tile, is_hu)
+
+        if not call_actions and is_hu:
+            # imply dan qi dui zi
+            call_actions += [
+                PlayAction(action="hu", target_tile=played_tile, hu_by="jiang")
+            ]
         if not call_actions:
             return []
         call_action = self.call_strategy(call_actions, played_tile)
@@ -638,9 +654,9 @@ class Player(State):
                 self.winning_conditions.append("抢杠胡")
             if action.is_jue_zhang:
                 self.winning_conditions.append("和绝张")
-            if self.hand.is_dan_qi_dui_zi:
+            if action.hu_by == "jiang":
                 self.winning_conditions.append("单骑对子")
-            self.hand.add_tiles([action.target_tile], "hu-add")
+            self.hand.add_tiles([action.target_tile], f"hu-{action.hu_by}")
             return self.hand.get_hu_play_result()
         play_result: PlayResult = self.hand.resolve(action)
         if play_result.need_replacement:
@@ -687,9 +703,9 @@ class Player(State):
         self.hand.prepare_hand_for_round_summary()
         import calculate_fan
 
-        rf = calculate_fan.ResultFan()
+        self.result_fan = calculate_fan.ResultFan()
         calculate_fan.calculate_win_mode_fan(
-            rf,
+            self.result_fan,
             self.winning_conditions,
             self.hand.tiles_history,
             self.hand.tiles,
@@ -699,7 +715,6 @@ class Player(State):
             self.hand.shang_history,
             self.hand.an_gang_history,
         )
-        print(rf)
         return
 
 
