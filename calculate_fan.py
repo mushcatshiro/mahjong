@@ -159,10 +159,12 @@ def calculate_attribute_fan(
     shang_history,
     an_gang_history,
 ):
+    # might want to pass in a copy of full_tiles instead for decoupled testing
     full_tiles = tiles + peng_history + gang_history + shang_history + an_gang_history
-    merged_suites = get_suites(tiles, shang_history)
+    merged_suites = get_suites(full_tiles, shang_history)
+    is_zu_he_long, ref = fan.zu_he_long(merged_suites)
 
-    if not fan.zu_he_long(full_tiles):
+    if not is_zu_he_long:
         if fan.lv_yi_se(full_tiles):
             rf.fan_names.append("绿一色")
             rf.total_fan += 88
@@ -233,6 +235,7 @@ def calculate_attribute_fan(
         if "缺一门" not in rf.exclude and fan.que_yi_men(full_tiles):
             rf.fan_names.append("缺一门")
             rf.total_fan += 1
+    # full_tiles = remove_zu_he_long(full_tiles, ref)
     if fan.wu_men_qi(merged_suites, distinct_tiles):
         rf.fan_names.append("五门齐")
         rf.total_fan += 6
@@ -423,21 +426,26 @@ def calculate_single_pack_fan():
     pass
 
 
-def check_qi_dui(distinct_tiles: dict):
+def check_qi_dui_hu(distinct_tiles: dict):
     return all([x == 2 for x in distinct_tiles.values()])
 
 
-def check_zu_he_long():
-    pass
+def check_zu_he_long_hu(merged_suites: dict, tiles):
+    is_zu_he_long, ref = fan.zu_he_long(merged_suites)
+    if is_zu_he_long:
+        tiles = remove_zu_he_long(tiles, ref)
+        if check_basic_hu(tiles):
+            return True
+    return False
 
 
-def check_specials():
+def check_special_hu():
     # 十三幺 七星不靠 全不靠
-    pass
+    return False
 
 
 def check_basic_hu():
-    pass
+    return False
 
 
 def calculate_fan(

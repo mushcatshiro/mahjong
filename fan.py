@@ -736,21 +736,19 @@ def lian_qi_dui(tiles):
     return True
 
 
-def jiu_lian_bao_deng(tiles):
+def jiu_lian_bao_deng(merged_suites: dict, tiles):
     # 九莲宝灯，一种花色序数牌1112345678999+本花色任何牌成和牌
     # cal_qing_yi_se = False
     # cal_bu_qiu_ren = False
     # cal_men_qian_qing = False
     # cal_wu_zi = False
     # cal_yao_jiu_ke = False x1?
-    suite = tiles[0][1]
-    nums = [tile[0] for tile in tiles]
-    for tile in tiles:
-        if len(tile) == 1:
-            return False
-        if tile[1] != suite:
-            return False
-    nums = sorted(nums)
+    if len(merged_suites) != 1:
+        return False
+    suite = list(merged_suites.keys())[0]
+    if len(merged_suites[suite]) != len(tiles):
+        return False
+    nums = sorted(merged_suites[suite])
     ref = ["1", "1", "1", "2", "3", "4", "5", "6", "7", "8", "9", "9", "9"]
     for i in range(1, 10):
         if nums == sorted(ref + [str(i)]):
