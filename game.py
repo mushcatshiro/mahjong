@@ -775,14 +775,6 @@ class DummyPlayer(Player):
         return action
 
 
-class StatsPlayer(Player):
-    pass
-
-
-class FormulaicPlayer(Player):
-    pass
-
-
 class Mahjong:
     def __init__(self, players: Dict[int, Player]):
         self.players: Dict[int, Player] = players
