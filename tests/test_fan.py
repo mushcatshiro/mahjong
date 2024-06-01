@@ -18,7 +18,7 @@ def test_get_suites():
 def test_kan_zhang():
     assert fan.kan_zhang(
         {"万": ["4", "5", "5", "5", "6"]},
-        {"1-hu-add-add": "5万"},
+        {"1-hu-shang-add": "5万"},
     )
     assert not fan.kan_zhang(
         {"万": ["4", "5", "5", "5", "6"]},
@@ -26,50 +26,50 @@ def test_kan_zhang():
     )
     assert not fan.kan_zhang(
         {"万": ["4", "5", "5", "5", "6"]},
-        {"1-hu-add-add": "西"},
+        {"1-hu-jiang-add": "西"},
     )
     assert not fan.kan_zhang(
         {"万": ["1", "2", "2", "2", "3"]},
-        {"1-hu-add-add": "1万"},
+        {"1-hu-shang-add": "1万"},
     )
     assert not fan.kan_zhang(
         {"万": ["7", "8", "8", "8", "9"]},
-        {"1-hu-add-add": "9万"},
+        {"1-hu-shang-add": "9万"},
     )
     assert not fan.kan_zhang(
         {"万": ["4", "5", "5", "6", "7"]},
-        {"1-hu-add-add": "5万"},
+        {"1-hu-shang-add": "5万"},
     )
 
 
 def test_bian_du():
     assert fan.bian_du(
         {"万": ["1", "2", "3"]},
-        {"1-hu-add-add": "3万"},
+        {"1-hu-shang-add": "3万"},
     )
     assert fan.bian_du(
         {"万": ["1", "1", "2", "2", "3", "3"]},
-        {"1-hu-add-add": "3万"},
+        {"1-hu-shang-add": "3万"},
     )
     assert fan.bian_du(
         {"万": ["7", "8", "9"]},
-        {"1-hu-add-add": "7万"},
+        {"1-hu-shang-add": "7万"},
     )
     assert fan.bian_du(
         {"万": ["7", "7", "8", "8", "9", "9"]},
-        {"1-hu-add-add": "7万"},
+        {"1-hu-shang-add": "7万"},
     )
     assert not fan.bian_du(
         {"万": ["1", "2", "3", "3", "4", "5"]},
-        {"1-hu-add-add": "5万"},
+        {"1-hu-shang-add": "5万"},
     )
     assert not fan.bian_du(
         {"万": ["5", "6", "7", "7", "8", "9"]},
-        {"1-hu-add-add": "3万"},
+        {"1-hu-shang-add": "3万"},
     )
     assert not fan.bian_du(
         {"万": ["5", "6", "7", "7", "8", "9"]},
-        {"1-hu-add-add": "7万"},
+        {"1-hu-shang-add": "7万"},
     )
 
 

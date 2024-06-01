@@ -8,18 +8,21 @@ from tiles import (
 
 
 def kan_zhang(merged_suites, history):
-    # 4556(5)计，45567(6)不计
+    # 46(5)，4556(5)计，45567(6)不计
     # 只听一张牌，等待这张牌的胡牌形式只有一种
-    if f"{len(history)}-hu-jiang-add" not in history:
+    if f"{len(history)}-hu-shang-add" not in history:
         return False
-    hu_tile = history[f"{len(history)}-hu-jiang-add"]
+    hu_tile = history[f"{len(history)}-hu-shang-add"]
     if len(hu_tile) == 1:
         return False
     num, suite = hu_tile[0], hu_tile[1]
     if int(num) < 2 or int(num) > 8:
         return False
-    pattern = f"{int(num) - 1}{num}{num}{num}{int(num) + 1}"
-    if pattern in "".join(merged_suites[suite]):
+    pattern_1 = f"{int(num) - 1}{num}{num}{num}{int(num) + 1}"
+    pattern_2 = f"{int(num) - 1}{num}{int(num) + 1}"
+    if pattern_1 in "".join(merged_suites[suite]) or pattern_2 in "".join(
+        merged_suites[suite]
+    ):
         return True
     return False
 
@@ -53,14 +56,6 @@ def wu_zi(tiles):
         if tile in FENGS or tile in JIANS:
             return False
     return True
-
-
-def ming_gang(history):
-    # allow both ming gang and jia gang
-    for action in history:
-        if "ming-gang-move" in action or "jia-gang-move" in action:
-            return True
-    return False
 
 
 def que_yi_men(tiles):
@@ -154,23 +149,6 @@ def duan_yao(tiles):
     return True
 
 
-def an_gang(distinct_tiles):
-    total_an_gang = 0
-    for k, v in distinct_tiles.items():
-        if v == 4:
-            total_an_gang += 1
-    return total_an_gang
-
-
-def shuang_an_ke(distinct_tiles):
-    # 2x an ke or an gang
-    ctr = 0
-    for k, v in distinct_tiles.items():
-        if v == 4 or v == 3:
-            ctr += 1
-    return ctr == 2
-
-
 def shuang_tong_ke(tiles):
     # 2 suite of same ke
     # for each count 1
@@ -223,18 +201,6 @@ def jian_ke(tiles):
 # -------- 4番 --------
 
 
-def shuang_ming_gang(history, gang_history):
-    # 2x ming gang (strictly 2x)
-    # if 1 ming 1 an => 5番
-    if len(gang_history) != 8:
-        return False
-    ming_gang_ctr = 0
-    for action in history:
-        if "ming-gang-move" in action or "jia-gang-move" in action:
-            ming_gang_ctr += 1
-    return ming_gang_ctr == 2
-
-
 def bu_qiu_ren(history, gang_history, peng_history, shang_history):
     """没碰，明杠，吃，自摸和牌"""
     if gang_history or peng_history or shang_history:
@@ -256,12 +222,6 @@ def shuang_jian_ke(tiles):
     # 2x jian ke
     # cal_jian_ke = False for the two tiles
     return False
-
-
-def shuang_an_gang(an_gang_history):
-    # 2x an gang
-    # cal_shuang_an_ke = False for the two tiles
-    return (len(an_gang_history) / 4) == 2
 
 
 def quan_qiu_ren(tiles: list, an_gang_history, history):
@@ -453,16 +413,6 @@ def quan_bu_kao(distinct_tiles: dict, merged_suites):
 # -------- 16番 --------
 
 
-def san_an_ke(distinct_tiles, gang_history, peng_history):
-    # 三暗刻/杠
-    ke_ctr = 0
-    for k, v in distinct_tiles.items():
-        if v == 3 or v == 4:
-            if k not in gang_history and k not in peng_history:
-                ke_ctr += 1
-    return ke_ctr == 3
-
-
 def san_tong_ke(tiles):
     # 三同刻，三中花色序数相同的刻子
     # cal_shuang_tong_ke = False for the three tiles
@@ -647,12 +597,6 @@ def hun_yao_jiu(tiles):
     return True
 
 
-def san_gang(tiles):
-    # 三杠，和牌中有三个杠
-    # 暗杠加计暗刻番
-    return False
-
-
 def yi_se_si_bu_gao(tiles):
     # 一色四步高，一种花色四副依次递增1，2的顺子
     # cal_san_se_san_bu_gao = False
@@ -727,21 +671,6 @@ def yi_se_shuang_long_hui(tiles, distinct_tiles):
     return True
 
 
-def si_an_ke(distinct_tiles, gang_history):
-    # 四暗刻，四个暗刻
-    # cal_peng_peng_hu = False
-    # cal_bu_qiu_ren = False
-    # cal_men_qian_qing = False
-    if gang_history:
-        return False
-    if len(distinct_tiles) != 4:
-        return False
-    for k, v in distinct_tiles.items():
-        if v != 4:
-            return False
-    return True
-
-
 def zi_yi_se(tiles):
     # 字一色，全部由字牌组成的和牌
     for tile in tiles:
@@ -804,20 +733,6 @@ def lian_qi_dui(tiles):
             prev = tiles[fptr][0]
         bptr += 2
         fptr += 2
-    return True
-
-
-def si_gang(distinct_tiles: dict, eyes):
-    # 四杠，和牌中有四个杠，暗杠加计暗刻番
-    # cal_peng_peng_hu = False
-    # cal_dan_qi_dui_zi = False
-    if len(distinct_tiles) != 5:
-        return False
-    for tile, count in distinct_tiles.items():
-        if tile == eyes:
-            continue
-        if count != 4:
-            return False
     return True
 
 

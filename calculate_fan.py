@@ -152,8 +152,6 @@ def calculate_win_mode_fan(
 
 def calculate_attribute_fan(
     rf: ResultFan,
-    winning_condition: list,
-    history,
     tiles,
     distinct_tiles,
     peng_history,
@@ -181,7 +179,7 @@ def calculate_attribute_fan(
             rf.fan_names.append("字一色")
             rf.total_fan += 64
             rf.exclude.update(["混幺九", "碰碰和", "全带幺", "幺九刻"])
-        if "混一色" not in rf.exclude and hun_yi_se(merged_suites, full_tiles):
+        if "混一色" not in rf.exclude and fan.hun_yi_se(merged_suites, full_tiles):
             rf.fan_names.append("混一色")
             rf.total_fan += 48
         if fan.quan_shuang_ke(full_tiles):
@@ -248,6 +246,181 @@ def calculate_attribute_fan(
     if "无字" not in rf.exclude and fan.wu_zi(full_tiles):
         rf.fan_names.append("无字")
         rf.total_fan += 1
+
+
+def calculate_ke_gang_fan(
+    rf: ResultFan,
+    distinct_tiles,
+    gang_history,
+    an_gang_history,
+):
+    """
+    四杠 88、四暗刻 64、三杠 32、三暗刻 16、双暗杠 6、双明杠 4、双暗刻 2、暗杠 2、明杠 1、明暗杠 5
+    双暗杠 exclude 双暗刻
+    四暗刻 exclude 碰碰和 不求人 门前清
+    四杠 exclude 碰碰和 单骑对子
+    """
+    an_gang_cnt = len(an_gang_history) // 4
+    gang_cnt = len(gang_history) // 4
+    an_ke_cnt = len(
+        [
+            x
+            for x in distinct_tiles.values()
+            if x >= 3 and x not in an_gang_history + gang_history
+        ]
+    )
+    condition = an_gang_cnt * 100 + gang_cnt * 10 + an_ke_cnt
+    if condition == 400:
+        rf.fan_names.append("四杠")
+        rf.total_fan += 88
+        rf.exclude.update(["碰碰和", "单骑对子"])
+        rf.fan_names.append("四暗刻")
+        rf.total_fan += 64
+        rf.exclude.update(["碰碰和", "不求人", "门前清"])
+    elif condition == 310:
+        rf.fan_names.append("四杠")
+        rf.total_fan += 88
+        rf.exclude.update(["碰碰和", "单骑对子"])
+        rf.fan_names.append("三暗刻")
+        rf.total_fan += 16
+    elif condition == 220:
+        rf.fan_names.append("四杠")
+        rf.total_fan += 88
+        rf.exclude.update(["碰碰和", "单骑对子"])
+        rf.fan_names.append("双暗刻")
+        rf.total_fan += 2
+    elif condition == 130:
+        rf.fan_names.append("三杠")
+        rf.total_fan += 32
+        rf.fan_names.append("双明杠")
+        rf.total_fan += 4
+    elif condition == 301:
+        rf.fan_names.append("三杠")
+        rf.total_fan += 32
+        rf.fan_names.append("四暗刻")
+        rf.total_fan += 64
+        rf.exclude.update(["碰碰和", "不求人", "门前清"])
+    elif condition == 300:
+        rf.fan_names.append("三杠")
+        rf.total_fan += 32
+        rf.fan_names.append("三暗刻")
+        rf.total_fan += 16
+    elif condition == 211:
+        rf.fan_names.append("三杠")
+        rf.total_fan += 32
+        rf.fan_names.append("三暗刻")
+        rf.total_fan += 16
+    elif condition == 210:
+        rf.fan_names.append("三杠")
+        rf.total_fan += 32
+        rf.fan_names.append("双暗刻")
+        rf.total_fan += 2
+    elif condition == 121:
+        rf.fan_names.append("三杠")
+        rf.total_fan += 32
+        rf.fan_names.append("双暗刻")
+        rf.total_fan += 2
+    elif condition == 120:
+        rf.fan_names.append("三杠")
+        rf.total_fan += 32
+    elif condition == 202:
+        rf.fan_names.append("双暗杠")
+        rf.total_fan += 6
+        rf.fan_names.append("四暗刻")
+        rf.total_fan += 64
+        rf.exclude.update(["碰碰和", "不求人", "门前清"])
+    elif condition == 201:
+        rf.fan_names.append("双暗杠")
+        rf.total_fan += 6
+        rf.fan_names.append("三暗刻")
+        rf.total_fan += 16
+    elif condition == 112:
+        rf.fan_names.append("明暗杠")
+        rf.total_fan += 5
+        rf.fan_names.append("三暗刻")
+        rf.total_fan += 16
+    elif condition == 111:
+        rf.fan_names.append("明暗杠")
+        rf.total_fan += 5
+        rf.fan_names.append("双暗刻")
+        rf.total_fan += 2
+    elif condition == 22:
+        rf.fan_names.append("双明杠")
+        rf.total_fan += 4
+        rf.fan_names.append("双暗刻")
+        rf.total_fan += 2
+    elif condition == 103:
+        rf.fan_names.append("暗杠")
+        rf.total_fan += 2
+        rf.fan_names.append("四暗刻")
+        rf.total_fan += 64
+        rf.exclude.update(["碰碰和", "不求人", "门前清"])
+    elif condition == 102:
+        rf.fan_names.append("暗杠")
+        rf.total_fan += 2
+        rf.fan_names.append("三暗刻")
+        rf.total_fan += 16
+    elif condition == 101:
+        rf.fan_names.append("暗杠")
+        rf.total_fan += 2
+        rf.fan_names.append("双暗刻")
+        rf.total_fan += 2
+    elif condition == 13:
+        rf.fan_names.append("明杠")
+        rf.total_fan += 1
+        rf.fan_names.append("三暗刻")
+        rf.total_fan += 16
+    elif condition == 12:
+        rf.fan_names.append("明杠")
+        rf.total_fan += 1
+        rf.fan_names.append("双暗刻")
+        rf.total_fan += 2
+    elif condition == 11:
+        rf.fan_names.append("明暗杠")
+        rf.total_fan += 5
+    elif condition == 40:
+        rf.fan_names.append("四杠")
+        rf.total_fan += 88
+        rf.exclude.update(["碰碰和", "单骑对子"])
+    elif condition == 4:
+        rf.fan_names.append("四暗刻")
+        rf.total_fan += 64
+        rf.exclude.update(["碰碰和", "不求人", "门前清"])
+    elif condition == 30:
+        rf.fan_names.append("三杠")
+        rf.total_fan += 32
+    elif condition == 3:
+        rf.fan_names.append("三暗刻")
+        rf.total_fan += 16
+    elif condition == 200:
+        rf.fan_names.append("双暗杠")
+        rf.total_fan += 6
+    elif condition == 20:
+        rf.fan_names.append("双明杠")
+        rf.total_fan += 4
+    elif condition == 2:
+        rf.fan_names.append("双暗刻")
+        rf.total_fan += 2
+    elif condition == 10:
+        rf.fan_names.append("明杠")
+        rf.total_fan += 1
+    elif condition == 100:
+        rf.fan_names.append("暗杠")
+        rf.total_fan += 2
+
+
+def calculate_associated_combination_fan():
+    """
+    大四喜、大三元、小四喜、小三元、一色双龙会、一色四同顺、一色四节高、一色四步高、一色三同顺、
+    一色三节高、清龙、三色双龙会、一色三步高、三同刻、三风刻、花龙、三色三同顺、三色三节高
+    三色三步高、双箭刻、双同刻、一般高、喜相逢、连六、老少副
+    """
+    pass
+
+
+def calculate_single_pack_fan():
+    # 箭刻、圈风刻、门风刻、幺九刻
+    pass
 
 
 def check_qi_dui(distinct_tiles: dict):
@@ -325,10 +498,12 @@ def calculate_fan(
     if is_zu_he_long:
         tiles = remove_zu_he_long(tiles, ref)
     if is_zu_he_long and not is_quan_bu_kao:
-        # do something?
         pass
     else:
-        dfs()
+        calculate_attribute_fan()
+        calculate_ke_gang_fan()
+        calculate_associated_combination_fan()
+        calculate_single_pack_fan()
 
     calculate_win_mode_fan(
         rf,
@@ -346,3 +521,6 @@ def calculate_fan(
     if flower_tiles:
         rf.fan_names.append("花牌")
         rf.total_fan += len(flower_tiles)
+
+    assert rf.total_fan > 0  # pragma: no cover; for brute force testing
+    assert rf.total_fan <= 332  # pragma: no cover; for brute force testing

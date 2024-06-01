@@ -134,22 +134,21 @@ def test_calculate_win_mode_fan():
     assert rf.exclude == set()
     assert rf.total_fan == 1
 
-    # FIXME
-    # rf = calculate_fan.ResultFan()
-    # calculate_fan.calculate_win_mode_fan(
-    #     rf,
-    #     winning_condition=[],
-    #     history={"1-hu-peng-add": "5万"},
-    #     tiles=["4万", "5万", "5万", "5万", "6万"],
-    #     distinct_tiles={},
-    #     peng_history=[],
-    #     gang_history=[],
-    #     shang_history=[],
-    #     an_gang_history=[],
-    # )
-    # assert rf.fan_names == ["坎张"]
-    # assert rf.exclude == set()
-    # assert rf.total_fan == 1
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_win_mode_fan(
+        rf,
+        winning_condition=[],
+        history={"1-hu-shang-add": "5万"},
+        tiles=["4万", "5万", "5万", "5万", "6万"],
+        distinct_tiles={},
+        peng_history=[],
+        gang_history=[],
+        shang_history=[],
+        an_gang_history=[],
+    )
+    assert rf.fan_names == ["坎张"]
+    assert rf.exclude == set()
+    assert rf.total_fan == 1
 
     rf = calculate_fan.ResultFan()
     calculate_fan.calculate_win_mode_fan(
@@ -166,3 +165,7 @@ def test_calculate_win_mode_fan():
     assert rf.fan_names == ["单骑对子"]
     assert rf.exclude == set()
     assert rf.total_fan == 1
+
+
+def test_calculate_attribute_fan():
+    rf = calculate_fan.ResultFan()
