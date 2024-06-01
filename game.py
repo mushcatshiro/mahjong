@@ -2,9 +2,8 @@ import random
 import pickle
 import json
 import copy
-from typing import Dict, List, Union
+from typing import Dict, List
 from dataclasses import dataclass, field
-from collections import defaultdict
 
 from tiles import (
     HUAS,
@@ -19,37 +18,23 @@ from tiles import (
 
 
 class State:
-    """
-    consider the following:
-    state = [
-        [0, 0, 0, 0,],
-        [0, 0, 0, 0,],
-        [0, 0, 0, 0,],
-        [0, 0, 0, 0,],
-        ...
-    ]
-    where state.shape = (36, 4)
-    with a series of mask that allows us to check the state of the game including
-    - tiles played by player i in (0, 1, 2, 3),
-    - tiles owned
-    - action space and action taken?
-
-    action space:
-    - peng
-    - gang
-    - shang
-    - discard
-    - hu
-
-    converter between human readable state and machine readable state
-    """
-
-    def save(self, pickle=True):
-        if not pickle:
-            return self.__dict__.items()
-        else:
+    def save(self, pickled=True, json_format=False):
+        if pickled:
             with open("save.pkl", "wb") as f:
                 pickle.dump(self.__dict__.items(), f)
+        if json_format:
+            with open("save.json", "w") as f:
+                json.dump(self.__dict__, f)
+
+    def load(self, pickled=True, json_format=False):
+        if pickled:
+            with open("save.pkl", "rb") as f:
+                for k, v in pickle.load(f):
+                    setattr(self, k, v)
+        if json_format:
+            with open("save.json", "r") as f:
+                for k, v in json.load(f).items():
+                    setattr(self, k, v)
 
 
 class TilesSequence(State):
@@ -100,12 +85,7 @@ class PlayAction(State):
     """
     `PlayAction` is one of possible actions that a player can take
     after drawing a tile. It acts as a message to `Player` for
-    `play_turn_strategy` and `call_strategy` The actions includes:
-    - peng
-    - gangs
-    - shang
-    - hu
-    - discard
+    `play_turn_strategy` and `call_strategy`.
     """
 
     action: str = None
@@ -163,10 +143,6 @@ class Hand(State):
     - `dp_search`: to search for winning hand i.e. inform player minimum
         change of times to win
       - `get_valid_*_sets` methods are supporting methods for `dp_search`
-    TODO
-    - ensuring `Hand`'s api is consistent to `Player` i.e. tiles always
-      added to hand at start to ensure `get_discardable_tiles` returning
-      all possible tiles
     """
 
     def __init__(self, player_idx: int, replacement_tiles=HUAS):
@@ -423,13 +399,12 @@ class Hand(State):
 
     def get_valid_shang_sets(self, remaining_tiles):
         """
-        should return list of valid shang sets and remaining tiles
+        return list of valid shang sets and remaining tiles
         """
-        tiles = remaining_tiles
         valid_shang_sets = []
         for s in SUITES:
             distinct_tiles = {}
-            for tile in tiles:
+            for tile in remaining_tiles:
                 if tile.endswith(s):
                     if tile not in distinct_tiles:
                         distinct_tiles[tile[:-1]] = 1
@@ -507,7 +482,6 @@ class Hand(State):
 
     def is_winning_hand(self, call_tile=None):
         # 十三幺
-        # to use set, currently will consider tiles added and subsequently discarded
         distinct_tiles = list(set(self.tiles))
         if sorted(distinct_tiles) == sorted(
             ["1万", "9万", "1筒", "9筒", "1索", "9索", "东", "南", "西", "北", "白", "發", "中"]
