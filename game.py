@@ -472,14 +472,6 @@ class Hand(State):
                     return rv
         return rv
 
-    def get_packs(self):
-        tiles = copy.deepcopy(self.tiles)
-        potential_packs = []
-        potential_packs += self.get_valid_shang_sets(tiles)
-        potential_packs += self.get_valid_peng_sets(tiles)
-        potential_packs += self.get_gang_candidates(tiles)
-        potential_packs += self.get_valid_eye_sets(tiles)
-
     def is_winning_hand(self, call_tile=None):
         # 十三幺
         distinct_tiles = list(set(self.tiles))
@@ -500,11 +492,6 @@ class Hand(State):
 
     def get_hu_play_result(self):
         return PlayResult(hu=True)
-
-    def prepare_hand_for_round_summary(self):
-        for k in list(self.distinct_tile_count.keys()):
-            if self.distinct_tile_count[k] == 0:
-                del self.distinct_tile_count[k]
 
     def get_showable_tiles(self):
         return self.gang_history + self.peng_history + self.shang_history
@@ -674,7 +661,6 @@ class Player(State):
         for winner to calculate fan,
         for other players to calculate how far they are from winning?
         """
-        self.hand.prepare_hand_for_round_summary()
         import calculate_fan
 
         self.result_fan = calculate_fan.ResultFan()
