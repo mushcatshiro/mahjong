@@ -155,16 +155,35 @@ def shuang_tong_ke(tiles):
     return False
 
 
-def si_gui_yi(tiles):
-    # 4x same tile without gang
-    # for each count 1
-    return False
+def si_gui_yi(distinct_tiles: dict, gang_history, an_gang_history) -> int:
+    # 4x same tile without gang for each count 1
+    if gang_history or an_gang_history:
+        return False
+    ctr = 0
+    for v in distinct_tiles.values():
+        if v == 4:
+            ctr += 1
+    return ctr
 
 
-def ping_hu(tiles):
+def ping_hu(tiles, peng_history, gang_history, an_gang_history, merged_suites: dict):
     # 四副顺子及序数牌。边，坎，单调将不影响。不计无字牌
-    # cal_wu_zi = False
-    return False
+    for tile in tiles:
+        if tile in FENGS + JIANS:
+            return False
+    if peng_history or gang_history or an_gang_history:
+        return False
+    tiles = sorted(tiles)
+    for vals in merged_suites.values():
+        vals = sorted(vals)
+        while vals:
+            min_val = vals.pop(0)
+            if int(min_val) + 1 in vals and int(min_val) + 2 in vals:
+                vals.remove(str(int(min_val) + 1))
+                vals.remove(str(int(min_val) + 2))
+            else:
+                return False
+    return True
 
 
 def men_qian_qing(history):
@@ -210,8 +229,22 @@ def bu_qiu_ren(history, gang_history, peng_history, shang_history):
     return True
 
 
-def quan_dai_yao(tiles):
+def quan_dai_yao(tiles, peng_history, gang_history, an_gang_history):
+    # BUG
     # 每副顺子、刻子、将牌都有幺九牌
+    # yao_jiu_pai = 0
+    # peng_gang_holder = []
+    # peng_gang_set = set(peng_history + gang_history + an_gang_history)
+    # for tile in tiles:
+    #     if len(tile) == 1 or tile[0] in ("1", "9"):
+    #         if tile in peng_gang_set and tile not in peng_gang_holder:
+    #             peng_gang_holder.append(tile)
+    #             yao_jiu_pai += 1
+    #         elif tile in peng_gang_holder:
+    #             continue
+    #         else:
+    #             yao_jiu_pai += 1
+    # return yao_jiu_pai >= 6
     return False
 
 
@@ -421,6 +454,7 @@ def san_tong_ke(tiles):
 
 def quan_dai_wu(tiles):
     # 每副顺子、刻子、将牌都有序数牌5
+    # BUG
     ctr = 0
     for tile in tiles:
         if tile in FENGS + JIANS:
@@ -738,11 +772,6 @@ def lian_qi_dui(tiles):
 
 def jiu_lian_bao_deng(merged_suites: dict, tiles):
     # 九莲宝灯，一种花色序数牌1112345678999+本花色任何牌成和牌
-    # cal_qing_yi_se = False
-    # cal_bu_qiu_ren = False
-    # cal_men_qian_qing = False
-    # cal_wu_zi = False
-    # cal_yao_jiu_ke = False x1?
     if len(merged_suites) != 1:
         return False
     suite = list(merged_suites.keys())[0]

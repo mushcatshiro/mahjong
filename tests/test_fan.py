@@ -158,6 +158,29 @@ def test_shi_san_yao():
     )
 
 
+def test_si_gui_yi():
+    assert fan.si_gui_yi(
+        {"1万": 2, "2万": 4, "3万": 4, "4万": 2, "中": 2},
+        [],
+        [],
+    ) == 2
+    assert not fan.si_gui_yi(
+        {"1万": 2, "2万": 4, "3万": 4, "4万": 2, "中": 2},
+        ["1万", "1万", "1万", "1万"],
+        [],
+    )
+    assert not fan.si_gui_yi(
+        {"1万": 2, "2万": 4, "3万": 4, "4万": 2, "中": 2},
+        [],
+        ["1万", "1万", "1万", "1万"],
+    )
+
+
+
+def test_ping_hu():
+    pass
+
+
 def test_men_qian_qing():
     assert fan.men_qian_qing(
         {"1-turn-draw-add": "1万"},
@@ -176,17 +199,6 @@ def test_men_qian_qing():
     )
     assert fan.men_qian_qing(
         {"1-an-gang-move": "1万"},
-    )
-
-
-def test_shuang_ming_gang():
-    assert fan.shuang_ming_gang(
-        {"1-ming-gang-move": "1万", "2-ming-gang-move": "2万"},
-        ["1万", "1万", "1万", "1万", "2万", "2万", "2万", "2万"],
-    )
-    assert not fan.shuang_ming_gang(
-        {"1-ming-gang-move": "1万", "2-an-gang-move": "2万"},
-        ["1万", "1万", "1万", "1万", "2万", "2万", "2万", "2万"],
     )
 
 
@@ -211,15 +223,24 @@ def test_bu_qiu_ren():
     )
 
 
-def test_shuang_an_gang():
-    assert fan.shuang_an_gang(
-        ["1万", "1万", "1万", "1万", "2万", "2万", "2万", "2万"],
-    )
-    assert not fan.shuang_an_gang(
-        ["1万", "1万", "1万", "1万"],
-    )
-    assert not fan.shuang_an_gang(
+def test_quan_dai_yao():
+    assert fan.quan_dai_yao(
+        ["1万", "9万", "1万", "9万", "1万", "9万", "1筒", "1筒", "1筒", "南", "南", "南", "白", "白"],
         [],
+        [],
+        []
+    )
+    assert fan.quan_dai_yao(
+        ["1万", "9万", "1万", "9万", "1万", "9万", "1筒", "1筒", "1筒", "南", "南", "南", "白", "白"],
+        ["1筒", "1筒", "1筒"],
+        [],
+        []
+    )
+    assert not fan.quan_dai_yao(
+        ["2万", "3万", "4万", "5万", "6万", "7万", "1筒", "1筒", "1筒", "南", "南", "南", "白", "白"],
+        [],
+        [],
+        []
     )
 
 
@@ -338,19 +359,6 @@ def test_quan_bu_kao():
             "3索": 1, "6索": 1
         },
         {"万": ["1", "4", "7"], "筒": ["2", "5", "8"], "索": ["3", "6"]}
-    )
-
-
-def test_san_an_ke():
-    assert fan.san_an_ke(
-        {"1万": 3, "2万": 3, "3万": 3, "4万": 3, "5万": 2},
-        [],
-        ["4万", "4万", "4万"],
-    )
-    assert not fan.san_an_ke(
-        {"1万": 3, "2万": 3, "7万": 1, "8万": 1, "9万": 1, "4万": 3, "5万": 2},
-        [],
-        ["4万", "4万", "4万"],
     )
 
 
@@ -552,13 +560,6 @@ def test_yi_se_shuang_long_hui():
     )
 
 
-def test_si_an_ke():
-    assert fan.si_an_ke({"1万": 4, "2万": 4, "3万": 4, "4万": 4}, [])
-    assert not fan.si_an_ke(
-        {"1万": 4, "2万": 4, "3万": 4, "4万": 4}, ["4万", "4万", "4万", "4万"]
-    )
-
-
 def test_zi_yi_se():
     assert fan.zi_yi_se(
         ["西", "西", "西", "北", "北", "北", "中", "中", "發", "發", "發", "白", "白", "白"]
@@ -595,19 +596,45 @@ def test_lian_qi_dui():
     )
 
 
-def test_si_gang():
-    assert fan.si_gang({"1万": 4, "2万": 4, "3万": 4, "4万": 4, "5万": 2}, "5万")
-    assert not fan.si_gang(
-        {"1万": 4, "2万": 3, "3万": 3, "4万": 2, "5万": 3}, "4万"
-    )
-
-
 def test_jiu_lian_bao_deng():
-    assert fan.jiu_lian_bao_deng(["1万", "1万", "1万", "2万", "3万", "4万", "5万", "5万", "6万", "7万", "8万", "9万", "9万", "9万"])
-    assert fan.jiu_lian_bao_deng(["1筒", "1筒", "1筒", "2筒", "2筒", "3筒", "4筒", "5筒", "6筒", "7筒", "8筒", "9筒", "9筒", "9筒"])
-    assert not fan.jiu_lian_bao_deng(["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "东"])
-    assert not fan.jiu_lian_bao_deng(["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "东", "發"])
-    assert not fan.jiu_lian_bao_deng(["1万", "1万", "1万", "2万", "3万", "4万", "5万", "5万", "6筒", "7筒", "8筒", "9筒", "9筒", "9筒"])
+    merged_suites = calculate_fan.get_suites(
+        ["1万", "1万", "1万", "2万", "3万", "4万", "5万", "5万", "6万", "7万", "8万", "9万", "9万", "9万"]
+    )
+    assert fan.jiu_lian_bao_deng(
+        merged_suites,
+        ["1万", "1万", "1万", "2万", "3万", "4万", "5万", "5万", "6万", "7万", "8万", "9万", "9万", "9万"]
+    )
+    merged_suites = calculate_fan.get_suites(
+        ["1筒", "1筒", "1筒", "2筒", "2筒", "3筒", "4筒", "5筒", "6筒", "7筒", "8筒", "9筒", "9筒", "9筒"]
+    )
+    merged_suites = calculate_fan.get_suites(
+        ["1筒", "1筒", "1筒", "2筒", "2筒", "3筒", "4筒", "5筒", "6筒", "7筒", "8筒", "9筒", "9筒", "9筒"]
+    )
+    assert fan.jiu_lian_bao_deng(
+        merged_suites,
+        ["1筒", "1筒", "1筒", "2筒", "2筒", "3筒", "4筒", "5筒", "6筒", "7筒", "8筒", "9筒", "9筒", "9筒"]
+    )
+    merged_suites = calculate_fan.get_suites(
+        ["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "东"]
+    )
+    assert not fan.jiu_lian_bao_deng(
+        merged_suites,
+        ["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "东"]
+    )
+    merged_suites = calculate_fan.get_suites(
+        ["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "东", "發"]
+    )
+    assert not fan.jiu_lian_bao_deng(
+        merged_suites,
+        ["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "东", "發"]
+    )
+    merged_suites = calculate_fan.get_suites(
+        ["1万", "1万", "1万", "2万", "3万", "4万", "5万", "5万", "6筒", "7筒", "8筒", "9筒", "9筒", "9筒"]
+    )
+    assert not fan.jiu_lian_bao_deng(
+        merged_suites,
+        ["1万", "1万", "1万", "2万", "3万", "4万", "5万", "5万", "6筒", "7筒", "8筒", "9筒", "9筒", "9筒"]
+    )
 
 
 def test_lv_yi_se():

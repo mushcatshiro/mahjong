@@ -21,40 +21,6 @@ class ResultFan:
 # -------- helper functions --------
 
 
-def count_feng_ke(tiles):
-    cnt = 0
-    for feng in FENGS:
-        if feng in tiles:
-            cnt += 1
-    return cnt
-
-
-def count_jian_ke(tiles):
-    cnt = 0
-    for jian in JIANS:
-        if jian in tiles:
-            cnt += 1
-    return cnt
-
-
-def count_hua(tiles):
-    cnt = 0
-    for hua in HUAS:
-        if hua in tiles:
-            cnt += 1
-    return cnt
-
-
-def has_feng_ke(tiles):
-    # 3/4x of feng
-    return False
-
-
-def has_jian_ke(tiles):
-    # 3x of jian
-    return False
-
-
 def get_suites(tiles, shang_history=[]):
     # BUG need to align across all fn calls
     suites = {}
@@ -169,7 +135,7 @@ def calculate_attribute_fan(
             rf.fan_names.append("绿一色")
             rf.total_fan += 88
             rf.exclude.update(["混一色"])
-        if fan.jiu_lian_bao_deng(full_tiles):
+        if fan.jiu_lian_bao_deng(merged_suites, full_tiles):
             rf.fan_names.append("九莲宝灯")
             rf.total_fan += 88
             rf.exclude.update(["清一色", "不求人", "门前清", "无字", "幺九刻"])
@@ -181,9 +147,9 @@ def calculate_attribute_fan(
             rf.fan_names.append("字一色")
             rf.total_fan += 64
             rf.exclude.update(["混幺九", "碰碰和", "全带幺", "幺九刻"])
-        if "混一色" not in rf.exclude and fan.hun_yi_se(merged_suites, full_tiles):
-            rf.fan_names.append("混一色")
-            rf.total_fan += 48
+        if "混幺九" not in rf.exclude and fan.hun_yao_jiu(full_tiles):
+            rf.fan_names.append("混幺九")
+            rf.total_fan += 32
         if fan.quan_shuang_ke(full_tiles):
             rf.fan_names.append("全双刻")
             rf.total_fan += 24
@@ -226,26 +192,31 @@ def calculate_attribute_fan(
         if "混一色" not in rf.exclude and fan.hun_yi_se(merged_suites, full_tiles):
             rf.fan_names.append("混一色")
             rf.total_fan += 6
-        if "全带幺" not in rf.exclude and fan.quan_dai_yao(full_tiles):
+        if "全带幺" not in rf.exclude and fan.quan_dai_yao(
+            full_tiles, peng_history, gang_history, an_gang_history
+        ):
             rf.fan_names.append("全带幺")
             rf.total_fan += 4
         if "断幺" not in rf.exclude and fan.duan_yao(full_tiles):
             rf.fan_names.append("断幺")
             rf.total_fan += 2
+            rf.exclude.update(["无字"])
         if "缺一门" not in rf.exclude and fan.que_yi_men(full_tiles):
             rf.fan_names.append("缺一门")
             rf.total_fan += 1
-    # full_tiles = remove_zu_he_long(full_tiles, ref)
     if fan.wu_men_qi(merged_suites, distinct_tiles):
         rf.fan_names.append("五门齐")
         rf.total_fan += 6
-    if fan.ping_hu(full_tiles):
+    if fan.ping_hu(
+        full_tiles, peng_history, gang_history, an_gang_history, merged_suites
+    ):
         rf.fan_names.append("平和")
         rf.total_fan += 2
         rf.exclude.update(["无字"])
-    if fan.si_gui_yi(full_tiles):
+    total_si_gui_yi = fan.si_gui_yi(distinct_tiles, gang_history, an_gang_history)
+    if total_si_gui_yi:
         rf.fan_names.append("四归一")
-        rf.total_fan += 2
+        rf.total_fan += 2 * total_si_gui_yi
     if "无字" not in rf.exclude and fan.wu_zi(full_tiles):
         rf.fan_names.append("无字")
         rf.total_fan += 1
