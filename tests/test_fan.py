@@ -302,6 +302,21 @@ def test_peng_peng_hu():
     )
 
 
+def test_san_se_san_jie_gao():
+    merged_suites = calculate_fan.get_suites(
+        ["1万", "1万", "1万", "2筒", "2筒", "2筒", "3索", "3索", "3索", "东", "东", "东", "南", "南"]
+    )
+    assert fan.san_se_san_jie_gao(merged_suites)
+    merged_suites = calculate_fan.get_suites(
+        ["1万", "1万", "1万", "2筒", "2筒", "2筒", "3索", "3索", "3索", "4索", "4索", "4索", "南", "南"]
+    )
+    assert fan.san_se_san_jie_gao(merged_suites)
+    merged_suites = calculate_fan.get_suites(
+        ["1万", "1万", "1万", "3筒", "3筒", "3筒", "3索", "3索", "3索", "4索", "4索", "4索", "南", "南"]
+    )
+    assert not fan.san_se_san_jie_gao(merged_suites)
+
+
 def test_tui_bu_dao():
     assert fan.tui_bu_dao(
         ["1筒", "2筒", "3筒", "1筒", "2筒", "3筒", "6索", "6索", "6索", "8索",  "8索",  "8索", "白", "白"]
@@ -443,6 +458,21 @@ def test_quan_da():
     )
 
 
+def test_yi_se_san_jie_gao():
+    merged_suites = calculate_fan.get_suites(
+        ["1万", "2万", "3万", "1万", "2万", "3万", "1万", "2万", "3万", "1筒", "2筒", "3筒", "1索", "1索"]
+    )
+    assert fan.yi_se_san_jie_gao(
+        merged_suites
+    )
+    merged_suites = calculate_fan.get_suites(
+        ["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "1筒", "2筒", "3筒", "1索", "1索"]
+    )
+    assert not fan.yi_se_san_jie_gao(
+        merged_suites
+    )
+
+
 def test_qing_yi_se():
     assert fan.qing_yi_se(
         ["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "7万", "8万", "9万", "9万", "9万"],
@@ -525,15 +555,22 @@ def test_hun_yao_jiu():
 
 
 def test_yi_se_si_jie_gao():
-    assert fan.yi_se_si_jie_gao(
-        ["1万", "2万", "3万", "4万", "1万", "2万", "3万", "4万", "1万", "2万", "3万", "4万"]
+    merged_suites = calculate_fan.get_suites(
+        ["1万", "2万", "3万", "4万", "1万", "2万", "3万", "4万", "1万", "2万", "3万", "4万", "白", "白"]
     )
-    assert not fan.yi_se_si_jie_gao(
-        ["1万", "2万", "3万", "1万", "2万", "3万", "1万", "2万", "3万", "1万", "2万", "3万"]
+    assert fan.yi_se_si_jie_gao(merged_suites)
+    merged_suites = calculate_fan.get_suites(
+        ["1万", "2万", "3万", "4万", "1万", "2万", "3万", "4万", "1万", "2万", "3万", "4万", "5万", "5万"]
     )
-    assert not fan.yi_se_si_jie_gao(
-        ["1万", "2万", "3万", "4万", "2万", "3万", "4万", "5万", "3万", "5万", "5万", "6万"]
+    assert fan.yi_se_si_jie_gao(merged_suites)
+    merged_suites = calculate_fan.get_suites(
+        ["1万", "2万", "3万", "1万", "2万", "3万", "1万", "2万", "3万", "1万", "2万", "3万", "白", "白"]
     )
+    assert not fan.yi_se_si_jie_gao(merged_suites)
+    merged_suites = calculate_fan.get_suites(
+        ["1万", "2万", "3万", "4万", "2万", "3万", "4万", "5万", "3万", "5万", "5万", "6万", "白", "白"]
+    )
+    assert not fan.yi_se_si_jie_gao(merged_suites)
 
 
 def test_yi_se_si_tong_shun():
@@ -550,13 +587,17 @@ def test_yi_se_si_tong_shun():
 
 def test_yi_se_shuang_long_hui():
     # assumes that lao shao fu is calculated correctly
+    merged_suites = calculate_fan.get_suites(
+        ["1万", "2万", "3万", "7万", "8万", "9万", "1万", "2万", "3万", "7万", "8万", "9万", "5万", "5万"]
+    )
     assert fan.yi_se_shuang_long_hui(
-        ["1万", "2万", "3万", "7万", "8万", "9万", "1万", "2万", "3万", "7万", "8万", "9万", "5万", "5万"],
-        {"1万": 2, "2万": 2, "3万": 2, "7万": 2, "8万": 2, "9万": 2, "5万": 2},
+        merged_suites
+    )
+    merged_suites = calculate_fan.get_suites(
+        ["1万", "2万", "3万", "7万", "8万", "9万", "1万", "2万", "3万", "7万", "8万", "9万", "6万", "6万"]
     )
     assert not fan.yi_se_shuang_long_hui(
-        ["1万", "2万", "3万", "7万", "8万", "9万", "1万", "2万", "3万", "7万", "8万", "9万", "6万", "6万"],
-        {"1万": 2, "2万": 2, "3万": 2, "7万": 2, "8万": 2, "9万": 2, "6万": 2},
+        merged_suites
     )
 
 
