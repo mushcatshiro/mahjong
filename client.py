@@ -60,6 +60,7 @@ class MahjongClient(Mahjong):
         print(f"current round sequence {self.current_round_sequence}")
         print(f"current player idx {self.current_player_idx}")
         print(f"discarded pool: {self.discarded_pool}")
+        print("-" * 80)
         super().play_one_round()
         print("=" * 80)
 
@@ -71,7 +72,7 @@ def main():
         game = MahjongClient(
             {0: HumanPlayer(0), 1: DummyPlayer(1), 2: DummyPlayer(2), 3: DummyPlayer(3)}
         )
-        game.start()
+        game.start_game()
         input("Press Enter to continue or ctrl+c to exit...")
 
 
