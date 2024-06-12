@@ -441,6 +441,31 @@ def calculate_jian_ke_fans(rf: ResultFan, distinct_tiles: dict):
         rf.exclude.update(["箭刻"])
 
 
+def calculate_tong_ke(rf: ResultFan, distinct_suite_tiles: dict):
+    ke_holder = {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 0,
+        "6": 0,
+        "7": 0,
+        "8": 0,
+        "9": 0,
+    }
+    for k, v in distinct_suite_tiles.items():
+        if v >= 3:
+            ke_holder[k[0]] += 1
+    for v in ke_holder.values():
+        if v == 3:
+            rf.fan_names.append("三同刻")
+            rf.total_fan += 16
+        if v == 2:
+            if "双同刻" not in rf.fan_names:
+                rf.fan_names.append("双同刻")
+            rf.total_fan += 2
+
+
 def calculate_associated_combination_fan(
     rf: ResultFan,
     tiles,
@@ -455,6 +480,7 @@ def calculate_associated_combination_fan(
     一色三节高、清龙、三色双龙会、一色三步高、三同刻、三风刻、花龙、三色三同顺、三色三节高
     三色三步高、双箭刻、双同刻、一般高、喜相逢、连六、老少副
     tiles should be after removing zu_he_long?
+    to consider if *_history should be included in each calculation
     """
     tmp_rf = ResultFan()
     full_tiles = tiles + peng_history + gang_history + shang_history + an_gang_history
@@ -486,6 +512,13 @@ def calculate_associated_combination_fan(
         tmp_rf.fan_names.append("三色三节高")
         tmp_rf.total_fan += 12
     # bu_gaos to exclude peng/gang
+
+    # xi xiang feng to merge with yi ban gao
+    merged_suites = get_suites(tiles + shang_history)
+    xi_xiang_feng_cnt = fan.xi_xiang_feng(merged_suites)
+    if xi_xiang_feng_cnt:
+        tmp_rf.fan_names.append("喜相逢")
+        tmp_rf.total_fan += xi_xiang_feng_cnt
 
 
 def calculate_single_pack_fan(

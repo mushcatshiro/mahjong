@@ -102,34 +102,36 @@ def lian_liu(merged_suites: dict) -> int:
 
 
 def xi_xiang_feng(merged_suites: dict):
-    # BUG
     # 2 suites of same shang i.e. 123
-    # for each count 1
     total_xi_xiang_feng = 0
-    combi = {}
-    for suite, tiles in merged_suites.items():
-        for fptr in range(0, len(tiles), 3):
-            grp = tiles[fptr : fptr + 3]
-            if grp in SHANGS:
-                if grp not in combi:
-                    combi[grp] = 1
-                else:
-                    combi[grp] += 1
-    return False
+    candidates = {"123", "234", "345", "456", "567", "678", "789"}
+    tong_candits = "".join(merged_suites["筒"])
+    wan_candits = "".join(merged_suites["万"])
+    suo_candits = "".join(merged_suites["索"])
+    for candidate in candidates:
+        if (
+            (candidate in tong_candits and candidate in wan_candits)
+            or (candidate in wan_candits and candidate in suo_candits)
+            or (candidate in suo_candits and candidate in tong_candits)
+        ):
+            total_xi_xiang_feng += 1
+    return total_xi_xiang_feng
 
 
 def yi_ban_gao(merged_suites: dict):
-    # BUG
     # one suite 2x of shang
-    # for each count 1
     total_yi_ban_gao = 0
-    for suite, tiles in merged_suites.items():
-        for fptr in range(0, len(tiles), 3):
-            grp = tiles[fptr : fptr + 3]
-            if grp in SHANGS:
-                if tiles.count(grp) == 2:
-                    total_yi_ban_gao += 1
-    return False
+    for _, tiles in merged_suites.items():
+        if len(tiles) >= 6:
+            if (
+                (tiles[0] == tiles[1])
+                and (int(tiles[0]) + 1 == int(tiles[2]))
+                and (tiles[2] == tiles[3])
+                and (int(tiles[2]) + 1 == int(tiles[4]))
+                and (tiles[4] == tiles[5])
+            ):
+                total_yi_ban_gao += 1
+    return total_yi_ban_gao
 
 
 # -------- 2番 --------
@@ -144,10 +146,29 @@ def duan_yao(tiles):
     return True
 
 
-def shuang_tong_ke(tiles):
+def shuang_tong_ke(distinct_suite_tiles: dict):
     # 2 suite of same ke
     # for each count 1
-    return False
+    # to merge with san_tong_ke
+    ke_holder = {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 0,
+        "6": 0,
+        "7": 0,
+        "8": 0,
+        "9": 0,
+    }
+    for k, v in distinct_suite_tiles.items():
+        if v >= 3:
+            ke_holder[k[0]] += 1
+    total_shuang_tong_ke = 0
+    for v in ke_holder.values():
+        if v == 2:
+            total_shuang_tong_ke += 1
+    return total_shuang_tong_ke
 
 
 def si_gui_yi(distinct_tiles: dict, gang_history, an_gang_history) -> int:
@@ -231,23 +252,31 @@ def bu_qiu_ren(history, gang_history, peng_history, shang_history):
     return True
 
 
-def quan_dai_yao(tiles, peng_history, gang_history, an_gang_history):
-    # BUG
+def quan_dai_yao(
+    remaining_distinct_tiles,
+    an_ke,
+    peng_history,
+    gang_history,
+    an_gang_history,
+    shang_history,
+):
     # 每副顺子、刻子、将牌都有幺九牌
-    # yao_jiu_pai = 0
-    # peng_gang_holder = []
-    # peng_gang_set = set(peng_history + gang_history + an_gang_history)
-    # for tile in tiles:
-    #     if len(tile) == 1 or tile[0] in ("1", "9"):
-    #         if tile in peng_gang_set and tile not in peng_gang_holder:
-    #             peng_gang_holder.append(tile)
-    #             yao_jiu_pai += 1
-    #         elif tile in peng_gang_holder:
-    #             continue
-    #         else:
-    #             yao_jiu_pai += 1
-    # return yao_jiu_pai >= 6
-    return False
+    # new shang_history = {"筒": ["123"], "万": [], "索": []}
+    yao_jiu_pai = 0
+    for tile in set(peng_history + gang_history + an_gang_history):
+        if len(tile) == 1 or tile[0] in ("1", "9"):
+            yao_jiu_pai += 1
+    for tile in set(an_ke):
+        if len(tile) == 1 or tile[0] in ("1", "9"):
+            yao_jiu_pai += 1
+    for tile_groups in shang_history.values():
+        for tile_group in tile_groups:
+            if "1" in tile_group or "9" in tile_group:
+                yao_jiu_pai += 1
+    for tile in remaining_distinct_tiles:
+        if len(tile) == 1 or tile[0] in ("1", "9"):
+            yao_jiu_pai += 1
+    return yao_jiu_pai == 6
 
 
 # -------- 6番 --------
