@@ -3,6 +3,8 @@ from tiles import (
     JIANS,
     HUAS,
     SHANGS,
+    SHANG_REF,
+    SUITES,
 )
 
 import fan
@@ -206,7 +208,12 @@ def calculate_attribute_fan(
             rf.fan_names.append("混一色")
             rf.total_fan += 6
         if "全带幺" not in rf.exclude and fan.quan_dai_yao(
-            full_tiles, peng_history, gang_history, an_gang_history
+            tiles,
+            distinct_tiles,
+            peng_history,
+            gang_history,
+            an_gang_history,
+            shang_history,
         ):
             rf.fan_names.append("全带幺")
             rf.total_fan += 4
@@ -460,10 +467,107 @@ def calculate_tong_ke(rf: ResultFan, distinct_suite_tiles: dict):
         if v == 3:
             rf.fan_names.append("三同刻")
             rf.total_fan += 16
-        if v == 2:
+        if v == 2 and "双同刻" not in rf.exclude:
             if "双同刻" not in rf.fan_names:
                 rf.fan_names.append("双同刻")
             rf.total_fan += 2
+
+
+def calculate_tong_shuns(rf: ResultFan, tiles: list):
+    shang_sets = []
+    tiles = sorted(tiles)
+    for s in SUITES:
+        distinct_tiles = {}
+        for tile in tiles:
+            if tile.endswith(s):
+                if tile not in distinct_tiles:
+                    distinct_tiles[tile[:-1]] = 1
+                else:
+                    distinct_tiles[tile[:-1]] += 1
+        for group in SHANG_REF:
+            if all([x in distinct_tiles for x in group]):
+                candidates = []
+                for x in group:
+                    candidates.append(x)
+                shang_sets.append([f"{x}{s}" for x in candidates])
+    if not shang_sets or len(shang_sets) == 1:
+        return
+
+    first_set_start = shang_sets[0][0][0]
+    first_set_suite = shang_sets[0][0][1]
+    second_set_start = shang_sets[1][0][0]
+    second_set_suite = shang_sets[1][0][1]
+    third_set_start = -1
+    third_set_suite = ""
+    fourth_set_start = -1
+    fourth_set_suite = ""
+
+    if len(shang_sets) == 3:
+        third_set_start = shang_sets[2][0][0]
+        third_set_suite = shang_sets[2][0][1]
+        has_third_set = True
+    if len(shang_sets) == 4:
+        fourth_set_start = shang_sets[3][0][0]
+        fourth_set_suite = shang_sets[3][0][1]
+        has_fourth_set = True
+
+    pair_suite_condition_map = {
+        "12": first_set_suite == second_set_suite,
+        "13": first_set_suite == third_set_suite,
+        "14": first_set_suite == fourth_set_suite,
+        "23": second_set_suite == third_set_suite,
+        "24": second_set_suite == fourth_set_suite,
+        "34": third_set_suite == fourth_set_suite,
+    }
+    pair_start_condition_map = {
+        "12": abs(int(first_set_start) - int(second_set_start)),
+        "13": abs(int(first_set_start) - int(third_set_start)),
+        "14": abs(int(first_set_start) - int(fourth_set_start)),
+        "23": abs(int(second_set_start) - int(third_set_start)),
+        "24": abs(int(second_set_start) - int(fourth_set_start)),
+        "34": abs(int(third_set_start) - int(fourth_set_start)),
+    }
+
+    max_paired_same_suites = sum(pair_suite_condition_map.values())
+    if max_paired_same_suites == 4:
+        if sum(pair_start_condition_map.values()) == 0:
+            rf.fan_names.append("一色四同顺")
+            rf.total_fan += 48
+            rf.exclude.update(["一色三节高", "一般高", "四归一", "七对", "四归一", "一般高"])
+        elif (
+            sum(pair_start_condition_map.values()) == 20
+            or sum(pair_start_condition_map.values()) == 10
+        ):
+            rf.fan_names.append("一色四步高")
+            rf.total_fan += 32
+            rf.exclude.update(["连六", "老少副"])
+    keys = [k for k, v in pair_suite_condition_map.items() if v]
+    sum_pair_start_condition_map = sum([pair_start_condition_map[k] for k in keys])
+    # bring max_paired_same_suites out as first check then check sum_pair_start_condition_map
+    if sum_pair_start_condition_map == 0:
+        if max_paired_same_suites == 3:
+            rf.fan_names.append("一色三同顺")
+            rf.total_fan += 24
+            rf.exclude.update(["一色三节高", "一般高"])
+        elif max_paired_same_suites == 2:
+            rf.fan_names.append("一般高x2")
+            rf.total_fan += 2
+        elif max_paired_same_suites == 1:
+            rf.fan_names.append("一般高x2")
+            rf.total_fan += 2
+    elif max_paired_same_suites == 3 and (
+        sum_pair_start_condition_map == 4 or sum_pair_start_condition_map == 8
+    ):
+        rf.fan_names.append("一色三步高")
+        rf.total_fan += 16
+    elif sum_pair_start_condition_map != 0 and max_paired_same_suites == 2:
+        rf.fan_names.append("一般高")
+        rf.total_fan += 1
+
+    if has_third_set:
+        consider = {"12", "13", "23"}
+        if has_fourth_set:
+            consider.update(["14", "24", "34"])
 
 
 def calculate_associated_combination_fan(
@@ -513,12 +617,12 @@ def calculate_associated_combination_fan(
         tmp_rf.total_fan += 12
     # bu_gaos to exclude peng/gang
 
-    # xi xiang feng to merge with yi ban gao
-    merged_suites = get_suites(tiles + shang_history)
-    xi_xiang_feng_cnt = fan.xi_xiang_feng(merged_suites)
-    if xi_xiang_feng_cnt:
-        tmp_rf.fan_names.append("喜相逢")
-        tmp_rf.total_fan += xi_xiang_feng_cnt
+    full_tiles = tiles + shang_history
+    merged_suites = get_suites(full_tiles)
+    calculate_tong_shuns(tmp_rf, tiles, shang_history)
+
+    # 喜相逢、连六、老少副
+    # resolve conflicts
 
 
 def calculate_single_pack_fan(

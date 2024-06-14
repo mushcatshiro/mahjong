@@ -103,19 +103,27 @@ def lian_liu(merged_suites: dict) -> int:
 
 def xi_xiang_feng(merged_suites: dict):
     # 2 suites of same shang i.e. 123
+    # scenario AAAABBBBCCCCDDDDDEE
     total_xi_xiang_feng = 0
+    excl = []
     candidates = {"123", "234", "345", "456", "567", "678", "789"}
     tong_candits = "".join(merged_suites["筒"])
     wan_candits = "".join(merged_suites["万"])
     suo_candits = "".join(merged_suites["索"])
     for candidate in candidates:
-        if (
-            (candidate in tong_candits and candidate in wan_candits)
-            or (candidate in wan_candits and candidate in suo_candits)
-            or (candidate in suo_candits and candidate in tong_candits)
-        ):
+        if candidate in tong_candits and candidate in wan_candits:
             total_xi_xiang_feng += 1
-    return total_xi_xiang_feng
+            excl += [f"{candidate[0]}筒", f"{candidate[1]}筒", f"{candidate[2]}筒"]
+            excl += [f"{candidate[0]}万", f"{candidate[1]}万", f"{candidate[2]}万"]
+        if candidate in wan_candits and candidate in suo_candits:
+            total_xi_xiang_feng += 1
+            excl += [f"{candidate[0]}万", f"{candidate[1]}万", f"{candidate[2]}万"]
+            excl += [f"{candidate[0]}索", f"{candidate[1]}索", f"{candidate[2]}索"]
+        if candidate in suo_candits and candidate in tong_candits:
+            total_xi_xiang_feng += 1
+            excl += [f"{candidate[0]}索", f"{candidate[1]}索", f"{candidate[2]}索"]
+            excl += [f"{candidate[0]}筒", f"{candidate[1]}筒", f"{candidate[2]}筒"]
+    return total_xi_xiang_feng, excl
 
 
 def yi_ban_gao(merged_suites: dict):
@@ -144,31 +152,6 @@ def duan_yao(tiles):
         if tile[0] in ("1", "9") + FENGS + JIANS:
             return False
     return True
-
-
-def shuang_tong_ke(distinct_suite_tiles: dict):
-    # 2 suite of same ke
-    # for each count 1
-    # to merge with san_tong_ke
-    ke_holder = {
-        "1": 0,
-        "2": 0,
-        "3": 0,
-        "4": 0,
-        "5": 0,
-        "6": 0,
-        "7": 0,
-        "8": 0,
-        "9": 0,
-    }
-    for k, v in distinct_suite_tiles.items():
-        if v >= 3:
-            ke_holder[k[0]] += 1
-    total_shuang_tong_ke = 0
-    for v in ke_holder.values():
-        if v == 2:
-            total_shuang_tong_ke += 1
-    return total_shuang_tong_ke
 
 
 def si_gui_yi(distinct_tiles: dict, gang_history, an_gang_history) -> int:
@@ -253,15 +236,21 @@ def bu_qiu_ren(history, gang_history, peng_history, shang_history):
 
 
 def quan_dai_yao(
-    remaining_distinct_tiles,
-    an_ke,
+    tiles,
+    distinct_tiles: dict,
     peng_history,
     gang_history,
     an_gang_history,
     shang_history,
 ):
     # 每副顺子、刻子、将牌都有幺九牌
-    # new shang_history = {"筒": ["123"], "万": [], "索": []}
+    formatted_shang = {"索": [], "筒": [], "万": []}
+    for i in range(0, len(shang_history) - 2, 3):
+        suite = shang_history[i][1]
+        comb = shang_history[i][0] + shang_history[i + 1][0] + shang_history[i + 2][0]
+        formatted_shang[suite].append(comb)
+    an_ke = [x for x, cnt in distinct_tiles.items() if cnt >= 3]
+    remaining_distinct_tiles = [x for x, cnt in distinct_tiles.items() if cnt <= 2]
     yao_jiu_pai = 0
     for tile in set(peng_history + gang_history + an_gang_history):
         if len(tile) == 1 or tile[0] in ("1", "9"):
@@ -269,7 +258,7 @@ def quan_dai_yao(
     for tile in set(an_ke):
         if len(tile) == 1 or tile[0] in ("1", "9"):
             yao_jiu_pai += 1
-    for tile_groups in shang_history.values():
+    for tile_groups in formatted_shang.values():
         for tile_group in tile_groups:
             if "1" in tile_group or "9" in tile_group:
                 yao_jiu_pai += 1
@@ -509,12 +498,6 @@ def quan_bu_kao(distinct_tiles: dict, merged_suites):
 
 
 # -------- 16番 --------
-
-
-def san_tong_ke(tiles):
-    # 三同刻，三中花色序数相同的刻子
-    # cal_shuang_tong_ke = False for the three tiles
-    return False
 
 
 def quan_dai_wu(tiles):
