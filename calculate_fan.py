@@ -473,7 +473,7 @@ def calculate_jian_ke_fan(rf: ResultFan, distinct_tiles: dict):
         rf.exclude.update(["箭刻"])
 
 
-def calculate_tong_ke(rf: ResultFan, distinct_suite_tiles: dict):
+def calculate_tong_ke_fan(rf: ResultFan, distinct_tiles: dict):
     ke_holder = {
         "1": 0,
         "2": 0,
@@ -485,7 +485,7 @@ def calculate_tong_ke(rf: ResultFan, distinct_suite_tiles: dict):
         "8": 0,
         "9": 0,
     }
-    for k, v in distinct_suite_tiles.items():
+    for k, v in distinct_tiles.items():
         if v >= 3:
             ke_holder[k[0]] += 1
     for v in ke_holder.values():
@@ -690,9 +690,7 @@ def calculate_associated_combination_fan(
 
     calculate_shang_fan(rf, tiles, shang_history)
     full_tiles = tiles + peng_history + gang_history + an_gang_history
-    calculate_tong_ke(
-        rf, get_distinct_tiles(full_tiles)
-    )  # BUG to use get_valid_peng/gang on tiles?
+    calculate_tong_ke_fan(rf, get_distinct_tiles(full_tiles))
 
     # 连六、老少副
     full_tiles = tiles + shang_history
@@ -756,7 +754,7 @@ def calculate_fan(
     """
     known bugs
     - when no peng/gang/shang, jiangs can be counted as ke
-     - preprocess to remove jiangs?
+    - resolve pengs and shangs overlap
     """
 
     distinct_tiles = get_distinct_tiles(tiles)
