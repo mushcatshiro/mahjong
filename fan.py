@@ -242,6 +242,7 @@ def quan_dai_yao(
     gang_history,
     an_gang_history,
     shang_history,
+    jiangs,
 ):
     # 每副顺子、刻子、将牌都有幺九牌
     formatted_shang = {"索": [], "筒": [], "万": []}
@@ -249,23 +250,31 @@ def quan_dai_yao(
         suite = shang_history[i][1]
         comb = shang_history[i][0] + shang_history[i + 1][0] + shang_history[i + 2][0]
         formatted_shang[suite].append(comb)
-    an_ke = [x for x, cnt in distinct_tiles.items() if cnt >= 3]
-    remaining_distinct_tiles = [x for x, cnt in distinct_tiles.items() if cnt <= 2]
-    yao_jiu_pai = 0
+    an_ke = []
+    remaining_tiles = []
+    for tile, cnt in distinct_tiles.items():
+        if cnt >= 3:
+            if tile == jiangs:
+                remaining_tiles += [tile] * cnt
+            else:
+                an_ke += [tile]
+        if cnt <= 2:
+            remaining_tiles += [tile] * cnt
+    total_yao_jiu_pai = 0
     for tile in set(peng_history + gang_history + an_gang_history):
         if len(tile) == 1 or tile[0] in ("1", "9"):
-            yao_jiu_pai += 1
+            total_yao_jiu_pai += 1
     for tile in set(an_ke):
         if len(tile) == 1 or tile[0] in ("1", "9"):
-            yao_jiu_pai += 1
+            total_yao_jiu_pai += 1
     for tile_groups in formatted_shang.values():
         for tile_group in tile_groups:
             if "1" in tile_group or "9" in tile_group:
-                yao_jiu_pai += 1
-    for tile in remaining_distinct_tiles:
+                total_yao_jiu_pai += 1
+    for tile in remaining_tiles:
         if len(tile) == 1 or tile[0] in ("1", "9"):
-            yao_jiu_pai += 1
-    return yao_jiu_pai == 6
+            total_yao_jiu_pai += 1
+    return total_yao_jiu_pai == 6
 
 
 # -------- 6番 --------
@@ -500,16 +509,50 @@ def quan_bu_kao(distinct_tiles: dict, merged_suites):
 # -------- 16番 --------
 
 
-def quan_dai_wu(tiles):
+def quan_dai_wu(
+    tiles,
+    distinct_tiles,
+    peng_history,
+    gang_history,
+    an_gang_history,
+    shang_history,
+    jiangs,
+):
     # 每副顺子、刻子、将牌都有序数牌5
-    # BUG
-    ctr = 0
-    for tile in tiles:
-        if tile in FENGS + JIANS:
+    for tile in set(peng_history + gang_history + an_gang_history):
+        if len(tile) == 1:
             return False
+    an_ke = []
+    remaining_tiles = []
+    for tile, cnt in distinct_tiles.items():
+        if cnt >= 3:
+            if tile == jiangs:
+                remaining_tiles += [tile] * cnt
+            else:
+                an_ke += [tile]
+        if cnt <= 2:
+            remaining_tiles += [tile] * cnt
+
+    total_dai_wu_pai = 0
+
+    for tile in set(an_ke):
+        if len(tile) == 1 or tile[0] != "5":
+            return False
+        elif tile[0] == "5":
+            total_dai_wu_pai += 1
+    formatted_shang = {"索": [], "筒": [], "万": []}
+    for i in range(0, len(shang_history) - 2, 3):
+        suite = shang_history[i][1]
+        comb = shang_history[i][0] + shang_history[i + 1][0] + shang_history[i + 2][0]
+        formatted_shang[suite].append(comb)
+    for tile_groups in formatted_shang.values():
+        for tile_group in tile_groups:
+            if "5" in tile_group:
+                total_dai_wu_pai += 1
+    for tile in remaining_tiles:
         if tile[0] == "5":
-            ctr += 1
-    return ctr >= 6
+            total_dai_wu_pai += 1
+    return total_dai_wu_pai == 6
 
 
 def yi_se_san_bu_gao(merged_suites: dict):
