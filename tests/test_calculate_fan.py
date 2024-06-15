@@ -761,7 +761,32 @@ def test_calculate_ke_gang_fan():
     assert rf.exclude == set()
 
 def test_calculate_feng_ke_fan():
-    pass
+    rf = calculate_fan.ResultFan()
+    distinct_tiles = calculate_fan.get_distinct_tiles(
+        ["东", "东", "东", "南", "南", "南", "西", "西", "西", "北", "北", "北", "白", "白"]
+    )
+    calculate_fan.calculate_feng_ke_fan( rf, distinct_tiles=distinct_tiles)
+    assert rf.fan_names == ["大四喜"]
+    assert rf.total_fan == 88
+    assert rf.exclude == {"圈风刻", "门风刻", "三风刻", "碰碰和"}
+
+    rf = calculate_fan.ResultFan()
+    distinct_tiles = calculate_fan.get_distinct_tiles(
+        ["1万", "1万", "1万", "南", "南", "南", "西", "西", "西", "北", "北", "北", "东", "东"]
+    )
+    calculate_fan.calculate_feng_ke_fan( rf, distinct_tiles=distinct_tiles)
+    assert rf.fan_names == ["小四喜"]
+    assert rf.total_fan == 64
+    assert rf.exclude == {"三风刻", "幺九刻"}
+
+    rf = calculate_fan.ResultFan()
+    distinct_tiles = calculate_fan.get_distinct_tiles(
+        ["1万", "1万", "1万", "南", "南", "南", "西", "西", "西", "北", "北", "北", "白", "白"]
+    )
+    calculate_fan.calculate_feng_ke_fan( rf, distinct_tiles=distinct_tiles)
+    assert rf.fan_names == ["三风刻"]
+    assert rf.total_fan == 12
+    assert rf.exclude == set()
 
 def test_calculate_jiang_fan():
     pass
