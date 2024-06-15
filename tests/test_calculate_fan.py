@@ -187,6 +187,7 @@ def test_calculate_attribute_fan():
         gang_history=[],
         shang_history=["2索", "3索", "4索"],
         an_gang_history=["8索", "8索", "8索", "8索"],
+        jiangs="",
     )
     assert rf.fan_names == ["绿一色"]
     assert rf.exclude == {"混一色"}
@@ -201,6 +202,7 @@ def test_calculate_attribute_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
+        jiangs="5万",
     )
     assert rf.fan_names == ["九莲宝灯"]
     assert rf.exclude == {"清一色", "不求人", "门前清", "无字", "幺九刻"}
@@ -215,6 +217,7 @@ def test_calculate_attribute_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
+        jiangs="",
     )
     assert rf.fan_names == ["清幺九"]
     assert rf.exclude == {"混幺九", "碰碰和", "全带幺", "双同刻", "幺九刻", "无字"}
@@ -229,6 +232,7 @@ def test_calculate_attribute_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
+        jiangs="中",
     )
     assert rf.fan_names == ["字一色"]
     assert rf.exclude == {"混幺九", "碰碰和", "全带幺", "幺九刻"}
@@ -243,9 +247,10 @@ def test_calculate_attribute_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
+        jiangs="白",
     )
     assert rf.fan_names == ["混幺九", "缺一门"]
-    assert rf.exclude == set()
+    assert rf.exclude == {"幺九刻", "碰碰和", "全带幺"}
     assert rf.total_fan == 33
 
     rf = calculate_fan.ResultFan()
@@ -257,6 +262,7 @@ def test_calculate_attribute_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
+        jiangs="2筒",
     )
     assert rf.fan_names == ["全双刻", "缺一门"]
     assert rf.exclude == {"碰碰和", "断幺", "无字"}
@@ -271,6 +277,7 @@ def test_calculate_attribute_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
+        jiangs="南",
     )
     assert rf.fan_names == ["混一色"]
     assert rf.exclude == set()
@@ -285,6 +292,7 @@ def test_calculate_attribute_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
+        jiangs="9万",
     )
     assert rf.fan_names == ["清一色"]
     assert rf.exclude == {"无字"}
@@ -299,6 +307,7 @@ def test_calculate_attribute_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
+        jiangs="9索"
     )
     assert rf.fan_names == ["全大"]
     assert rf.exclude == {"大于五", "无字"}
@@ -313,6 +322,7 @@ def test_calculate_attribute_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
+        jiangs="6索",
     )
     assert rf.fan_names == ["全中"]
     assert rf.exclude == {"断幺", "无字"}
@@ -327,20 +337,24 @@ def test_calculate_attribute_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
+        jiangs="1索",
     )
     assert rf.fan_names == ["全小"]
     assert rf.exclude == {"小于五", "无字"}
     assert rf.total_fan == 24
 
     rf = calculate_fan.ResultFan()
+    tiles = ["3万", "4万", "5万", "5万", "5万", "3筒", "4筒", "5筒", "5筒", "6筒", "7筒", "5索", "5索", "5索"]
+    distinct_tiles = calculate_fan.get_distinct_tiles(tiles)
     calculate_fan.calculate_attribute_fan(
         rf,
-        tiles=["3万", "4万", "5万", "5万", "5万", "3筒", "4筒", "5筒", "5筒", "6筒", "7筒", "5索", "5索", "5索"],
-        distinct_tiles={},
+        tiles=tiles,
+        distinct_tiles=distinct_tiles,
         peng_history=[],
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
+        jiangs="5万",
     )
     assert rf.fan_names == ["全带五"]
     assert rf.exclude == {"断幺", "无字"}
@@ -355,6 +369,7 @@ def test_calculate_attribute_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
+        jiangs="9万",
     )
     assert rf.fan_names == ["大于五"]
     assert rf.exclude == {"无字"}
@@ -369,6 +384,7 @@ def test_calculate_attribute_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
+        jiangs="4万",
     )
     assert rf.fan_names == ["小于五"]
     assert rf.exclude == {"无字"}
@@ -383,6 +399,7 @@ def test_calculate_attribute_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
+        jiangs="白",
     )
     assert rf.fan_names == ["推不倒"]
     assert rf.exclude == {"缺一门"}
@@ -397,35 +414,43 @@ def test_calculate_attribute_fan():
         gang_history=[],
         shang_history=[],
         an_gang_history=[],
+        jiangs="5万",
     )
     assert rf.fan_names == ["清一色", "碰碰和"]
     assert rf.exclude == {"无字"}
     assert rf.total_fan == 30
 
-    # rf = calculate_fan.ResultFan()
-    # calculate_fan.calculate_attribute_fan(
-    #     rf,
-    #     tiles=["3万", "4万", "5万", "5万", "5万", "3筒", "4筒", "5筒", "5筒", "6筒", "7筒", "5索", "5索", "5索"],
-    #     distinct_tiles={},
-    #     peng_history=[],
-    #     gang_history=[],
-    #     shang_history=[],
-    #     an_gang_history=[],
-    # )
-    # assert rf.fan_names == ["全带幺"]
-    # assert rf.exclude == set()
-    # assert rf.total_fan == 4
 
-    # rf = calculate_fan.ResultFan()
-    # calculate_fan.calculate_attribute_fan(
-    #     rf,
-    #     tiles=["3万", "4万", "5万", "6万", "6万", "3筒", "4筒", "5筒", "5筒", "6筒", "7筒", "5索", "5索", "5索"],
-    #     distinct_tiles={},
-    #     peng_history=[],
-    #     gang_history=[],
-    #     shang_history=[],
-    #     an_gang_history=[],
-    # )
-    # assert rf.fan_names == ["断幺"]
-    # assert rf.exclude == {"无字"}
-    # assert rf.total_fan == 2
+    rf = calculate_fan.ResultFan()
+    tiles = ["1万", "2万", "3万", "9万", "9万", "1筒", "1筒", "1筒", "7筒", "8筒", "9筒", "白", "白", "白"]
+    distinct_tiles = calculate_fan.get_distinct_tiles(tiles)
+    calculate_fan.calculate_attribute_fan(
+        rf,
+        tiles=tiles,
+        distinct_tiles=distinct_tiles,
+        peng_history=[],
+        gang_history=[],
+        shang_history=[],
+        an_gang_history=[],
+        jiangs="9万",
+    )
+    assert rf.fan_names == ["全带幺", "缺一门"]
+    assert rf.exclude == set()
+    assert rf.total_fan == 5
+
+    rf = calculate_fan.ResultFan()
+    tiles = ["3万", "4万", "5万", "6万", "6万", "3筒", "4筒", "5筒", "5筒", "6筒", "7筒", "5索", "5索", "5索"]
+    distinct_tiles = calculate_fan.get_distinct_tiles(tiles)
+    calculate_fan.calculate_attribute_fan(
+        rf,
+        tiles=tiles,
+        distinct_tiles=distinct_tiles,
+        peng_history=[],
+        gang_history=[],
+        shang_history=[],
+        an_gang_history=[],
+        jiangs="6万",
+    )
+    assert rf.fan_names == ["断幺"]
+    assert rf.exclude == {"无字"}
+    assert rf.total_fan == 2
