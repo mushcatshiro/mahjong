@@ -156,6 +156,7 @@ class Hand(State):
         self.gang_history = []
         self.an_gang_history = []
         self.shang_history = []
+        self.jiangs = ""
 
     def reset(self):
         self.tiles = []
@@ -166,6 +167,7 @@ class Hand(State):
         self.gang_history = []
         self.an_gang_history = []
         self.shang_history = []
+        self.jiangs = ""
 
     def shang(self, action: PlayAction):
         for tile in action.move_tiles:
@@ -387,7 +389,7 @@ class Hand(State):
         self.tiles_history[f"{len(self.tiles_history)}-{method}-remove"] = tile
         return tile
 
-    def get_valid_eye_sets(self, free_tiles):
+    def get_valid_jiangs(self, free_tiles):
         rv = []
         distinct_tile_count = {}
         for tiles in free_tiles:
@@ -458,17 +460,18 @@ class Hand(State):
         if len(tiles) % 3 != 2:
             raise ValueError(f"invalid hand: {tiles}")
 
-        valid_eye_sets = self.get_valid_eye_sets(tiles)
-        if not valid_eye_sets:
+        valid_jiangs = self.get_valid_jiangs(tiles)
+        if not valid_jiangs:
             return rv
         else:
-            for eye_set in valid_eye_sets:
+            for jiangs in valid_jiangs:
                 tmp_tiles = copy.deepcopy(tiles)
                 for _ in range(2):
-                    tmp_tiles.remove(eye_set)
+                    tmp_tiles.remove(jiangs)
 
                 rv = self._dp_search(tmp_tiles)
                 if rv:
+                    self.jiangs = jiangs
                     return rv
         return rv
 
