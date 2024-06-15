@@ -672,7 +672,6 @@ class Player(State):
             self.winning_conditions,
             self.hand.tiles_history,
             self.hand.tiles,
-            self.hand.distinct_tile_count,
             self.hand.peng_history,
             self.hand.gang_history,
             self.hand.shang_history,

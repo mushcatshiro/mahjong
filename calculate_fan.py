@@ -36,9 +36,9 @@ def get_suites(tiles, shang_history=[]):
 
 def remove_zu_he_long(tiles: list, ref: dict):
     # remove tiles that are part of zu_he_long
-    for suite, tiles in ref.items():
-        for tile in tiles:
-            tiles.remove(tile + suite)
+    for suite, ref_tiles in ref.items():
+        for ref_tile in ref_tiles:
+            tiles.remove(ref_tile + suite)
     return tiles
 
 
@@ -60,7 +60,6 @@ def calculate_win_mode_fan(
     winning_condition: list,
     history,
     tiles,
-    distinct_tiles,
     peng_history,
     gang_history,
     shang_history,
@@ -133,15 +132,16 @@ def calculate_win_mode_fan(
 def calculate_attribute_fan(
     rf: ResultFan,
     tiles,
-    distinct_tiles,
     peng_history,
     gang_history,
     shang_history,
     an_gang_history,
+    jiangs,
 ):
     # might want to pass in a copy of full_tiles instead for decoupled testing
     full_tiles = tiles + peng_history + gang_history + shang_history + an_gang_history
-    merged_suites = get_suites(full_tiles, shang_history)
+    distinct_tiles = get_distinct_tiles(full_tiles)
+    merged_suites = get_suites(full_tiles)
     is_zu_he_long, ref = fan.zu_he_long(merged_suites)
 
     if not is_zu_he_long:
@@ -185,7 +185,15 @@ def calculate_attribute_fan(
             rf.fan_names.append("全小")
             rf.total_fan += 24
             rf.exclude.update(["小于五", "无字"])
-        if fan.quan_dai_wu(full_tiles):
+        if fan.quan_dai_wu(
+            tiles,
+            distinct_tiles,
+            peng_history,
+            gang_history,
+            an_gang_history,
+            shang_history,
+            jiangs,
+        ):
             rf.fan_names.append("全带五")
             rf.total_fan += 16
             rf.exclude.update(["断幺", "无字"])
@@ -214,6 +222,7 @@ def calculate_attribute_fan(
             gang_history,
             an_gang_history,
             shang_history,
+            jiangs,
         ):
             rf.fan_names.append("全带幺")
             rf.total_fan += 4
@@ -221,7 +230,7 @@ def calculate_attribute_fan(
             rf.fan_names.append("断幺")
             rf.total_fan += 2
             rf.exclude.update(["无字"])
-        if "缺一门" not in rf.exclude and fan.que_yi_men(full_tiles):
+        if "缺一门" not in rf.exclude and fan.que_yi_men(merged_suites):
             rf.fan_names.append("缺一门")
             rf.total_fan += 1
     if fan.wu_men_qi(merged_suites, distinct_tiles):
@@ -244,9 +253,10 @@ def calculate_attribute_fan(
 
 def calculate_ke_gang_fan(
     rf: ResultFan,
-    distinct_tiles,
+    tiles,
     gang_history,
     an_gang_history,
+    jiangs,
 ):
     """
     四杠 88、四暗刻 64、三杠 32、三暗刻 16、双暗杠 6、双明杠 4、双暗刻 2、暗杠 2、明杠 1、明暗杠 5
@@ -254,15 +264,20 @@ def calculate_ke_gang_fan(
     四暗刻 exclude 碰碰和 不求人 门前清
     四杠 exclude 碰碰和 单骑对子
     """
+    distinct_tiles = get_distinct_tiles(tiles)
     an_gang_cnt = len(an_gang_history) // 4
     gang_cnt = len(gang_history) // 4
-    an_ke_cnt = len(
-        [
-            x
-            for x in distinct_tiles.values()
-            if x >= 3 and x not in an_gang_history + gang_history
-        ]
-    )
+    an_ke_cnt = 0
+    ignore_shang = []  # max 1 cnt per tile
+    for tile, cnt in distinct_tiles.items():
+        if tile == jiangs:
+            cnt -= 2
+        if cnt == 4:
+            # check shang
+            cnt -= 1
+            ignore_shang.append(tile)
+        if cnt == 3:
+            an_ke_cnt += 1
     condition = an_gang_cnt * 100 + gang_cnt * 10 + an_ke_cnt
     if condition == 400:
         rf.fan_names.append("四杠")
@@ -284,10 +299,8 @@ def calculate_ke_gang_fan(
         rf.fan_names.append("双暗刻")
         rf.total_fan += 2
     elif condition == 130:
-        rf.fan_names.append("三杠")
-        rf.total_fan += 32
-        rf.fan_names.append("双明杠")
-        rf.total_fan += 4
+        rf.fan_names.append("四杠")
+        rf.total_fan += 88
     elif condition == 301:
         rf.fan_names.append("三杠")
         rf.total_fan += 32
@@ -403,7 +416,7 @@ def calculate_ke_gang_fan(
         rf.total_fan += 2
 
 
-def calculate_feng_ke_fans(rf: ResultFan, distinct_tiles: dict):
+def calculate_feng_ke_fan(rf: ResultFan, distinct_tiles: dict):
     feng_ke = 0
     feng_jiang = 0
     for feng in FENGS:
@@ -417,7 +430,7 @@ def calculate_feng_ke_fans(rf: ResultFan, distinct_tiles: dict):
         rf.total_fan += 88
         rf.exclude.update(["圈风刻", "门风刻", "三风刻", "碰碰和"])
     elif condition == 31:
-        rf.fan_names.append("小三元")
+        rf.fan_names.append("小四喜")
         rf.total_fan += 64
         rf.exclude.update(["三风刻", "幺九刻"])
     elif condition == 30:
@@ -425,7 +438,7 @@ def calculate_feng_ke_fans(rf: ResultFan, distinct_tiles: dict):
         rf.total_fan += 12
 
 
-def calculate_jian_ke_fans(rf: ResultFan, distinct_tiles: dict):
+def calculate_jian_ke_fan(rf: ResultFan, distinct_tiles: dict):
     jian_ke = 0
     jian_jiang = 0
     for jian in JIANS:
@@ -473,7 +486,7 @@ def calculate_tong_ke(rf: ResultFan, distinct_suite_tiles: dict):
             rf.total_fan += 2
 
 
-def calculate_tong_shuns(rf: ResultFan, tiles: list):
+def calculate_shang_fan(rf: ResultFan, tiles: list, shang_history: list):
     shang_sets = []
     tiles = sorted(tiles)
     for s in SUITES:
@@ -490,6 +503,7 @@ def calculate_tong_shuns(rf: ResultFan, tiles: list):
                 for x in group:
                     candidates.append(x)
                 shang_sets.append([f"{x}{s}" for x in candidates])
+    shang_sets = sorted(shang_sets.append(shang_history))
     if not shang_sets or len(shang_sets) == 1:
         return
 
@@ -564,16 +578,59 @@ def calculate_tong_shuns(rf: ResultFan, tiles: list):
         rf.fan_names.append("一般高")
         rf.total_fan += 1
 
+    consider = {["12", "23", "13"]}
+    if has_fourth_set:
+        consider.update([["13", "34", "14"], ["14", "24", "12"], ["23", "34", "24"]])
+
+    if max_paired_same_suites >= 3:
+        for comb in consider:
+            sum_pair_start_condition_map = sum(
+                [pair_start_condition_map[k] for k in comb]
+            )
+            if sum_pair_start_condition_map == 12:
+                rf.fan_names.append("清龙")
+                rf.total_fan += 16
+                rf.exclude.update(["连六", "老少副"])
+
     if has_third_set:
-        consider = {"12", "13", "23"}
+        for comb in consider:
+            if (
+                (not pair_suite_condition_map[comb[0]])
+                and (not pair_suite_condition_map[comb[1]])
+                and (not pair_suite_condition_map[comb[2]])
+            ):
+                sum_pair_start_condition_map = sum(
+                    [pair_start_condition_map[k] for k in comb]
+                )
+                if sum_pair_start_condition_map == 0:
+                    rf.fan_names.append("三色三同顺")
+                    rf.total_fan += 8
+                    rf.exclude.update(["喜相逢"])
+                elif sum_pair_start_condition_map == 4:
+                    rf.fan_names.append("三色三步高")
+                    rf.total_fan += 6
+                elif sum_pair_start_condition_map == 12:
+                    rf.fan_names.append("花龙")
+                    rf.total_fan += 8
+    # xi_xiang_feng
+    if "喜相逢" in rf.exclude:
+        return
+
+    consider = {"12"}
+    if has_third_set:
+        consider.update(["13"])
         if has_fourth_set:
             consider.update(["14", "24", "34"])
+    for comb in consider:
+        if not pair_suite_condition_map[comb]:
+            if "喜相逢" not in rf.fan_names:
+                rf.fan_names.append("喜相逢")
+            rf.total_fan += 1
 
 
 def calculate_associated_combination_fan(
     rf: ResultFan,
     tiles,
-    distinct_tiles,
     peng_history,
     gang_history,
     shang_history,
@@ -586,43 +643,57 @@ def calculate_associated_combination_fan(
     tiles should be after removing zu_he_long?
     to consider if *_history should be included in each calculation
     """
-    tmp_rf = ResultFan()
+    # tmp_rf = ResultFan()
     full_tiles = tiles + peng_history + gang_history + shang_history + an_gang_history
-    merged_suites = get_suites(full_tiles)
-    calculate_feng_ke_fans(tmp_rf, distinct_tiles)
-    calculate_jian_ke_fans(tmp_rf, distinct_tiles)
+    distinct_tiles = get_distinct_tiles(full_tiles)
+
+    calculate_feng_ke_fan(rf, distinct_tiles)
+    calculate_jian_ke_fan(rf, distinct_tiles)
 
     # full tiles can be used?
+    full_tiles = tiles + shang_history
+    merged_suites = get_suites(full_tiles)
     if fan.yi_se_shuang_long_hui(merged_suites):
-        tmp_rf.fan_names.append("一色双龙会")
-        tmp_rf.total_fan += 64
-        tmp_rf.exclude.update(["七对", "清一色", "平和", "一般高", "老少副", "无字"])
+        rf.fan_names.append("一色双龙会")
+        rf.total_fan += 64
+        rf.exclude.update(["七对", "清一色", "平和", "一般高", "老少副", "无字"])
     if fan.san_se_shuang_long_hui(merged_suites):
-        tmp_rf.fan_names.append("三色双龙会")
-        tmp_rf.total_fan += 32
-        tmp_rf.exclude.update(["喜相逢", "老少副", "无字", "平和"])
+        rf.fan_names.append("三色双龙会")
+        rf.total_fan += 16
+        rf.exclude.update(["喜相逢", "老少副", "无字", "平和"])
 
     full_tiles = tiles + peng_history + gang_history + an_gang_history
     merged_suites = get_suites(full_tiles)
     if fan.yi_se_si_jie_gao(merged_suites):
-        tmp_rf.fan_names.append("一色四节高")
-        tmp_rf.total_fan += 48
-        tmp_rf.exclude.update(["一色三同顺", "一色三节高", "碰碰和"])
-    if "一色三节高" not in tmp_rf.exclude and fan.yi_se_san_jie_gao(merged_suites):
-        tmp_rf.fan_names.append("一色三节高")
-        tmp_rf.total_fan += 24
-        tmp_rf.exclude.update(["一色三同顺"])
+        rf.fan_names.append("一色四节高")
+        rf.total_fan += 48
+        rf.exclude.update(["一色三同顺", "一色三节高", "碰碰和"])
+    if "一色三节高" not in rf.exclude and fan.yi_se_san_jie_gao(merged_suites):
+        rf.fan_names.append("一色三节高")
+        rf.total_fan += 24
+        rf.exclude.update(["一色三同顺"])
     if fan.san_se_san_jie_gao(merged_suites):
-        tmp_rf.fan_names.append("三色三节高")
-        tmp_rf.total_fan += 12
-    # bu_gaos to exclude peng/gang
+        rf.fan_names.append("三色三节高")
+        rf.total_fan += 12
 
+    calculate_shang_fan(rf, tiles, shang_history)
+    full_tiles = tiles + peng_history + gang_history + an_gang_history
+    calculate_tong_ke(
+        rf, get_distinct_tiles(full_tiles)
+    )  # BUG to use get_valid_peng/gang on tiles?
+
+    # 连六、老少副
     full_tiles = tiles + shang_history
     merged_suites = get_suites(full_tiles)
-    calculate_tong_shuns(tmp_rf, tiles, shang_history)
-
-    # 喜相逢、连六、老少副
-    # resolve conflicts
+    lian_liu_cnt = fan.lian_liu(merged_suites)
+    if lian_liu_cnt and "连六" not in rf.exclude:
+        rf.fan_names.append("连六")
+        rf.total_fan += lian_liu_cnt
+    lao_shao_fu_cnt = fan.lao_shao_fu(merged_suites)
+    if lao_shao_fu_cnt and "老少副" not in rf.exclude:
+        rf.fan_names.append("老少副")
+        rf.total_fan += lao_shao_fu_cnt
+    # resolve conflicts?
 
 
 def calculate_single_pack_fan(
@@ -631,8 +702,8 @@ def calculate_single_pack_fan(
     peng_history,
     gang_history,
     an_gang_history,
-    player_wind=None,
-    round_wind=None,
+    player_wind,
+    round_wind,
 ):
     # 箭刻、圈风刻、门风刻、幺九刻
     full_tiles = tiles + peng_history + gang_history + an_gang_history
@@ -656,45 +727,34 @@ def check_qi_dui_hu(distinct_tiles: dict):
     return all([x == 2 for x in distinct_tiles.values()])
 
 
-def check_zu_he_long_hu(merged_suites: dict, tiles):
-    is_zu_he_long, ref = fan.zu_he_long(merged_suites)
-    if is_zu_he_long:
-        tiles = remove_zu_he_long(tiles, ref)
-        if check_basic_hu(tiles):
-            return True
-    return False
-
-
-def check_special_hu():
-    # 十三幺 七星不靠 全不靠
-    return False
-
-
-def check_basic_hu():
-    return False
-
-
 def calculate_fan(
     rf: ResultFan,
     winning_condition,
     history,
     tiles,
-    distinct_tiles,
     peng_history,
     gang_history,
     shang_history,
     an_gang_history,
     flower_tiles,
-    round_wind=None,
-    player_wind=None,
+    jiangs,
+    round_wind="东",  # BUG until implemention
+    player_wind="东",  # BUG until implemention
 ):
+    """
+    known bugs
+    - when no peng/gang/shang, jiangs can be counted as ke
+     - preprocess to remove jiangs?
+    """
+
+    distinct_tiles = get_distinct_tiles(tiles)
     if fan.shi_san_yao(tiles):
         rf.fan_names.append("十三幺")
         rf.total_fan += 88
         rf.exclude.update(["混幺九", "五门齐", "不求人", "门前清", "单骑对子"])
-    is_quan_bu_kao = fan.quan_bu_kao(distinct_tiles, get_suites(tiles, shang_history))
+    is_quan_bu_kao = fan.quan_bu_kao(distinct_tiles, get_suites(tiles))
     if is_quan_bu_kao:
-        if fan.qi_xing_bu_kao():
+        if fan.qi_xing_bu_kao(distinct_tiles, get_suites(tiles)):
             rf.fan_names.append("七星不靠")
             rf.total_fan += 24
             rf.exclude.update(["全不靠", "五门齐", "不求人", "门前清"])
@@ -702,17 +762,17 @@ def calculate_fan(
             rf.fan_names.append("全不靠")
             rf.total_fan += 12
             rf.exclude.update(["五门齐", "不求人", "门前清"])
-        is_zu_he_long, _ = fan.zu_he_long()  # BUG
+        is_zu_he_long, _ = fan.zu_he_long(get_suites(tiles))
         if is_zu_he_long:
             rf.fan_names.append("组合龙")
             rf.total_fan += 12
 
-    if check_qi_dui(tiles):
-        if fan.lian_qi_dui():
+    if check_qi_dui_hu(distinct_tiles):
+        if fan.lian_qi_dui(tiles):
             rf.fan_names.append("连七对")
             rf.total_fan += 88
             rf.exclude.update(["七对", "清一色", "不求人", "门前清", "无字", "单骑对子"])
-        if "七对" not in rf.exclude and fan.qi_dui():
+        if "七对" not in rf.exclude and fan.qi_dui(distinct_tiles):
             rf.fan_names.append("七对")
             rf.total_fan += 24
             rf.exclude.update(["不求人", "门前清", "单骑对子"])
@@ -721,35 +781,65 @@ def calculate_fan(
             winning_condition,
             history,
             tiles,
-            distinct_tiles,
             peng_history,
             gang_history,
             shang_history,
             an_gang_history,
         )
 
-    is_zu_he_long, ref = fan.zu_he_long()  # BUG
+    is_zu_he_long, ref = fan.zu_he_long(get_suites(tiles))
     if is_zu_he_long:
         tiles = remove_zu_he_long(tiles, ref)
     if is_zu_he_long and not is_quan_bu_kao:
         pass
     else:
-        calculate_attribute_fan()
-        calculate_ke_gang_fan()
-        calculate_associated_combination_fan()
-        calculate_single_pack_fan()
+        calculate_attribute_fan(
+            rf,
+            tiles,
+            peng_history,
+            gang_history,
+            shang_history,
+            an_gang_history,
+            jiangs,
+        )
+        calculate_ke_gang_fan(
+            rf,
+            tiles,
+            gang_history,
+            an_gang_history,
+        )  # BUG use get_valid_peng/gang on tiles
+        calculate_associated_combination_fan(
+            rf,
+            tiles,
+            peng_history,
+            gang_history,
+            shang_history,
+            an_gang_history,
+        )
+        calculate_single_pack_fan(
+            rf,
+            tiles,
+            peng_history,
+            gang_history,
+            an_gang_history,
+            player_wind,
+            round_wind,
+        )
 
     calculate_win_mode_fan(
         rf,
         winning_condition,
         history,
         tiles,
-        distinct_tiles,
         peng_history,
         gang_history,
         shang_history,
         an_gang_history,
     )
+
+    if not rf.fan_names:
+        rf.fan_names.append("无番和")
+        rf.total_fan += 8
 
     # 每花1番。花牌补花成和计自摸，不计杠上开花
     if flower_tiles:
