@@ -417,6 +417,7 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万"],
         gang_history=[],
         an_gang_history=["1万", "1万", "1万", "1万", "2万", "2万", "2万", "2万", "3万", "3万", "3万", "3万", "4万", "4万", "4万", "4万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["四杠", "四暗刻"]
     assert rf.total_fan == 152
@@ -428,6 +429,7 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万"],
         gang_history=["1万", "1万", "1万", "1万"],
         an_gang_history=["2万", "2万", "2万", "2万", "3万", "3万", "3万", "3万", "4万", "4万", "4万", "4万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["四杠", "三暗刻"]
     assert rf.total_fan == 104
@@ -439,6 +441,7 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万"],
         gang_history=["1万", "1万", "1万", "1万", "2万", "2万", "2万", "2万"],
         an_gang_history=["3万", "3万", "3万", "3万", "4万", "4万", "4万", "4万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["四杠", "双暗刻"]
     assert rf.total_fan == 90
@@ -450,6 +453,7 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万"],
         gang_history=["1万", "1万", "1万", "1万", "2万", "2万", "2万", "2万", "3万", "3万", "3万", "3万"],
         an_gang_history=["4万", "4万", "4万", "4万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["四杠"]
     assert rf.total_fan == 88
@@ -461,6 +465,7 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万", "1万", "1万", "1万"],
         gang_history=[],
         an_gang_history=["2万", "2万", "2万", "2万", "3万", "3万", "3万", "3万", "4万", "4万", "4万", "4万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["三杠", "四暗刻"]
     assert rf.total_fan == 96
@@ -472,6 +477,7 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万", "1万", "2万", "3万"],
         gang_history=[],
         an_gang_history=["2万", "2万", "2万", "2万", "3万", "3万", "3万", "3万", "4万", "4万", "4万", "4万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["三杠", "三暗刻"]
     assert rf.total_fan == 48
@@ -483,6 +489,7 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万", "1万", "1万", "1万"],
         gang_history=["2万", "2万", "2万", "2万"],
         an_gang_history=["3万", "3万", "3万", "3万", "4万", "4万", "4万", "4万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["三杠", "三暗刻"]
     assert rf.total_fan == 48
@@ -494,6 +501,7 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万", "1万", "2万", "3万"],
         gang_history=["2万", "2万", "2万", "2万"],
         an_gang_history=["3万", "3万", "3万", "3万", "4万", "4万", "4万", "4万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["三杠", "双暗刻"]
     assert rf.total_fan == 34
@@ -505,6 +513,7 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万", "1万", "1万", "1万"],
         gang_history=["2万", "2万", "2万", "2万", "4万", "4万", "4万", "4万"],
         an_gang_history=["3万", "3万", "3万", "3万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["三杠", "双暗刻"]
     assert rf.total_fan == 34
@@ -516,6 +525,7 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万", "1万", "2万", "3万"],
         gang_history=["2万", "2万", "2万", "2万", "4万", "4万", "4万", "4万"],
         an_gang_history=["3万", "3万", "3万", "3万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["三杠"]
     assert rf.total_fan == 32
@@ -527,6 +537,7 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万", "1万", "1万", "1万", "2万", "2万", "2万"],
         gang_history=[],
         an_gang_history=["4万", "4万", "4万", "4万", "3万", "3万", "3万", "3万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["双暗杠", "四暗刻"]
     assert rf.total_fan == 70
@@ -538,6 +549,7 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万", "7万", "8万", "9万", "2万", "2万", "2万"],
         gang_history=[],
         an_gang_history=["4万", "4万", "4万", "4万", "3万", "3万", "3万", "3万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["双暗杠", "三暗刻"]
     assert rf.total_fan == 22
@@ -549,6 +561,7 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万", "1万", "1万", "1万", "2万", "2万", "2万"],
         gang_history=["4万", "4万", "4万", "4万"],
         an_gang_history=["3万", "3万", "3万", "3万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["明暗杠", "三暗刻"]
     assert rf.total_fan == 21
@@ -560,6 +573,7 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万", "7万", "8万", "9万", "2万", "2万", "2万"],
         gang_history=["4万", "4万", "4万", "4万"],
         an_gang_history=["3万", "3万", "3万", "3万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["明暗杠", "双暗刻"]
     assert rf.total_fan == 7
@@ -571,6 +585,7 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万", "1万", "1万", "1万", "2万", "2万", "2万"],
         gang_history=["4万", "4万", "4万", "4万", "3万", "3万", "3万", "3万"],
         an_gang_history=[],
+        jiangs="5万",
     )
     assert rf.fan_names == ["双明杠", "双暗刻"]
     assert rf.total_fan == 6
@@ -582,23 +597,168 @@ def test_calculate_ke_gang_fan():
         tiles=["5万", "5万", "1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万"],
         gang_history=[],
         an_gang_history=["4万", "4万", "4万", "4万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["暗杠", "四暗刻"]
     assert rf.total_fan == 66
     assert rf.exclude == {"碰碰和", "不求人", "门前清"}
 
-    # FIXME 102
     rf = calculate_fan.ResultFan()
     calculate_fan.calculate_ke_gang_fan(
         rf,
         tiles=["5万", "5万", "1万", "2万", "3万", "2万", "2万", "2万", "3万", "3万", "3万"],
         gang_history=[],
         an_gang_history=["4万", "4万", "4万", "4万"],
+        jiangs="5万",
     )
     assert rf.fan_names == ["暗杠", "三暗刻"]
     assert rf.total_fan == 18
     assert rf.exclude == set()
 
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_ke_gang_fan(
+        rf,
+        tiles=["5万", "5万", "1万", "2万", "3万", "7万", "8万", "9万", "3万", "3万", "3万"],
+        gang_history=[],
+        an_gang_history=["4万", "4万", "4万", "4万"],
+        jiangs="5万",
+    )
+    assert rf.fan_names == ["暗杠", "双暗刻"]
+    assert rf.total_fan == 4
+    assert rf.exclude == set() # 101
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_ke_gang_fan(
+        rf,
+        tiles=["5万", "5万", "1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万"],
+        gang_history=["4万", "4万", "4万", "4万"],
+        an_gang_history=[],
+        jiangs="5万",
+    )
+    assert rf.fan_names == ["明杠", "三暗刻"]
+    assert rf.total_fan == 17
+    assert rf.exclude == set() # 13
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_ke_gang_fan(
+        rf,
+        tiles=["5万", "5万", "5万", "6万", "7万", "2万", "2万", "2万", "3万", "3万", "3万"],
+        gang_history=["4万", "4万", "4万", "4万"],
+        an_gang_history=[],
+        jiangs="5万",
+    )
+    assert rf.fan_names == ["明杠", "双暗刻"]
+    assert rf.total_fan == 3
+    assert rf.exclude == set() # 12
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_ke_gang_fan(
+        rf,
+        tiles=["5万", "5万", "5万", "6万", "7万", "5万", "6万", "7万"],
+        gang_history=["4万", "4万", "4万", "4万"],
+        an_gang_history=["3万", "3万", "3万", "3万"],
+        jiangs="5万",
+    )
+    assert rf.fan_names == ["明暗杠"]
+    assert rf.total_fan == 5
+    assert rf.exclude == set() # 110
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_ke_gang_fan(
+        rf,
+        tiles=["5万", "5万"],
+        gang_history=["1万", "1万", "1万", "1万", "2万", "2万", "2万", "2万", "3万", "3万", "3万", "3万", "4万", "4万", "4万", "4万"],
+        an_gang_history=[],
+        jiangs="5万",
+    )
+    assert rf.fan_names == ["四杠"]
+    assert rf.total_fan == 88
+    assert rf.exclude == {"碰碰和", "单骑对子"}
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_ke_gang_fan(
+        rf,
+        tiles=["5万", "5万", "1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万", "4万", "4万", "4万"],
+        gang_history=[],
+        an_gang_history=[],
+        jiangs="5万",
+    )
+    assert rf.fan_names == ["四暗刻"]
+    assert rf.total_fan == 64
+    assert rf.exclude == {"碰碰和", "不求人", "门前清"}
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_ke_gang_fan(
+        rf,
+        tiles=["5万", "5万", "5万", "6万", "7万"],
+        gang_history=["1万", "1万", "1万", "1万", "2万", "2万", "2万", "2万", "3万", "3万", "3万", "3万"],
+        an_gang_history=[],
+        jiangs="5万",
+    )
+    assert rf.fan_names == ["三杠"]
+    assert rf.total_fan == 32
+    assert rf.exclude == set()
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_ke_gang_fan(
+        rf,
+        tiles=["5万", "5万", "5万", "6万", "7万", "1万", "1万", "1万", "2万", "2万", "2万", "3万", "3万", "3万"],
+        gang_history=[],
+        an_gang_history=[],
+        jiangs="5万",
+    )
+    assert rf.fan_names == ["三暗刻"]
+    assert rf.total_fan == 16
+    assert rf.exclude == set()
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_ke_gang_fan(
+        rf,
+        tiles=["5万", "5万", "5万", "6万", "7万", "7万", "8万", "9万"],
+        gang_history=[],
+        an_gang_history=["2万", "2万", "2万", "2万", "3万", "3万", "3万", "3万"],
+        jiangs="5万",
+    )
+    assert rf.fan_names == ["双暗杠"]
+    assert rf.total_fan == 6
+    assert rf.exclude == set()
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_ke_gang_fan(
+        rf,
+        tiles=["5万", "5万", "5万", "6万", "7万", "7万", "8万", "9万"],
+        gang_history=["2万", "2万", "2万", "2万", "3万", "3万", "3万", "3万"],
+        an_gang_history=[],
+        jiangs="5万",
+    )
+    assert rf.fan_names == ["双明杠"]
+    assert rf.total_fan == 4
+    assert rf.exclude == set()
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_ke_gang_fan(
+        rf,
+        tiles=["5万", "5万", "5万", "6万", "7万", "7万", "8万", "9万", "2万", "2万", "2万", "3万", "3万", "3万"],
+        gang_history=[],
+        an_gang_history=[],
+        jiangs="5万",
+    )
+    assert rf.fan_names == ["双暗刻"]
+    assert rf.total_fan == 2
+    assert rf.exclude == set()
+
+    # BUG `calculate_fan.py` line 288
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_ke_gang_fan(
+        rf,
+        tiles=["5万", "5万", "5万", "6万", "7万", "7万", "8万", "9万", "7万", "8万", "9万"],
+        gang_history=["3万", "3万", "3万", "3万"],
+        an_gang_history=[],
+        jiangs="5万",
+    )
+    assert rf.fan_names == ["明杠"]
+    assert rf.total_fan == 1
+    assert rf.exclude == set()
 
 def test_calculate_feng_ke_fan():
     pass

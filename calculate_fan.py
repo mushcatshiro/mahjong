@@ -4,6 +4,7 @@ from tiles import (
     HUAS,
     SHANGS,
     SHANG_REF,
+    REVERSED_SHANG_LUT,
     SUITES,
 )
 
@@ -50,6 +51,19 @@ def get_distinct_tiles(tiles: list):
         else:
             distinct_tiles[tile] += 1
     return distinct_tiles
+
+
+def check_shang(tile, tiles, jiangs):
+    if len(tile) == 1:
+        return False
+    val = tile[0]
+    suite = tile[1]
+    merged_suites = get_suites(tiles)
+
+    for ref in REVERSED_SHANG_LUT[val]:
+        if ref[0] in merged_suites[suite] and ref[1] in merged_suites[suite]:
+            return True
+    return False
 
 
 # -------- main functions --------
@@ -268,14 +282,12 @@ def calculate_ke_gang_fan(
     an_gang_cnt = len(an_gang_history) // 4
     gang_cnt = len(gang_history) // 4
     an_ke_cnt = 0
-    ignore_shang = []  # max 1 cnt per tile
     for tile, cnt in distinct_tiles.items():
         if tile == jiangs:
             cnt -= 2
-        if cnt == 4:
-            # check shang
+        # BUG tile cnt can be 2/3/4 and might or not might not be part of shang
+        if cnt == 4 and check_shang(tile, tiles, jiangs):
             cnt -= 1
-            ignore_shang.append(tile)
         if cnt == 3:
             an_ke_cnt += 1
     condition = an_gang_cnt * 100 + gang_cnt * 10 + an_ke_cnt
@@ -382,7 +394,7 @@ def calculate_ke_gang_fan(
         rf.total_fan += 1
         rf.fan_names.append("双暗刻")
         rf.total_fan += 2
-    elif condition == 11:
+    elif condition == 110:
         rf.fan_names.append("明暗杠")
         rf.total_fan += 5
     elif condition == 40:
