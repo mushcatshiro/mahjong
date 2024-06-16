@@ -498,24 +498,26 @@ def calculate_tong_ke_fan(rf: ResultFan, distinct_tiles: dict):
             rf.total_fan += 2
 
 
-def calculate_shang_fan(rf: ResultFan, tiles: list, shang_history: list):
+def calculate_shang_fan(rf: ResultFan, tiles: list, shang_history: list, jiangs: str):
     shang_sets = []
-    tiles = sorted(tiles)
+    full_tiles = tiles + shang_history
+    for _ in range(2):
+        full_tiles.remove(jiangs)
+    full_tiles = sorted(full_tiles)
     for s in SUITES:
         distinct_tiles = {}
-        for tile in tiles:
+        for tile in full_tiles:
             if tile.endswith(s):
-                if tile not in distinct_tiles:
+                if tile[:-1] not in distinct_tiles:
                     distinct_tiles[tile[:-1]] = 1
                 else:
                     distinct_tiles[tile[:-1]] += 1
         for group in SHANG_REF:
-            if all([x in distinct_tiles for x in group]):
-                candidates = []
+            while all([x in distinct_tiles and distinct_tiles[x] > 0 for x in group]):
+                candidates = [x for x in group]
                 for x in group:
-                    candidates.append(x)
+                    distinct_tiles[x] -= 1
                 shang_sets.append([f"{x}{s}" for x in candidates])
-    shang_sets = sorted(shang_sets.append(shang_history))
     if not shang_sets or len(shang_sets) == 1:
         return
 
@@ -523,43 +525,50 @@ def calculate_shang_fan(rf: ResultFan, tiles: list, shang_history: list):
     first_set_suite = shang_sets[0][0][1]
     second_set_start = shang_sets[1][0][0]
     second_set_suite = shang_sets[1][0][1]
-    third_set_start = -1
-    third_set_suite = ""
-    fourth_set_start = -1
-    fourth_set_suite = ""
+    has_third_set = False
+    has_fourth_set = False
+    pair_suite_condition_map = {
+        "12": first_set_suite == second_set_suite,
+    }
+    pair_start_condition_map = {
+        "12": abs(int(first_set_start) - int(second_set_start)),
+    }
 
-    if len(shang_sets) == 3:
+    if len(shang_sets) >= 3:
         third_set_start = shang_sets[2][0][0]
         third_set_suite = shang_sets[2][0][1]
         has_third_set = True
+        pair_suite_condition_map["13"] = first_set_suite == third_set_suite
+        pair_suite_condition_map["23"] = second_set_suite == third_set_suite
+        pair_start_condition_map["13"] = abs(
+            int(first_set_start) - int(third_set_start)
+        )
+        pair_start_condition_map["23"] = abs(
+            int(second_set_start) - int(third_set_start)
+        )
     if len(shang_sets) == 4:
         fourth_set_start = shang_sets[3][0][0]
         fourth_set_suite = shang_sets[3][0][1]
         has_fourth_set = True
-
-    pair_suite_condition_map = {
-        "12": first_set_suite == second_set_suite,
-        "13": first_set_suite == third_set_suite,
-        "14": first_set_suite == fourth_set_suite,
-        "23": second_set_suite == third_set_suite,
-        "24": second_set_suite == fourth_set_suite,
-        "34": third_set_suite == fourth_set_suite,
-    }
-    pair_start_condition_map = {
-        "12": abs(int(first_set_start) - int(second_set_start)),
-        "13": abs(int(first_set_start) - int(third_set_start)),
-        "14": abs(int(first_set_start) - int(fourth_set_start)),
-        "23": abs(int(second_set_start) - int(third_set_start)),
-        "24": abs(int(second_set_start) - int(fourth_set_start)),
-        "34": abs(int(third_set_start) - int(fourth_set_start)),
-    }
+        pair_suite_condition_map["14"] = first_set_suite == fourth_set_suite
+        pair_suite_condition_map["24"] = second_set_suite == fourth_set_suite
+        pair_suite_condition_map["34"] = third_set_suite == fourth_set_suite
+        pair_start_condition_map["14"] = abs(
+            int(first_set_start) - int(fourth_set_start)
+        )
+        pair_start_condition_map["24"] = abs(
+            int(second_set_start) - int(fourth_set_start)
+        )
+        pair_start_condition_map["34"] = abs(
+            int(third_set_start) - int(fourth_set_start)
+        )
 
     max_paired_same_suites = sum(pair_suite_condition_map.values())
-    if max_paired_same_suites == 4:
+    if max_paired_same_suites == 6:
         if sum(pair_start_condition_map.values()) == 0:
             rf.fan_names.append("一色四同顺")
             rf.total_fan += 48
-            rf.exclude.update(["一色三节高", "一般高", "四归一", "七对", "四归一", "一般高"])
+            rf.exclude.update(["一色三节高", "一般高", "四归一", "七对", "四归一"])
         elif (
             sum(pair_start_condition_map.values()) == 20
             or sum(pair_start_condition_map.values()) == 10
@@ -570,50 +579,43 @@ def calculate_shang_fan(rf: ResultFan, tiles: list, shang_history: list):
     keys = [k for k, v in pair_suite_condition_map.items() if v]
     sum_pair_start_condition_map = sum([pair_start_condition_map[k] for k in keys])
     # bring max_paired_same_suites out as first check then check sum_pair_start_condition_map
-    if sum_pair_start_condition_map == 0:
-        if max_paired_same_suites == 3:
+    if max_paired_same_suites == 3:
+        if sum_pair_start_condition_map == 0:
             rf.fan_names.append("一色三同顺")
             rf.total_fan += 24
             rf.exclude.update(["一色三节高", "一般高"])
-        elif max_paired_same_suites == 2:
-            rf.fan_names.append("一般高x2")
-            rf.total_fan += 2
-        elif max_paired_same_suites == 1:
-            rf.fan_names.append("一般高x2")
-            rf.total_fan += 2
-    elif max_paired_same_suites == 3 and (
-        sum_pair_start_condition_map == 4 or sum_pair_start_condition_map == 8
-    ):
-        rf.fan_names.append("一色三步高")
-        rf.total_fan += 16
-    elif sum_pair_start_condition_map != 0 and max_paired_same_suites == 2:
-        rf.fan_names.append("一般高")
-        rf.total_fan += 1
+        elif sum_pair_start_condition_map == 4 or sum_pair_start_condition_map == 8:
+            rf.fan_names.append("一色三步高")
+            rf.total_fan += 16
+    if "一般高" not in rf.exclude:
+        for k, v in pair_suite_condition_map.items():
+            if v and pair_start_condition_map[k] == 0:
+                if "一般高" not in rf.fan_names:
+                    rf.fan_names.append("一般高")
+                else:
+                    rf.fan_names.remove("一般高")
+                    rf.fan_names.append("一般高x2")
+                rf.total_fan += 1
 
-    consider = {["12", "23", "13"]}
+    consider = [["12", "23", "13"]]
     if has_fourth_set:
-        consider.update([["13", "34", "14"], ["14", "24", "12"], ["23", "34", "24"]])
+        consider += [["13", "34", "14"], ["14", "24", "12"], ["23", "34", "24"]]
 
-    if max_paired_same_suites >= 3:
+    if has_third_set:
         for comb in consider:
             sum_pair_start_condition_map = sum(
                 [pair_start_condition_map[k] for k in comb]
             )
-            if sum_pair_start_condition_map == 12:
+            if sum_pair_start_condition_map == 12 and max_paired_same_suites >= 3:
                 rf.fan_names.append("清龙")
                 rf.total_fan += 16
                 rf.exclude.update(["连六", "老少副"])
-
-    if has_third_set:
-        for comb in consider:
-            if (
+                break
+            elif (
                 (not pair_suite_condition_map[comb[0]])
                 and (not pair_suite_condition_map[comb[1]])
                 and (not pair_suite_condition_map[comb[2]])
             ):
-                sum_pair_start_condition_map = sum(
-                    [pair_start_condition_map[k] for k in comb]
-                )
                 if sum_pair_start_condition_map == 0:
                     rf.fan_names.append("三色三同顺")
                     rf.total_fan += 8
@@ -624,19 +626,18 @@ def calculate_shang_fan(rf: ResultFan, tiles: list, shang_history: list):
                 elif sum_pair_start_condition_map == 12:
                     rf.fan_names.append("花龙")
                     rf.total_fan += 8
-    # xi_xiang_feng
+                break
+
     if "喜相逢" in rf.exclude:
         return
 
-    consider = {"12"}
-    if has_third_set:
-        consider.update(["13"])
-        if has_fourth_set:
-            consider.update(["14", "24", "34"])
-    for comb in consider:
-        if not pair_suite_condition_map[comb]:
+    for comb, cond in pair_suite_condition_map.items():
+        if not cond and pair_start_condition_map[comb] == 0:
             if "喜相逢" not in rf.fan_names:
                 rf.fan_names.append("喜相逢")
+            else:
+                rf.fan_names.remove("喜相逢")
+                rf.fan_names.append("喜相逢x2")
             rf.total_fan += 1
 
 
@@ -655,14 +656,12 @@ def calculate_associated_combination_fan(
     tiles should be after removing zu_he_long?
     to consider if *_history should be included in each calculation
     """
-    # tmp_rf = ResultFan()
     full_tiles = tiles + peng_history + gang_history + shang_history + an_gang_history
     distinct_tiles = get_distinct_tiles(full_tiles)
 
     calculate_feng_ke_fan(rf, distinct_tiles)
     calculate_jian_ke_fan(rf, distinct_tiles)
 
-    # full tiles can be used?
     full_tiles = tiles + shang_history
     merged_suites = get_suites(full_tiles)
     if fan.yi_se_shuang_long_hui(merged_suites):

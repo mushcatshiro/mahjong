@@ -756,7 +756,7 @@ def test_calculate_ke_gang_fan():
         an_gang_history=[],
         jiangs="5万",
     )
-    assert rf.fan_names == ["明杠"]
+    assert rf.fan_names == ["明杠"]  # correct fan 清一色 一般高 明杠
     assert rf.total_fan == 1
     assert rf.exclude == set()
 
@@ -838,15 +838,126 @@ def test_calculate_tong_ke_fan():
 
 
 def test_calculate_shang_fan():
-    pass
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_shang_fan(
+        rf,
+        tiles=["1万", "1万"],
+        shang_history=[],
+        jiangs="1万",
+    )
+    assert rf.fan_names == []
+    assert rf.total_fan == 0
+    assert rf.exclude == set()
 
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_shang_fan(
+        rf,
+        tiles=["1万", "2万", "3万", "1万", "2万", "3万", "1万", "2万", "3万", "1万", "2万", "3万", "5索", "5索"],
+        shang_history=[],
+        jiangs="5索",
+    )
+    assert rf.fan_names == ["一色四同顺"]
+    assert rf.total_fan == 48
+    assert rf.exclude == {"一色三节高", "一般高", "四归一", "七对", "四归一", "一般高"}
 
-def test_calculate_associated_combination_fan():
-    pass
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_shang_fan(
+        rf,
+        tiles=["1万", "2万", "3万", "2万", "3万", "4万", "3万", "4万", "5万", "4万", "5万", "6万", "5索", "5索"],
+        shang_history=[],
+        jiangs="5索",
+    )
+    assert rf.fan_names == ["一色四步高"]
+    assert rf.total_fan == 32
+    assert rf.exclude == {"连六", "老少副"}
 
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_shang_fan(
+        rf,
+        tiles=["1万", "2万", "3万", "1万", "2万", "3万", "1万", "2万", "3万", "9万", "9万", "9万", "5索", "5索"],
+        shang_history=[],
+        jiangs="5索",
+    )
+    assert rf.fan_names == ["一色三同顺"]
+    assert rf.total_fan == 24
+    assert rf.exclude == {"一色三节高", "一般高"}
 
-def test_calculate_single_pack_fan():
-    pass
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_shang_fan(
+        rf,
+        tiles=["1万", "2万", "3万", "3万", "4万", "5万", "5万", "6万", "7万", "9万", "9万", "9万", "5索", "5索"],
+        shang_history=[],
+        jiangs="5索",
+    )
+    assert rf.fan_names == ["一色三步高"]
+    assert rf.total_fan == 16
+    assert rf.exclude == set()
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_shang_fan(
+        rf,
+        tiles=["1万", "2万", "3万", "1万", "2万", "3万", "4万", "5万", "6万", "4万", "5万", "6万", "5索", "5索"],
+        shang_history=[],
+        jiangs="5索",
+    )
+    assert rf.fan_names == ["一般高x2"]
+    assert rf.total_fan == 2
+    assert rf.exclude == set()
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_shang_fan(
+        rf,
+        tiles=["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "1万", "2万", "3万", "5索", "5索"],
+        shang_history=[],
+        jiangs="5索",
+    )
+    assert rf.fan_names == ["一般高", "清龙"]
+    assert rf.total_fan == 17
+    assert rf.exclude == {"连六", "老少副"}
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_shang_fan(
+        rf,
+        tiles=["1万", "2万", "3万", "1索", "2索", "3索", "1筒", "2筒", "3筒", "1万", "2万", "3万", "5索", "5索"],
+        shang_history=[],
+        jiangs="5索",
+    )
+    assert rf.fan_names == ["一般高", "三色三同顺"]
+    assert rf.total_fan == 9
+    assert rf.exclude == {"喜相逢"}
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_shang_fan(
+        rf,
+        tiles=["1万", "2万", "3万", "2索", "3索", "4索", "3筒", "4筒", "5筒", "1万", "2万", "3万", "5索", "5索"],
+        shang_history=[],
+        jiangs="5索",
+    )
+    assert rf.fan_names == ["一般高", "三色三步高"]
+    assert rf.total_fan == 7
+    assert rf.exclude == set()
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_shang_fan(
+        rf,
+        tiles=["1万", "2万", "3万", "4索", "5索", "6索", "7筒", "8筒", "9筒", "1万", "2万", "3万", "5索", "5索"],
+        shang_history=[],
+        jiangs="5索",
+    )
+    assert rf.fan_names == ["一般高", "花龙"]
+    assert rf.total_fan == 9
+    assert rf.exclude == set()
+
+    rf = calculate_fan.ResultFan()
+    calculate_fan.calculate_shang_fan(
+        rf,
+        tiles=["1万", "2万", "3万", "1索", "2索", "3索", "5筒", "6筒", "7筒", "5万", "6万", "7万", "5索", "5索"],
+        shang_history=[],
+        jiangs="5索",
+    )
+    assert rf.fan_names == ["喜相逢x2"]
+    assert rf.total_fan == 2
+    assert rf.exclude == set()
 
 
 def test_calculate_fan_simple():
