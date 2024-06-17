@@ -19,3 +19,9 @@ mahjong in python. two modes provided, visualized client and api client.
 - [ ] numpy or equivalent matrix operation
 - [ ] save state
   - [ ] replay with state
+
+## test strategy
+
+- `test_fan.py` focus on 100% coverage of real hands
+- non `test_calculate_fan.py::test_calculate_fan` focus on `ResultFan`
+- `test_calculate_fan.py::test_calculate_fan` focus on all 82 combinations

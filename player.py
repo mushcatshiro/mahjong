@@ -64,3 +64,11 @@ class GreedyPlayer(Player):
         self.preprocess_hand()
         trimmed_possible_actions = self.trim_possible_actions(possible_actions)
         return random.choice(trimmed_possible_actions)
+
+
+class AssistedPlayer:
+    """听牌 is implemented here
+    expect to be slower than non-assisted player
+    """
+
+    pass

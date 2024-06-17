@@ -6,6 +6,7 @@ import datetime as dt
 sys.path.append(".")
 
 from game import Mahjong, Player, DummyPlayer
+
 # from ext.data_collector import DummyPlayerWithSave
 
 
@@ -83,11 +84,11 @@ def main(rounds, debug):
                 ) / complete_games
                 # print(f"{ctr} winning game time avg: {winning_game_time_avg}")
                 player = game.players[game.winner]
-                for win_condition in player.winning_conditions:
-                    if win_condition not in win_condition_stats:
-                        win_condition_stats[win_condition] = 1
+                for fan in player.result_fan.fan_names:
+                    if fan not in win_condition_stats:
+                        win_condition_stats[fan] = 1
                     else:
-                        win_condition_stats[win_condition] += 1
+                        win_condition_stats[fan] += 1
             if debug:
                 for i, player in game.players.items():
                     print_details(player, game.winner)
