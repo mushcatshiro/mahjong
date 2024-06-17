@@ -465,7 +465,7 @@ def calculate_feng_ke_fan(rf: ResultFan, distinct_tiles: dict):
     if condition == 40:
         rf.fan_names.append("大四喜")
         rf.total_fan += 88
-        rf.exclude.update(["圈风刻", "门风刻", "三风刻", "碰碰和"])
+        rf.exclude.update(["圈风刻", "门风刻", "三风刻", "碰碰和", "幺九刻"])
     elif condition == 31:
         rf.fan_names.append("小四喜")
         rf.total_fan += 64
@@ -814,56 +814,54 @@ def calculate_fan(
             rf.fan_names.append("七对")
             rf.total_fan += 24
             rf.exclude.update(["不求人", "门前清", "单骑对子"])
-        calculate_attribute_fan(
-            rf,
-            tiles,
-            peng_history,
-            gang_history,
-            shang_history,
-            an_gang_history,
-            jiangs,
-        )
-
-    is_zu_he_long, ref = fan.zu_he_long(get_suites(tiles))
-    if is_zu_he_long:
-        tiles = remove_zu_he_long(tiles, ref)
-    if is_zu_he_long and not is_quan_bu_kao:
-        pass
-    else:
-        calculate_attribute_fan(
-            rf,
-            tiles,
-            peng_history,
-            gang_history,
-            shang_history,
-            an_gang_history,
-            jiangs,
-        )
-        calculate_ke_gang_fan(
-            rf,
-            tiles,
-            gang_history,
-            an_gang_history,
-            jiangs,
-        )  # BUG use get_valid_peng/gang on tiles
-        calculate_associated_combination_fan(
-            rf,
-            tiles,
-            peng_history,
-            gang_history,
-            shang_history,
-            an_gang_history,
-            jiangs,
-        )
-        # calculate_single_pack_fan(
+        # calculate_attribute_fan(
         #     rf,
         #     tiles,
         #     peng_history,
         #     gang_history,
+        #     shang_history,
         #     an_gang_history,
-        #     player_wind,
-        #     round_wind,
+        #     jiangs,
         # )
+
+    is_zu_he_long, ref = fan.zu_he_long(get_suites(tiles))
+    if is_zu_he_long:
+        tiles = remove_zu_he_long(tiles, ref)
+
+    calculate_attribute_fan(
+        rf,
+        tiles,
+        peng_history,
+        gang_history,
+        shang_history,
+        an_gang_history,
+        jiangs,
+    )
+    calculate_ke_gang_fan(
+        rf,
+        tiles,
+        gang_history,
+        an_gang_history,
+        jiangs,
+    )  # BUG use get_valid_peng/gang on tiles
+    calculate_associated_combination_fan(
+        rf,
+        tiles,
+        peng_history,
+        gang_history,
+        shang_history,
+        an_gang_history,
+        jiangs,
+    )
+    # calculate_single_pack_fan(
+    #     rf,
+    #     tiles,
+    #     peng_history,
+    #     gang_history,
+    #     an_gang_history,
+    #     player_wind,
+    #     round_wind,
+    # )
 
     calculate_win_mode_fan(
         rf,
