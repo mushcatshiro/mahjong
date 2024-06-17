@@ -762,7 +762,7 @@ def calculate_single_pack_fan(
 
 
 def check_qi_dui_hu(distinct_tiles: dict):
-    return all([x == 2 for x in distinct_tiles.values()])
+    return all([x == 2 for x in distinct_tiles.values()]) and len(distinct_tiles) == 14
 
 
 def calculate_fan(

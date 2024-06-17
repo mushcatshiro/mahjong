@@ -4,6 +4,7 @@ import json
 import copy
 from typing import Dict, List
 from dataclasses import dataclass, field
+import calculate_fan
 
 from tiles import (
     HUAS,
@@ -476,21 +477,14 @@ class Hand(State):
         return rv
 
     def is_winning_hand(self, call_tile=None):
-        # 十三幺
-        distinct_tiles = list(set(self.tiles))
-        if sorted(distinct_tiles) == sorted(
-            ["1万", "9万", "1筒", "9筒", "1索", "9索", "东", "南", "西", "北", "白", "發", "中"]
-        ) and (
-            sum([x == 2 for x in self.distinct_tile_count.values()]) == 1
-            and sum([x == 1 for x in self.distinct_tile_count.values()]) == 12
-        ):
-            return True
-        # 对对胡
-        elif all([x == 2 for x in self.distinct_tile_count.values() if x > 0]):
-            return True
         tiles = copy.deepcopy(self.tiles)
         if call_tile:
             tiles.append(call_tile)
+        # 十三幺 TODO bring back
+        # 对对胡
+        distinct_tiles = calculate_fan.get_distinct_tiles(tiles)
+        if calculate_fan.check_qi_dui_hu(distinct_tiles):
+            return True
         return self.dp_search(tiles)
 
     def get_hu_play_result(self):

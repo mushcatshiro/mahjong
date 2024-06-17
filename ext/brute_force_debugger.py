@@ -16,7 +16,7 @@ def print_details(player: Player, winner_idx):
     if winner_idx == player.player_idx:
         print(f"Player {player.player_idx} is winning with:")
     print(f"Player {player.player_idx} history: \n\n{yaml.dump(player.hand.tiles_history, allow_unicode=True, sort_keys=False)}")
-    print(f"Player {player.player_idx} hand: {player.hand.tiles}; flower: {player.hand.flower_tiles}")
+    print(f"Player {player.player_idx} hand: {player.hand.tiles}; flower: {player.hand.flower_tiles}; jiangs: {player.hand.jiangs}")
     print(f"Player {player.player_idx}\n peng: {player.hand.peng_history};\n gang: {player.hand.gang_history};\n shang: {player.hand.shang_history}")
     print("\n")
     # fmt: on
