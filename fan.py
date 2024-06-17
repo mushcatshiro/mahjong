@@ -89,15 +89,15 @@ def lao_shao_fu(merged_suites: dict) -> int:
 def lian_liu(merged_suites: dict) -> int:
     # 一种花色的连续六张牌 可以有多个
     total_lian_liu = 0
-    for tiles in merged_suites.values():
-        if len(tiles) >= 6:
-            fptr = 0
-            bptr = 6
-            while bptr <= len(tiles):
-                if int(tiles[fptr][0]) + 5 == int(tiles[fptr + 5][0]):
-                    total_lian_liu += 1
-                    fptr = bptr
-                    bptr += 6
+    # for tiles in merged_suites.values():
+    #     if len(tiles) >= 6:
+    #         fptr = 0
+    #         bptr = 6
+    #         while bptr <= len(tiles):
+    #             if int(tiles[fptr][0]) + 5 == int(tiles[fptr + 5][0]):
+    #                 total_lian_liu += 1
+    #                 fptr = bptr
+    #                 bptr += 6
     return total_lian_liu
 
 

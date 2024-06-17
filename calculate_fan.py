@@ -53,17 +53,20 @@ def get_distinct_tiles(tiles: list):
     return distinct_tiles
 
 
-def check_shang(tile, tiles, jiangs):
+def check_shang(tile, tiles):
     if len(tile) == 1:
         return False
     val = tile[0]
     suite = tile[1]
     merged_suites = get_suites(tiles)
 
+    cnt = 0
+    candits = []
     for ref in REVERSED_SHANG_LUT[val]:
         if ref[0] in merged_suites[suite] and ref[1] in merged_suites[suite]:
-            return True
-    return False
+            cnt += 1
+            candits += [ref[0], ref[1]]
+    return cnt, candits
 
 
 # -------- main functions --------
@@ -277,16 +280,39 @@ def calculate_ke_gang_fan(
     四暗刻 exclude 碰碰和 不求人 门前清
     四杠 exclude 碰碰和 单骑对子
     """
-    distinct_tiles = get_distinct_tiles(tiles)
+    full_tiles = list(tiles)
+    for _ in range(2):
+        full_tiles.remove(jiangs)
+    distinct_tiles = get_distinct_tiles(full_tiles)
     an_gang_cnt = len(an_gang_history) // 4
     gang_cnt = len(gang_history) // 4
     an_ke_cnt = 0
+    shang_sets = {}
+    for s in SUITES:
+        _distinct_tiles = {}
+        for tile in full_tiles:
+            # TODO improve with merged_tiles
+            if tile.endswith(s):
+                if tile[:-1] not in _distinct_tiles:
+                    _distinct_tiles[tile[:-1]] = 1
+                else:
+                    _distinct_tiles[tile[:-1]] += 1
+        for group in SHANG_REF:
+            while all([x in _distinct_tiles and _distinct_tiles[x] > 0 for x in group]):
+                candidates = [x for x in group]
+                for x in group:
+                    _distinct_tiles[x] -= 1
+                key = tuple([f"{x}{s}" for x in candidates])
+                if key not in shang_sets:
+                    shang_sets[key] = 1
+                else:
+                    shang_sets[key] += 1
+    for shang_set, cnt in shang_sets.items():
+        if cnt == 3:
+            continue
+        for tile in shang_set:
+            distinct_tiles[tile] -= 1
     for tile, cnt in distinct_tiles.items():
-        if tile == jiangs:
-            cnt -= 2
-        # BUG tile cnt can be 2/3/4 and might or not might not be part of shang
-        if cnt == 4 and check_shang(tile, tiles, jiangs):
-            cnt -= 1
         if cnt == 3:
             an_ke_cnt += 1
     condition = an_gang_cnt * 100 + gang_cnt * 10 + an_ke_cnt
@@ -485,6 +511,8 @@ def calculate_tong_ke_fan(rf: ResultFan, distinct_tiles: dict):
         "9": 0,
     }
     for k, v in distinct_tiles.items():
+        if len(k) == 1:
+            continue
         if v >= 3:
             ke_holder[k[0]] += 1
     for v in ke_holder.values():
@@ -507,6 +535,7 @@ def calculate_shang_fan(rf: ResultFan, tiles: list, shang_history: list, jiangs:
         distinct_tiles = {}
         for tile in full_tiles:
             if tile.endswith(s):
+                # TODO improve with merged_tiles
                 if tile[:-1] not in distinct_tiles:
                     distinct_tiles[tile[:-1]] = 1
                 else:
@@ -647,6 +676,7 @@ def calculate_associated_combination_fan(
     gang_history,
     shang_history,
     an_gang_history,
+    jiangs,
 ):
     """
     大四喜、大三元、小四喜、小三元、一色双龙会、一色四同顺、一色四节高、一色四步高、一色三同顺、
@@ -686,7 +716,7 @@ def calculate_associated_combination_fan(
         rf.fan_names.append("三色三节高")
         rf.total_fan += 12
 
-    calculate_shang_fan(rf, tiles, shang_history)
+    calculate_shang_fan(rf, tiles, shang_history, jiangs)
     full_tiles = tiles + peng_history + gang_history + an_gang_history
     calculate_tong_ke_fan(rf, get_distinct_tiles(full_tiles))
 
@@ -786,13 +816,12 @@ def calculate_fan(
             rf.exclude.update(["不求人", "门前清", "单骑对子"])
         calculate_attribute_fan(
             rf,
-            winning_condition,
-            history,
             tiles,
             peng_history,
             gang_history,
             shang_history,
             an_gang_history,
+            jiangs,
         )
 
     is_zu_he_long, ref = fan.zu_he_long(get_suites(tiles))
@@ -815,6 +844,7 @@ def calculate_fan(
             tiles,
             gang_history,
             an_gang_history,
+            jiangs,
         )  # BUG use get_valid_peng/gang on tiles
         calculate_associated_combination_fan(
             rf,
@@ -823,16 +853,17 @@ def calculate_fan(
             gang_history,
             shang_history,
             an_gang_history,
+            jiangs,
         )
-        calculate_single_pack_fan(
-            rf,
-            tiles,
-            peng_history,
-            gang_history,
-            an_gang_history,
-            player_wind,
-            round_wind,
-        )
+        # calculate_single_pack_fan(
+        #     rf,
+        #     tiles,
+        #     peng_history,
+        #     gang_history,
+        #     an_gang_history,
+        #     player_wind,
+        #     round_wind,
+        # )
 
     calculate_win_mode_fan(
         rf,
