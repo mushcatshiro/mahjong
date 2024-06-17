@@ -321,7 +321,10 @@ class Hand(State):
             action.action if "_" not in action.action else action.action.split("_")[1]
         )
         fn = getattr(self, resolve_to)
-        self.tiles_history[f"{len(self.tiles_history)}-resolve"] = str(action)
+        self.tiles_history[f"{len(self.tiles_history)}"] = {
+            "action": "resolve",
+            "method": action.action,
+        }
         result: PlayResult = fn(action)
         return result
 
@@ -351,7 +354,7 @@ class Hand(State):
             for tile in self._get_discardable_tiles()
         ]
 
-    def add_tiles(self, tiles: List, method: str = "") -> int:
+    def add_tiles(self, tiles: List, action: str, play_action: str = "") -> int:
         """
         add tile to hand
 
@@ -363,7 +366,11 @@ class Hand(State):
         replacement_tile_count: number of replacement tiles added to hand
         """
         replacement_tile_count = 0
-        self.tiles_history[f"{len(self.tiles_history)}-{method}-add"] = tiles
+        self.tiles_history[f"{len(self.tiles_history)}"] = {
+            "action": action,
+            "method": play_action,
+            "tiles": tiles,
+        }
         for tile in tiles:
             if tile in self.replacement_tiles:
                 self.flower_tiles.append(tile)
@@ -387,7 +394,11 @@ class Hand(State):
         self.tiles.remove(tile)
         self.distinct_tile_count[tile] -= 1
         assert self.distinct_tile_count[tile] >= 0
-        self.tiles_history[f"{len(self.tiles_history)}-{method}-remove"] = tile
+        self.tiles_history[f"{len(self.tiles_history)}"] = {
+            "action": "remove",
+            "method": method,
+            "tile": tile,
+        }
         return tile
 
     def get_valid_jiangs(self, free_tiles):
@@ -516,7 +527,7 @@ class Player(State):
 
     def initial_draw(self, tile_sequence: TilesSequence, total, jump: bool):
         tiles = tile_sequence.draw(total, jump)
-        self.replacement_tile_count += self.hand.add_tiles(tiles, "init-draw")
+        self.replacement_tile_count += self.hand.add_tiles(tiles, "add", "draw")
 
     def _replace_tiles(self, tile_sequence: TilesSequence):
         replaced_tiles = tile_sequence.replace(self.replacement_tile_count)
@@ -546,7 +557,9 @@ class Player(State):
             drawed_tile = tile_sequence.draw()  # guaranteed
             if tile_sequence.is_empty():
                 self.winning_conditions.append("妙手回春")
-            self.replacement_tile_count += self.hand.add_tiles(drawed_tile, "turn-draw")
+            self.replacement_tile_count += self.hand.add_tiles(
+                drawed_tile, "add", "draw"
+            )
             replacement_result = self.resolve_tile_replacement(tile_sequence)
             if "妙手回春" not in self.winning_conditions and tile_sequence.is_empty():
                 self.winning_conditions.append("妙手回春")
@@ -569,7 +582,7 @@ class Player(State):
                 return PlayResult(draw=True)
             tile = tile_sequence.replace(1)
             self.replacement_tile_count += self.hand.add_tiles(
-                tile, f"{action.action}-replace"
+                tile, "replace", action.action
             )
             replacement_result = self.resolve_tile_replacement(tile_sequence)
             if not replacement_result.complete:
@@ -614,7 +627,7 @@ class Player(State):
                 self.winning_conditions.append("和绝张")
             if action.hu_by == "jiang":
                 self.winning_conditions.append("单骑对子")
-            self.hand.add_tiles([action.target_tile], f"hu-{action.hu_by}")
+            self.hand.add_tiles([action.target_tile], "hu-add", action.hu_by)
             return self.hand.get_hu_play_result()
         play_result: PlayResult = self.hand.resolve(action)
         if play_result.need_replacement:
@@ -622,7 +635,7 @@ class Player(State):
                 return PlayResult(draw=True)
             tile = tile_sequence.replace(1)
             self.replacement_tile_count += self.hand.add_tiles(
-                tile, f"{action.action}-replace"
+                tile, "replace", action.action
             )
             replacement_result = self.resolve_tile_replacement(tile_sequence)
             if not replacement_result.complete:
@@ -661,16 +674,6 @@ class Player(State):
         import calculate_fan
 
         self.result_fan = calculate_fan.ResultFan()
-        # calculate_fan.calculate_win_mode_fan(
-        #     self.result_fan,
-        #     self.winning_conditions,
-        #     self.hand.tiles_history,
-        #     self.hand.tiles,
-        #     self.hand.peng_history,
-        #     self.hand.gang_history,
-        #     self.hand.shang_history,
-        #     self.hand.an_gang_history,
-        # )
         calculate_fan.calculate_fan(
             self.result_fan,
             self.winning_conditions,

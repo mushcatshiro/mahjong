@@ -748,7 +748,6 @@ def test_calculate_ke_gang_fan():
     assert rf.total_fan == 2
     assert rf.exclude == set()
 
-    # BUG `calculate_fan.py` line 288
     rf = calculate_fan.ResultFan()
     calculate_fan.calculate_ke_gang_fan(
         rf,
