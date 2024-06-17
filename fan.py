@@ -87,17 +87,14 @@ def lao_shao_fu(merged_suites: dict) -> int:
 
 def lian_liu(merged_suites: dict) -> int:
     # 一种花色的连续六张牌 可以有多个
-    # TODO
     total_lian_liu = 0
-    # for tiles in merged_suites.values():
-    #     if len(tiles) >= 6:
-    #         fptr = 0
-    #         bptr = 6
-    #         while bptr <= len(tiles):
-    #             if int(tiles[fptr][0]) + 5 == int(tiles[fptr + 5][0]):
-    #                 total_lian_liu += 1
-    #                 fptr = bptr
-    #                 bptr += 6
+    for tiles in merged_suites.values():
+        if len(tiles) >= 6:
+            bptr = 0
+            while bptr <= len(tiles) - 6:
+                if int(tiles[bptr][0]) + 5 == int(tiles[bptr + 5][0]):
+                    total_lian_liu += 1
+                bptr += 5
     return total_lian_liu
 
 
@@ -231,7 +228,6 @@ def quan_dai_yao(
 
 def quan_qiu_ren(tiles: list, an_gang_history, history):
     # 吃，碰，明杠x4，和他家的牌
-    # BUG hu-add-add tile can be more than 2
     if an_gang_history:
         return False
     if len(tiles) != 2 or tiles[0] != tiles[1]:
