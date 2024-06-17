@@ -271,9 +271,9 @@ def test_calculate_attribute_fan():
         an_gang_history=[],
         jiangs="9万",
     )
-    assert rf.fan_names == ["清一色", "四归一"]
+    assert rf.fan_names == ["清一色", "平和", "四归一"]
     assert rf.exclude == {"无字"}
-    assert rf.total_fan == 26
+    assert rf.total_fan == 28
 
     rf = calculate_fan.ResultFan()
     calculate_fan.calculate_attribute_fan(
@@ -341,9 +341,9 @@ def test_calculate_attribute_fan():
         an_gang_history=[],
         jiangs="9万",
     )
-    assert rf.fan_names == ["大于五"]
+    assert rf.fan_names == ["大于五", "平和"]
     assert rf.exclude == {"无字"}
-    assert rf.total_fan == 12
+    assert rf.total_fan == 14
 
     rf = calculate_fan.ResultFan()
     calculate_fan.calculate_attribute_fan(
@@ -355,9 +355,9 @@ def test_calculate_attribute_fan():
         an_gang_history=[],
         jiangs="4万",
     )
-    assert rf.fan_names == ["小于五"]
+    assert rf.fan_names == ["小于五", "平和"]
     assert rf.exclude == {"无字"}
-    assert rf.total_fan == 12
+    assert rf.total_fan == 14
 
     rf = calculate_fan.ResultFan()
     calculate_fan.calculate_attribute_fan(

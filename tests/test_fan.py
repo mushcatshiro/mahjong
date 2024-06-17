@@ -174,9 +174,54 @@ def test_si_gui_yi():
     )
 
 
-
 def test_ping_hu():
-    pass
+    tiles = ["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "1筒", "2筒", "3筒", "1索", "1索"]
+    merged_suites = calculate_fan.get_suites(tiles)
+    assert fan.ping_hu(
+        tiles,
+        [],
+        [],
+        [],
+        [],
+        merged_suites,
+        "1索"
+    )
+
+    tiles = ["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "1筒", "2筒", "3筒", "中", "中"]
+    merged_suites = calculate_fan.get_suites(tiles)
+    assert not fan.ping_hu(
+        tiles,
+        [],
+        [],
+        [],
+        [],
+        merged_suites,
+        "中"
+    )
+
+    tiles = ["1万", "2万", "3万", "7万", "8万", "9万", "1筒", "2筒", "3筒", "1索", "1索"]
+    merged_suites = calculate_fan.get_suites(tiles)
+    assert not fan.ping_hu(
+        tiles,
+        ["4万", "4万", "4万"],
+        [],
+        [],
+        [],
+        merged_suites,
+        "1索"
+    )
+
+    tiles = ["1万", "2万", "3万", "4万", "4万", "4万", "7万", "8万", "9万", "1筒", "2筒", "3筒", "1索", "1索"]
+    merged_suites = calculate_fan.get_suites(tiles)
+    assert not fan.ping_hu(
+        tiles,
+        [],
+        [],
+        [],
+        [],
+        merged_suites,
+        "1索"
+    )
 
 
 def test_men_qian_qing():

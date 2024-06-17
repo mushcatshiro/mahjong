@@ -323,7 +323,7 @@ class Hand(State):
         fn = getattr(self, resolve_to)
         self.tiles_history[f"{len(self.tiles_history)}"] = {
             "action": "resolve",
-            "method": action.action,
+            "play_action": action.action,
         }
         result: PlayResult = fn(action)
         return result
@@ -368,7 +368,7 @@ class Hand(State):
         replacement_tile_count = 0
         self.tiles_history[f"{len(self.tiles_history)}"] = {
             "action": action,
-            "method": play_action,
+            "play_action": play_action,
             "tile": tiles,
         }
         for tile in tiles:
@@ -396,7 +396,7 @@ class Hand(State):
         assert self.distinct_tile_count[tile] >= 0
         self.tiles_history[f"{len(self.tiles_history)}"] = {
             "action": "remove",
-            "method": method,
+            "play_action": method,
             "tile": tile,
         }
         return tile

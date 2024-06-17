@@ -125,24 +125,36 @@ def si_gui_yi(distinct_tiles: dict, gang_history, an_gang_history) -> int:
     return ctr
 
 
-def ping_hu(tiles, peng_history, gang_history, an_gang_history, merged_suites: dict):
+def ping_hu(
+    tiles,
+    peng_history,
+    gang_history,
+    shang_history,
+    an_gang_history,
+    merged_suites: dict,
+    jiangs,
+):
     # 四副顺子及序数牌。边，坎，单调将不影响。不计无字牌
     for tile in tiles:
         if tile in FENGS + JIANS:
             return False
     if peng_history or gang_history or an_gang_history:
         return False
-    tiles = sorted(tiles)
-    for vals in merged_suites.values():
+    shun_count = len(shang_history) // 3
+    # alt to use get_shang_sets
+    for suite, vals in merged_suites.items():
         vals = sorted(vals)
         while vals:
             min_val = vals.pop(0)
-            if int(min_val) + 1 in vals and int(min_val) + 2 in vals:
+            if f"{min_val}{suite}" == jiangs:
+                continue
+            elif str(int(min_val) + 1) in vals and str(int(min_val) + 2) in vals:
                 vals.remove(str(int(min_val) + 1))
                 vals.remove(str(int(min_val) + 2))
+                shun_count += 1
             else:
-                return False
-    return True
+                break
+    return shun_count == 4
 
 
 def men_qian_qing(history: dict):

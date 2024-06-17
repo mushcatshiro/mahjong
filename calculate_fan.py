@@ -252,8 +252,15 @@ def calculate_attribute_fan(
     if fan.wu_men_qi(merged_suites, distinct_tiles):
         rf.fan_names.append("五门齐")
         rf.total_fan += 6
+    merged_suites = get_suites(tiles)
     if fan.ping_hu(
-        full_tiles, peng_history, gang_history, an_gang_history, merged_suites
+        tiles,
+        peng_history,
+        gang_history,
+        shang_history,
+        an_gang_history,
+        merged_suites,
+        jiangs,
     ):
         rf.fan_names.append("平和")
         rf.total_fan += 2
