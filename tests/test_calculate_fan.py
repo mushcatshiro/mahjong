@@ -1,5 +1,6 @@
 import calculate_fan
 import fan
+import pytest
 
 # fmt: off
 
@@ -964,5 +965,6 @@ def test_calculate_fan_simple():
     pass
 
 
+@pytest.mark.skipif("not config.getoption('exhaustive')")
 def test_calculate_fan_exhaustive():
     pass

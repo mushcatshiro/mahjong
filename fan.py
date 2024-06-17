@@ -236,7 +236,6 @@ def bu_qiu_ren(history, gang_history, peng_history, shang_history):
 
 
 def quan_dai_yao(
-    tiles,
     distinct_tiles: dict,
     peng_history,
     gang_history,
@@ -587,14 +586,11 @@ def san_se_shuang_long_hui(merged_suites: dict):
     return True
 
 
-def qing_long(merged_suites: dict, distinct_tiles):
+def qing_long(merged_suites: dict, distinct_tiles, jiangs):
     # 一种花色的123，456，789的三副顺子
     # cal_lian_liu = False
     # cal_lao_shao_fu = False
     # BUG need to exclude jiang and include an ke(s)
-    jiang_candidate = [
-        x for x in distinct_tiles if distinct_tiles[x] >= 2 and len(x) == 2
-    ]
     for suite, tiles in merged_suites.items():
         if "123456789" == "".join(set(tiles)):
             return True

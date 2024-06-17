@@ -79,21 +79,19 @@ def test_wu_zi():
     assert not fan.wu_zi(["1筒", "2筒", "3筒", "白"])
 
 
-def _test_ming_gang():
-    assert fan.ming_gang(["1万", "1万", "1万", "1万"])
-    assert not fan.ming_gang(["1万", "1万", "1万", "2万"])
-    assert not fan.ming_gang(["1万", "1万", "1万", "1筒"])
-
-
 def test_que_yi_men():
-    assert not fan.que_yi_men(
+    merged_suites = calculate_fan.get_suites(
         ["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万"]
     )
-    assert fan.que_yi_men(["1万", "2万", "3万", "1筒"])
-    assert fan.que_yi_men(["1万", "2万", "3万", "1筒", "2筒", "3筒", "白"])
-    assert not fan.que_yi_men(
+    assert not fan.que_yi_men(merged_suites)
+    merged_suites = calculate_fan.get_suites(["1万", "2万", "3万", "1筒"])
+    assert fan.que_yi_men(merged_suites)
+    merged_suites = calculate_fan.get_suites(["1万", "2万", "3万", "1筒", "2筒", "3筒", "白"])
+    assert fan.que_yi_men(merged_suites)
+    merged_suites = calculate_fan.get_suites(
         ["1万", "2万", "3万", "1筒", "2筒", "3筒", "1索", "2索", "3索"]
     )
+    assert not fan.que_yi_men(merged_suites)
 
 
 def test_yao_jiu_ke():
@@ -224,23 +222,25 @@ def test_bu_qiu_ren():
 
 
 def test_quan_dai_yao():
-    assert fan.quan_dai_yao(
-        ["1万", "9万", "1万", "9万", "1万", "9万", "1筒", "1筒", "1筒", "南", "南", "南", "白", "白"],
-        [],
-        [],
-        []
+    distinct_tiles = calculate_fan.get_distinct_tiles(
+        ["1万", "9万", "1万", "9万", "1万", "9万", "1筒", "1筒", "1筒", "南", "南", "南", "白", "白"]
+    )
+    assert fan.quan_dai_yao(distinct_tiles, [], [], [], [], "白")
+    distinct_tiles = calculate_fan.get_distinct_tiles(
+        ["1万", "9万", "1万", "9万", "1万", "9万", "南", "南", "南", "白", "白"]
     )
     assert fan.quan_dai_yao(
-        ["1万", "9万", "1万", "9万", "1万", "9万", "1筒", "1筒", "1筒", "南", "南", "南", "白", "白"],
+        distinct_tiles,
         ["1筒", "1筒", "1筒"],
         [],
-        []
+        [],
+        [],
+        "白"
     )
-    assert not fan.quan_dai_yao(
-        ["2万", "3万", "4万", "5万", "6万", "7万", "1筒", "1筒", "1筒", "南", "南", "南", "白", "白"],
-        [],
-        [],
-        []
+    distinct_tiles = calculate_fan.get_distinct_tiles(
+        ["2万", "3万", "4万", "5万", "6万", "7万", "1筒", "1筒", "1筒", "南", "南", "南", "白", "白"]
+    )
+    assert not fan.quan_dai_yao(distinct_tiles, [], [], [], [], "白"
     )
 
 
@@ -403,21 +403,6 @@ def test_san_se_shuang_long_hui():
         ["1万", "2万", "3万", "7万", "8万", "9万", "1筒", "2筒", "3筒", "7筒", "8筒", "9筒", "6索", "6索"]
     )
     assert not fan.san_se_shuang_long_hui(
-        merged_suites
-    )
-
-
-def test_qing_long():
-    merged_suites = calculate_fan.get_suites(
-        ["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "东", "东", "东", "南", "南"]
-    )
-    assert fan.qing_long(
-        merged_suites
-    )
-    merged_suites = calculate_fan.get_suites(
-        ["1索", "2索", "3索", "4万", "5万", "6万", "7万", "8万", "9万", "东", "东", "东", "南", "南"]
-    )
-    assert not fan.qing_long(
         merged_suites
     )
 

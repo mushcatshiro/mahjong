@@ -230,7 +230,6 @@ def calculate_attribute_fan(
             rf.fan_names.append("混一色")
             rf.total_fan += 6
         if "全带幺" not in rf.exclude and fan.quan_dai_yao(
-            tiles,
             distinct_tiles,
             peng_history,
             gang_history,
