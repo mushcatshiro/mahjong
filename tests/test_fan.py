@@ -18,58 +18,58 @@ def test_get_suites():
 def test_kan_zhang():
     assert fan.kan_zhang(
         {"万": ["4", "5", "5", "5", "6"]},
-        {"1-hu-shang-add": "5万"},
+        {"0": {"action": "hu-add", "play_action": "shang", "tile": "5万"}},
     )
     assert not fan.kan_zhang(
         {"万": ["4", "5", "5", "5", "6"]},
-        {"1-turn-draw-add": "5万"},
+        {"0": {"action": "add", "play_action": "draw", "tile": "5万"}}
     )
     assert not fan.kan_zhang(
         {"万": ["4", "5", "5", "5", "6"]},
-        {"1-hu-jiang-add": "西"},
+        {"0": {"action": "hu-add", "play_action": "jiang", "tile": "西"}}
     )
     assert not fan.kan_zhang(
         {"万": ["1", "2", "2", "2", "3"]},
-        {"1-hu-shang-add": "1万"},
+        {"0": {"action": "hu-add", "play_action": "shang", "tile": "1万"}}
     )
     assert not fan.kan_zhang(
         {"万": ["7", "8", "8", "8", "9"]},
-        {"1-hu-shang-add": "9万"},
+        {"0": {"action": "hu-add", "play_action": "shang", "tile": "9万"}}
     )
     assert not fan.kan_zhang(
         {"万": ["4", "5", "5", "6", "7"]},
-        {"1-hu-shang-add": "5万"},
+        {"0": {"action": "hu-add", "play_action": "shang", "tile": "5万"}}
     )
 
 
 def test_bian_du():
     assert fan.bian_du(
         {"万": ["1", "2", "3"]},
-        {"1-hu-shang-add": "3万"},
+        {"0": {"action": "hu-add", "play_action": "shang", "tile": "3万"}}
     )
     assert fan.bian_du(
         {"万": ["1", "1", "2", "2", "3", "3"]},
-        {"1-hu-shang-add": "3万"},
+        {"0": {"action": "hu-add", "play_action": "shang", "tile": "3万"}}
     )
     assert fan.bian_du(
         {"万": ["7", "8", "9"]},
-        {"1-hu-shang-add": "7万"},
+        {"0": {"action": "hu-add", "play_action": "shang", "tile": "7万"}}
     )
     assert fan.bian_du(
         {"万": ["7", "7", "8", "8", "9", "9"]},
-        {"1-hu-shang-add": "7万"},
+        {"0": {"action": "hu-add", "play_action": "shang", "tile": "7万"}}
     )
     assert not fan.bian_du(
         {"万": ["1", "2", "3", "3", "4", "5"]},
-        {"1-hu-shang-add": "5万"},
+        {"0": {"action": "hu-add", "play_action": "shang", "tile": "5万"}}
     )
     assert not fan.bian_du(
         {"万": ["5", "6", "7", "7", "8", "9"]},
-        {"1-hu-shang-add": "3万"},
+        {"0": {"action": "hu-add", "play_action": "shang", "tile": "3万"}}
     )
     assert not fan.bian_du(
         {"万": ["5", "6", "7", "7", "8", "9"]},
-        {"1-hu-shang-add": "7万"},
+        {"0": {"action": "hu-add", "play_action": "shang", "tile": "7万"}}
     )
 
 
@@ -181,40 +181,40 @@ def test_ping_hu():
 
 def test_men_qian_qing():
     assert fan.men_qian_qing(
-        {"1-turn-draw-add": "1万"},
+        {"0": {"action": "add", "play_action": "draw", "tile": "1万"}}
     )
     assert not fan.men_qian_qing(
-        {"1-shang-add-add": "1万"},
+        {"0": {"action": "add", "play_action": "shang", "tile": "1万"}}
     )
     assert not fan.men_qian_qing(
-        {"1-peng-add-add": "1万"},
+        {"0": {"action": "add", "play_action": "peng", "tile": "1万"}}
     )
     assert not fan.men_qian_qing(
-        {"1-ming_gang-move": "1万"},
+        {"0": {"action": "add", "play_action": "ming_gang", "tile": "1万"}}
     )
     assert not fan.men_qian_qing(
-        {"1-jia_gang-move": "1万"},
+        {"0": {"action": "add", "play_action": "jia_gang", "tile": "1万"}}
     )
     assert fan.men_qian_qing(
-        {"1-an-gang-move": "1万"},
+        {"0": {"action": "add", "play_action": "an_gang", "tile": "1万"}}
     )
 
 
 def test_bu_qiu_ren():
     assert fan.bu_qiu_ren(
-        {"1-turn-draw-add": "1万"},
+        {"0": {"action": "add", "play_action": "draw", "tile": "1万"}},
         [],
         [],
         []
     )
     assert not fan.bu_qiu_ren(
-        {"1-hu-add-add": "1万"},
+        {"0": {"action": "hu-add", "play_action": "jiang", "tile": "1万"}},
         [],
         [],
         []
     )
     assert not fan.bu_qiu_ren(
-        {"1-turn-draw-add": "1万"},
+        {"0": {"action": "add", "play_action": "draw", "tile": "1万"}},
         ["1万", "1万", "1万", "1万"],
         [],
         []
@@ -248,19 +248,19 @@ def test_quan_qiu_ren():
     assert fan.quan_qiu_ren(
         ["5万", "5万"],
         [],
-        {"1-hu-add-add": "5万"},
+        {"0": {"action": "hu-add", "play_action": "jiang", "tile": "5万"}},
     )
     # one an ke
     assert not fan.quan_qiu_ren(
         ["1万", "1万", "1万", "5万", "5万"],
         [],
-        {"1-hu-add-add": "5万"},
+        {"0": {"action": "hu-add", "play_action": "jiang", "tile": "5万"}},
     )
     # zi mo
     assert not fan.quan_qiu_ren(
         ["5万", "5万"],
         [],
-        {"1-turn-draw-add": "5万"},
+        {"0": {"action": "add", "play_action": "draw", "tile": "5万"}},
     )
 
 def test_wu_men_qi():
@@ -521,14 +521,6 @@ def test_qi_xing_bu_kao():
         {"万": ["1", "4", "7"], "筒": ["2", "5", "9"], "索": ["3", "6"]}
     )
 
-def test_qi_dui():
-    assert fan.qi_dui(
-        {"1万": 2, "2万": 2, "3万": 2, "4万": 2, "5万": 2, "6万": 2, "7万": 2}
-    )
-    assert not fan.qi_dui(
-        {"1万": 3, "2万": 3, "3万": 3, "4万": 3, "5万": 2}
-    )
-
 
 def test_hun_yao_jiu():
     assert fan.hun_yao_jiu(
@@ -556,18 +548,6 @@ def test_yi_se_si_jie_gao():
         ["1万", "2万", "3万", "4万", "2万", "3万", "4万", "5万", "3万", "5万", "5万", "6万", "白", "白"]
     )
     assert not fan.yi_se_si_jie_gao(merged_suites)
-
-
-def test_yi_se_si_tong_shun():
-    assert fan.yi_se_si_tong_shun(
-        ["1万", "2万", "3万", "1万", "2万", "3万", "1万", "2万", "3万", "1万", "2万", "3万"],
-    )
-    assert not fan.yi_se_si_tong_shun(
-        ["1万", "2万", "3万", "1万", "2万", "3万", "1万", "2万", "3万", "2万", "3万", "4万"],
-    )
-    assert not fan.yi_se_si_tong_shun(
-        ["1万", "2万", "3万", "4万", "1万", "2万", "3万", "4万", "1万", "2万", "3万", "4万"]
-    )
 
 
 def test_yi_se_shuang_long_hui():

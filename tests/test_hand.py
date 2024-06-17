@@ -28,14 +28,14 @@ def test_hand(monkeypatch):
 
     for i in range(36):
         drawed = ts.draw(4)
-        h.add_tiles(drawed, "init-draw")
-        assert sorted(h.tiles_history[f"{i}-init-draw-add"]) == sorted(drawed)
+        h.add_tiles(drawed)
+        assert sorted(h.tiles_history[f"{i}"]["tile"]) == sorted(drawed)
 
     for idx, tile in enumerate(["1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万"]):
         h.remove_tile(tile)
         assert h.distinct_tile_count[tile] == 3
         assert (
-            h.tiles_history[f"{idx+36}--remove"] == tile
+            h.tiles_history[f"{idx+36}"]["tile"] == tile
         )  # `add_tiles` was called 36 times
 
 

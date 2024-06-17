@@ -354,7 +354,7 @@ class Hand(State):
             for tile in self._get_discardable_tiles()
         ]
 
-    def add_tiles(self, tiles: List, action: str, play_action: str = "") -> int:
+    def add_tiles(self, tiles: List, action: str = "add", play_action: str = "") -> int:
         """
         add tile to hand
 
@@ -369,7 +369,7 @@ class Hand(State):
         self.tiles_history[f"{len(self.tiles_history)}"] = {
             "action": action,
             "method": play_action,
-            "tiles": tiles,
+            "tile": tiles,
         }
         for tile in tiles:
             if tile in self.replacement_tiles:
@@ -492,6 +492,8 @@ class Hand(State):
         if call_tile:
             tiles.append(call_tile)
         # 十三幺 TODO bring back
+        if calculate_fan.fan.shi_san_yao(tiles):
+            return True
         # 对对胡
         distinct_tiles = calculate_fan.get_distinct_tiles(tiles)
         if calculate_fan.check_qi_dui_hu(distinct_tiles):

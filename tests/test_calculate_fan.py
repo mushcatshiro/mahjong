@@ -9,7 +9,7 @@ def test_calculate_win_mode_fan():
     calculate_fan.calculate_win_mode_fan(
         rf,
         winning_condition=["妙手回春", "自摸"],
-        history={},
+        history={"0": {"action": "add", "play_action": "draw", "tile": "5万"}},
         tiles=[],
         peng_history=[],
         gang_history=[],
@@ -24,7 +24,7 @@ def test_calculate_win_mode_fan():
     calculate_fan.calculate_win_mode_fan(
         rf,
         winning_condition=["海底捞月"],
-        history={"1-peng-add-add": "1万"},
+        history={"0": {"action": "add", "play_action": "peng", "tile": "1万"}},
         tiles=[],
         peng_history=["1万", "1万", "1万"],
         gang_history=[],
@@ -39,7 +39,7 @@ def test_calculate_win_mode_fan():
     calculate_fan.calculate_win_mode_fan(
         rf,
         winning_condition=["杠上开花"],
-        history={"1-gang-add-add": "1万"},
+        history={"0": {"action": "add", "play_action": "gang", "tile": "1万"}},
         tiles=[],
         peng_history=[],
         gang_history=["1万", "1万", "1万", "1万"],
@@ -53,23 +53,26 @@ def test_calculate_win_mode_fan():
     rf = calculate_fan.ResultFan()
     calculate_fan.calculate_win_mode_fan(
         rf,
-        winning_condition=["抢杠和", "自摸"],
-        history={"1-hu-add-add": "1万"},
+        winning_condition=["抢杠和"],
+        history={"0": {"action": "hu-add", "play_action": "shang", "tile": "1万"}},
         tiles=[],
         peng_history=[],
         gang_history=[],
         shang_history=["1万", "2万", "3万"],
         an_gang_history=[],
     )
-    assert rf.fan_names == ["抢杠和", "门前清"]
-    assert rf.exclude == {"自摸", "和绝张"}
-    assert rf.total_fan == 10
+    assert rf.fan_names == ["抢杠和"]
+    assert rf.exclude == {"和绝张"}
+    assert rf.total_fan == 8
 
     rf = calculate_fan.ResultFan()
     calculate_fan.calculate_win_mode_fan(
         rf,
         winning_condition=[],
-        history={"1-shang-add-add": "1万", "2-hu-add-add": "發"},
+        history={
+            "0": {"action": "add", "play_action": "shang", "tile": "1万"},
+            "1": {"action": "hu-add", "play_action": "jiang", "tile": "發"}
+        },
         tiles=["發", "發"],
         peng_history=[],
         gang_history=[],
@@ -84,7 +87,10 @@ def test_calculate_win_mode_fan():
     calculate_fan.calculate_win_mode_fan(
         rf,
         winning_condition=["自摸"],
-        history={"1-shang-add-add": "1万", "2-turn-draw-add": "1万"},
+        history={
+            "0": {"action": "add", "play_action": "shang", "tile": "1万"},
+            "1": {"action": "add", "play_action": "draw", "tile": "1万"}
+        },
         tiles=[],
         peng_history=[],
         gang_history=[],
@@ -99,11 +105,11 @@ def test_calculate_win_mode_fan():
     calculate_fan.calculate_win_mode_fan(
         rf,
         winning_condition=["和绝张"],
-        history={},
+        history={"0": {"action": "hu-add", "play_action": "shang", "tile": "1万"}},
         tiles=[],
         peng_history=[],
         gang_history=[],
-        shang_history=[],
+        shang_history=["1万", "2万", "3万"],
         an_gang_history=[],
     )
     assert rf.fan_names == ["和绝张"]
@@ -114,7 +120,7 @@ def test_calculate_win_mode_fan():
     calculate_fan.calculate_win_mode_fan(
         rf,
         winning_condition=[],
-        history={"1-hu-shang-add": "3万"},
+        history={"0": {"action": "hu-add", "play_action": "shang", "tile": "3万"}},
         tiles=["1万", "2万", "3万"],
         peng_history=[],
         gang_history=[],
@@ -129,23 +135,23 @@ def test_calculate_win_mode_fan():
     calculate_fan.calculate_win_mode_fan(
         rf,
         winning_condition=[],
-        history={"1-hu-shang-add": "5万"},
-        tiles=["4万", "5万", "5万", "5万", "6万"],
+        history={"0": {"action": "hu-add", "play_action": "shang", "tile": "5万"}},
+        tiles=["5万", "5万"],
         peng_history=[],
         gang_history=[],
-        shang_history=[],
+        shang_history=["4万", "5万", "6万"],
         an_gang_history=[],
     )
-    assert rf.fan_names == ["坎张"]
-    assert rf.exclude == set()
-    assert rf.total_fan == 1
+    assert rf.fan_names == ["全求人", "坎张"]
+    assert rf.exclude == {"单骑对子", "自摸"}
+    assert rf.total_fan == 7
 
     rf = calculate_fan.ResultFan()
     calculate_fan.calculate_win_mode_fan(
         rf,
         winning_condition=["单骑对子"],
-        history={},
-        tiles=[],
+        history={"0": {"action": "hu-add", "play_action": "jiang", "tile": "5万"}},
+        tiles=["5万", "5万", "1万", "1万", "1万"],
         peng_history=[],
         gang_history=[],
         shang_history=[],
@@ -769,7 +775,7 @@ def test_calculate_feng_ke_fan():
     calculate_fan.calculate_feng_ke_fan( rf, distinct_tiles=distinct_tiles)
     assert rf.fan_names == ["大四喜"]
     assert rf.total_fan == 88
-    assert rf.exclude == {"圈风刻", "门风刻", "三风刻", "碰碰和"}
+    assert rf.exclude == {"圈风刻", "门风刻", "三风刻", "碰碰和", "幺九刻"}
 
     rf = calculate_fan.ResultFan()
     distinct_tiles = calculate_fan.get_distinct_tiles(

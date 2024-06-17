@@ -10,9 +10,11 @@ from tiles import (
 def kan_zhang(merged_suites, history):
     # 46(5)，4556(5)计，45567(6)不计
     # 只听一张牌，等待这张牌的胡牌形式只有一种
-    if f"{len(history)}-hu-shang-add" not in history:
+    action = history[f"{len(history) - 1}"]["action"]
+    play_action = history[f"{len(history) - 1}"]["play_action"]
+    hu_tile = history[f"{len(history) - 1}"]["tile"]
+    if action != "hu-add" and play_action != "shang":
         return False
-    hu_tile = history[f"{len(history)}-hu-shang-add"]
     if len(hu_tile) == 1:
         return False
     num, suite = hu_tile[0], hu_tile[1]
@@ -20,9 +22,8 @@ def kan_zhang(merged_suites, history):
         return False
     pattern_1 = f"{int(num) - 1}{num}{num}{num}{int(num) + 1}"
     pattern_2 = f"{int(num) - 1}{num}{int(num) + 1}"
-    if pattern_1 in "".join(merged_suites[suite]) or pattern_2 in "".join(
-        merged_suites[suite]
-    ):
+    target = "".join(sorted(merged_suites[suite]))
+    if pattern_1 in target or pattern_2 in target:
         return True
     return False
 
@@ -31,13 +32,16 @@ def bian_du(merged_suites, history):
     # 12(3)，1233(3)，(7)89，(7)7789计
     # 12345(3)，56789(7) 不计
     # 只听一张牌，等待这张牌的胡牌形式只有一种
-    if f"{len(history)}-hu-shang-add" not in history:
+    action = history[f"{len(history) - 1}"]["action"]
+    play_action = history[f"{len(history) - 1}"]["play_action"]
+    hu_tile = history[f"{len(history) - 1}"]["tile"]
+    if action != "hu-add" and play_action != "shang":
         return False
-    hu_tile = history[f"{len(history)}-hu-shang-add"]
     if len(hu_tile) == 1:
         return False
     num, suite = hu_tile[0], hu_tile[1]
-    joined = "".join(merged_suites[suite])
+    joined = "".join(sorted(merged_suites[suite]))
+    print(joined)
     if "5" in joined:
         return False
     if num == "3":
@@ -141,15 +145,10 @@ def ping_hu(tiles, peng_history, gang_history, an_gang_history, merged_suites: d
     return True
 
 
-def men_qian_qing(history):
+def men_qian_qing(history: dict):
     # 没吃，碰，明杠。和他家出的牌
-    for entry in history:
-        if (
-            "shang" in entry
-            or "peng" in entry
-            or "ming_gang" in entry
-            or "jia_gang" in entry
-        ):
+    for entry in history.values():
+        if entry["play_action"] in ["shang", "peng", "ming_gang", "jia_gang"]:
             return False
     return True
 
