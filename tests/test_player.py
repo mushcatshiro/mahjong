@@ -27,7 +27,7 @@ def test_player_deal_stage_without_replacement():
             "6筒",
             "7筒",
             "8筒",
-        ]
+        ]  # fmt: off
     )
     p = Player(0, True)
 
@@ -195,6 +195,7 @@ def test_play_turn():
     p.initial_draw(ts, 1, False)  # not house
     resp = p.play_turn(ts)
     assert resp.hu
+    assert p.winning_conditions == ["妙手回春", "自摸"]
 
     # test run out of tiles
     ts = MockTilesSequence(["1万", "1万", "9万", "1筒", "春"])
@@ -313,9 +314,12 @@ def test_call(monkeypatch):
         p.initial_draw(ts, 4, False)
     p.initial_draw(ts, 1, False)
     play_actions = p.call("3万", 2)
-    assert play_actions.action == "hu"
+    assert len(play_actions) == 33
+    for play_action in play_actions:
+        assert play_action.action == "hu"
+        assert play_action.hu_by == "shang"
 
-    # hu
+    # hu with shang
     ts = MockTilesSequence(
         ["1万", "1万", "1万", "2万", "3万", "4万", "5万", "6万", "7万", "8万", "9万", "1筒", "2筒"]
     )
@@ -324,7 +328,12 @@ def test_call(monkeypatch):
         p.initial_draw(ts, 4, False)
     p.initial_draw(ts, 1, False)
     play_actions = p.call("3筒", 3)
-    assert play_actions.action == "hu"
+    for play_action in play_actions:
+        print(play_action)
+    assert len(play_actions) == 11
+    for play_action in play_actions:
+        assert play_action.action == "hu"
+        assert play_action.hu_by == "shang"
 
 
 def test_call_resolve():

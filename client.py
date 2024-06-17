@@ -2,11 +2,17 @@ from game import Mahjong, Player, PlayAction, DummyPlayer
 
 
 class HumanPlayer(Player):
-    def play_turn_strategy(self, possible_actions):
+    def print_hand(self, played_tile=None, **kwargs):
+        # TODO move to `Player`
         print(f"hand: {sorted(self.hand.tiles)}")
+        if played_tile:
+            print(f"played_tile: {played_tile}")
         print(f"peng_history: {self.hand.peng_history}")
         print(f"shang_history: {self.hand.shang_history}")
         print(f"gang_history: {self.hand.gang_history}")
+
+    def play_turn_strategy(self, possible_actions):
+        self.print_hand()
         print(f"possible actions: ")
         for idx, action in enumerate(possible_actions):
             print(f"{idx}: {action}")
@@ -16,8 +22,20 @@ class HumanPlayer(Player):
         return possible_actions[resp]
 
     def call_strategy(self, possible_actions, played_tile) -> PlayAction:
-        print(f"hand: {sorted(self.hand.tiles)}")
-        print(f"played_tile: {played_tile}")
+        self.print_hand(played_tile)
+        print("possible actions: ")
+        for idx, action in enumerate(possible_actions):
+            print(f"{idx}: {action}")
+        resp = int(input("Choose an action or -1 to pass: "))
+        if resp == -1:
+            return []
+        else:
+            assert len(possible_actions) > resp
+            print(f"action: {possible_actions[resp]}")
+            return possible_actions[resp]
+
+    def gang_discard_strategy(self, possible_actions) -> PlayAction:
+        self.print_hand()
         print("possible actions: ")
         for idx, action in enumerate(possible_actions):
             print(f"{idx}: {action}")
