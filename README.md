@@ -17,3 +17,5 @@ mahjong in python. two modes provided, visualized client and api client.
   - [ ] per round time
   - [ ] search dp/winning hand
 - [ ] numpy or equivalent matrix operation
+- [ ] save state
+  - [ ] replay with state
