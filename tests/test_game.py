@@ -415,7 +415,6 @@ def test_quan_feng(monkeypatch):
 
     def mock_round_summary(self):
         # check if self.history exists
-        print("in mock round summary")
         self.history.append(self.quan_feng)
 
     monkeypatch.setattr(Mahjong, "deal", mock_deal)

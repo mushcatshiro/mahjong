@@ -395,21 +395,21 @@ def test_is_winning_hand():
 def test_get_valid_eye_sets():
     h = Hand(0)
     h.add_tiles(["2万", "2万"])
-    eye_candidates = h.get_valid_eye_sets(h.tiles)
-    assert len(eye_candidates) == 1
-    assert eye_candidates == ["2万"]
+    jiang_candidates = h.get_valid_jiangs(h.tiles)
+    assert len(jiang_candidates) == 1
+    assert jiang_candidates == ["2万"]
     reset_hand(h)
 
     h.add_tiles(["2万", "2万", "3万", "3万"])
-    eye_candidates = h.get_valid_eye_sets(h.tiles)
-    assert len(eye_candidates) == 2
-    assert sorted(eye_candidates) == sorted(["2万", "3万"])
+    jiang_candidates = h.get_valid_jiangs(h.tiles)
+    assert len(jiang_candidates) == 2
+    assert sorted(jiang_candidates) == sorted(["2万", "3万"])
     reset_hand(h)
 
     h.add_tiles(["2万", "2万", "2万"])
-    eye_candidates = h.get_valid_eye_sets(h.tiles)
-    assert len(eye_candidates) == 1
-    assert eye_candidates == ["2万"]
+    jiang_candidates = h.get_valid_jiangs(h.tiles)
+    assert len(jiang_candidates) == 1
+    assert jiang_candidates == ["2万"]
     reset_hand(h)
 
 

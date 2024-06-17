@@ -4,6 +4,7 @@ import json
 import copy
 from typing import Dict, List
 from dataclasses import dataclass, field
+import calculate_fan
 
 from tiles import (
     HUAS,
@@ -156,6 +157,7 @@ class Hand(State):
         self.gang_history = []
         self.an_gang_history = []
         self.shang_history = []
+        self.jiangs = ""
 
     def reset(self):
         self.tiles = []
@@ -166,6 +168,7 @@ class Hand(State):
         self.gang_history = []
         self.an_gang_history = []
         self.shang_history = []
+        self.jiangs = ""
 
     def shang(self, action: PlayAction):
         for tile in action.move_tiles:
@@ -387,7 +390,7 @@ class Hand(State):
         self.tiles_history[f"{len(self.tiles_history)}-{method}-remove"] = tile
         return tile
 
-    def get_valid_eye_sets(self, free_tiles):
+    def get_valid_jiangs(self, free_tiles):
         rv = []
         distinct_tile_count = {}
         for tiles in free_tiles:
@@ -458,36 +461,30 @@ class Hand(State):
         if len(tiles) % 3 != 2:
             raise ValueError(f"invalid hand: {tiles}")
 
-        valid_eye_sets = self.get_valid_eye_sets(tiles)
-        if not valid_eye_sets:
+        valid_jiangs = self.get_valid_jiangs(tiles)
+        if not valid_jiangs:
             return rv
         else:
-            for eye_set in valid_eye_sets:
+            for jiangs in valid_jiangs:
                 tmp_tiles = copy.deepcopy(tiles)
                 for _ in range(2):
-                    tmp_tiles.remove(eye_set)
+                    tmp_tiles.remove(jiangs)
 
                 rv = self._dp_search(tmp_tiles)
                 if rv:
+                    self.jiangs = jiangs
                     return rv
         return rv
 
     def is_winning_hand(self, call_tile=None):
-        # 十三幺
-        distinct_tiles = list(set(self.tiles))
-        if sorted(distinct_tiles) == sorted(
-            ["1万", "9万", "1筒", "9筒", "1索", "9索", "东", "南", "西", "北", "白", "發", "中"]
-        ) and (
-            sum([x == 2 for x in self.distinct_tile_count.values()]) == 1
-            and sum([x == 1 for x in self.distinct_tile_count.values()]) == 12
-        ):
-            return True
-        # 对对胡
-        elif all([x == 2 for x in self.distinct_tile_count.values() if x > 0]):
-            return True
         tiles = copy.deepcopy(self.tiles)
         if call_tile:
             tiles.append(call_tile)
+        # 十三幺 TODO bring back
+        # 对对胡
+        distinct_tiles = calculate_fan.get_distinct_tiles(tiles)
+        if calculate_fan.check_qi_dui_hu(distinct_tiles):
+            return True
         return self.dp_search(tiles)
 
     def get_hu_play_result(self):
@@ -664,16 +661,27 @@ class Player(State):
         import calculate_fan
 
         self.result_fan = calculate_fan.ResultFan()
-        calculate_fan.calculate_win_mode_fan(
+        # calculate_fan.calculate_win_mode_fan(
+        #     self.result_fan,
+        #     self.winning_conditions,
+        #     self.hand.tiles_history,
+        #     self.hand.tiles,
+        #     self.hand.peng_history,
+        #     self.hand.gang_history,
+        #     self.hand.shang_history,
+        #     self.hand.an_gang_history,
+        # )
+        calculate_fan.calculate_fan(
             self.result_fan,
             self.winning_conditions,
             self.hand.tiles_history,
             self.hand.tiles,
-            self.hand.distinct_tile_count,
             self.hand.peng_history,
             self.hand.gang_history,
             self.hand.shang_history,
             self.hand.an_gang_history,
+            self.hand.flower_tiles,
+            self.hand.jiangs,
         )
         return
 
@@ -949,5 +957,9 @@ class Mahjong:
                 break
 
     def round_summary(self):
+        """
+        TODO `calculate_fan` focuses on `Hand` level. `round_summary`
+        should be dealing with moving points from players to winner.
+        """
         if self.winner is not None:
             self.players[self.winner].round_summary()

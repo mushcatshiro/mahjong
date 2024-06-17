@@ -20,7 +20,7 @@ class GreedyPlayer(Player):
 
         tiles = copy.deepcopy(self.hand.tiles)
 
-        self.soft_locked_tiles += self.hand.get_valid_eye_sets(tiles)
+        self.soft_locked_tiles += self.hand.get_valid_jiangs(tiles)
 
         shang_sets = self.hand.get_valid_shang_sets(tiles)
         for shang_set in shang_sets:

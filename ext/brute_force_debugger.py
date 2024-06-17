@@ -5,16 +5,18 @@ import datetime as dt
 
 sys.path.append(".")
 
-from game import Mahjong, DummyPlayer
-from ext.data_collector import DummyPlayerWithSave
+from game import Mahjong, Player, DummyPlayer
+# from ext.data_collector import DummyPlayerWithSave
 
 
-def print_details(player):
+def print_details(player: Player, winner_idx):
     # fmt: off
     if player.house:
         print(f"Player {player.player_idx} is house")
+    if winner_idx == player.player_idx:
+        print(f"Player {player.player_idx} is winning with:")
     print(f"Player {player.player_idx} history: \n\n{yaml.dump(player.hand.tiles_history, allow_unicode=True, sort_keys=False)}")
-    print(f"Player {player.player_idx} hand: {player.hand.tiles}; flower: {player.hand.flower_tiles}")
+    print(f"Player {player.player_idx} hand: {player.hand.tiles}; flower: {player.hand.flower_tiles}; jiangs: {player.hand.jiangs}")
     print(f"Player {player.player_idx}\n peng: {player.hand.peng_history};\n gang: {player.hand.gang_history};\n shang: {player.hand.shang_history}")
     print("\n")
     # fmt: on
@@ -61,7 +63,7 @@ def main(rounds, debug):
             print(f"Exception occurred {e}: ")
             print("".join(traceback.format_exception(*sys.exc_info())))
             for i, player in game.players.items():
-                print_details(player)
+                print_details(player, game.winner)
             print(f"{game.tile_sequence.tiles}")
             break
         else:
@@ -88,7 +90,7 @@ def main(rounds, debug):
                         win_condition_stats[win_condition] += 1
             if debug:
                 for i, player in game.players.items():
-                    print_details(player)
+                    print_details(player, game.winner)
         finally:
             ctr += 1
             sys.stdout.flush()
@@ -117,7 +119,7 @@ if __name__ == "__main__":
     random.seed(0)
     parser = argparse.ArgumentParser()
     parser.add_argument("--rounds", default=1_000_000, type=int)
-    parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--debug", action="store_true", default=False)
     parser.add_argument("--players", default="drdr")
     args = parser.parse_args()
     main(args.rounds, args.debug)
