@@ -667,7 +667,17 @@ class Player(State):
         import calculate_fan
 
         self.result_fan = calculate_fan.ResultFan()
-        calculate_fan.calculate_win_mode_fan(
+        # calculate_fan.calculate_win_mode_fan(
+        #     self.result_fan,
+        #     self.winning_conditions,
+        #     self.hand.tiles_history,
+        #     self.hand.tiles,
+        #     self.hand.peng_history,
+        #     self.hand.gang_history,
+        #     self.hand.shang_history,
+        #     self.hand.an_gang_history,
+        # )
+        calculate_fan.calculate_fan(
             self.result_fan,
             self.winning_conditions,
             self.hand.tiles_history,
@@ -676,6 +686,8 @@ class Player(State):
             self.hand.gang_history,
             self.hand.shang_history,
             self.hand.an_gang_history,
+            self.hand.flower_tiles,
+            self.hand.jiangs,
         )
         return
 
