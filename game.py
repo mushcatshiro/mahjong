@@ -1018,5 +1018,9 @@ class Mahjong:
                 break
 
     def round_summary(self):
+        """
+        TODO `calculate_fan` focuses on `Hand` level. `round_summary`
+        should be dealing with moving points from players to winner.
+        """
         if self.winner is not None:
             winner_score = self.players[self.winner].round_summary()
