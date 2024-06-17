@@ -19,27 +19,22 @@ from tiles import (
 
 
 class State:
-    def save(self, pickled=True, json_format=False):
-        if pickled:
-            with open("save.pkl", "wb") as f:
-                pickle.dump(self.__dict__.items(), f)
-        if json_format:
-            with open("save.json", "w") as f:
-                json.dump(self.__dict__, f)
+    def __init__(self, attrs_to_save: list):
+        self.attrs_to_save = attrs_to_save
 
-    def load(self, pickled=True, json_format=False):
-        if pickled:
-            with open("save.pkl", "rb") as f:
-                for k, v in pickle.load(f):
-                    setattr(self, k, v)
-        if json_format:
-            with open("save.json", "r") as f:
-                for k, v in json.load(f).items():
-                    setattr(self, k, v)
+    def save(self):
+        with open("save.json", "w") as f:
+            json.dump(self.__dict__, f)
+
+    def load(self):
+        with open("save.json", "r") as f:
+            for k, v in json.load(f).items():
+                setattr(self, k, v)
 
 
 class TilesSequence(State):
     def __init__(self):
+        super().__init__(["tiles", "initial_sequence"])
         self.tiles: list = []
         for card, count in Tiles.items():
             self.tiles += [card] * count
@@ -147,6 +142,7 @@ class Hand(State):
     """
 
     def __init__(self, player_idx: int, replacement_tiles=HUAS):
+        super().__init__(["tiles_history"])
         self.tiles = []
         self.player_idx = player_idx
         self.replacement_tiles = [] if not replacement_tiles else replacement_tiles
@@ -510,11 +506,11 @@ class Hand(State):
 class Player(State):
     def __init__(self, player_idx, house=False):
         # TODO add player turn count/call count?
+        super().__init__(["player_idx", "winning_conditions", "house"])
         self.player_idx = player_idx
         self.previous_player_idx = (player_idx - 1) % 4
         self.next_player_idx = (player_idx + 1) % 4
         self.hand = Hand(player_idx)
-        self.action_history = []
         self.house = house
         self.men_feng = None
         self.replacement_tile_count = 0
@@ -523,7 +519,6 @@ class Player(State):
 
     def reset(self):
         self.hand.reset()
-        self.action_history = []
         self.winning_conditions = []
         self.result_fan = None
 
@@ -750,7 +745,10 @@ class DummyPlayer(Player):
 
 class Mahjong:
     def __init__(self, players: Dict[int, Player]):
-        self.players: Dict[int, Player] = players
+        super().__init__(
+            ["players", "tile_sequence", "current_player_idx", "round_player_sequence"]
+        )
+        self.players: Dict[int, Player] = players  # TODO dynamic load players
         self.tile_sequence = None
         self.current_player_idx = 0
         self.round_player_sequence = []
