@@ -7,7 +7,7 @@ import json
 sys.path.append(".")
 
 from game import Mahjong
-from player import Player, DummyPlayer
+from player import Player, DummyPlayer, GreedyPlayer
 
 # from ext.data_collector import DummyPlayerWithSave
 
@@ -25,7 +25,7 @@ def print_details(player: Player, winner_idx):
     # fmt: on
 
 
-def main(rounds, debug):
+def main(rounds, debug, save_state):
     # TODO support random house
     ctr = 0
     winning_game_time_avg = 0
@@ -38,7 +38,10 @@ def main(rounds, debug):
 
     start_time = dt.datetime.now()
     print(
-        f"Starting {rounds} games {'in debug mode' if debug else ''} @ {start_time}..."
+        f"Starting {rounds} games "
+        f"in debug level {debug} "
+        f"with save mode {save_state} "
+        f"@ {start_time}..."
     )
 
     while ctr <= rounds:
@@ -52,10 +55,10 @@ def main(rounds, debug):
             start = time.monotonic()
             game = Mahjong(
                 {
-                    0: DummyPlayer(0, debug=debug, strategy="dummy"),
-                    1: DummyPlayer(1, debug=debug, strategy="random"),
-                    2: DummyPlayer(2, debug=debug, strategy="dummy"),
-                    3: DummyPlayer(3, debug=debug, strategy="random"),
+                    0: GreedyPlayer(0),
+                    1: GreedyPlayer(1),
+                    2: GreedyPlayer(2),
+                    3: GreedyPlayer(3),
                 }
             )
             game.start_game()
@@ -63,14 +66,21 @@ def main(rounds, debug):
             # print stack trace
             import traceback
 
-            print(f"Exception occurred {e}: ")
+            print(f"Exception occurred {e} @ player_idx {game.current_player_idx}: ")
             print("".join(traceback.format_exception(*sys.exc_info())))
-            for i, player in game.players.items():
-                print_details(player, game.winner)
+            for idx, player in game.players.items():
+                if debug == 1 and idx == game.current_player_idx:
+                    print_details(player, game.winner)
+                elif debug > 1:
+                    print_details(player, game.winner)
             print(f"{game.tile_sequence.tiles}")
+            if save_state > 0:
+                game.save_state()
             break
         else:
             end = time.monotonic()
+            if save_state > 1:
+                game.save_state()
             if game.winner is None:
                 draw_games += 1
                 assert game.tile_sequence.is_empty()
@@ -106,9 +116,6 @@ def main(rounds, debug):
                 }
                 with open("scenario.json", "w", encoding="utf8") as f:
                     json.dump(data, f, ensure_ascii=False)
-            if debug:
-                for i, player in game.players.items():
-                    print_details(player, game.winner)
         finally:
             ctr += 1
             sys.stdout.flush()
@@ -137,7 +144,12 @@ if __name__ == "__main__":
     random.seed(0)
     parser = argparse.ArgumentParser()
     parser.add_argument("--rounds", default=1_000_000, type=int)
-    parser.add_argument("--debug", action="store_true", default=False)
-    parser.add_argument("--players", default="drdr")
+    parser.add_argument(
+        "--debug", default=0, help="0: no debug, 1: debug current player, 2: debug all"
+    )
+    parser.add_argument(
+        "--save-state", default=0, help="0: no save, 1: save error game, 2: save all"
+    )
+    parser.add_argument("--players-config", default="drdr")
     args = parser.parse_args()
-    main(args.rounds, args.debug)
+    main(args.rounds, args.debug, args.save_state)
