@@ -12,7 +12,7 @@ mahjong in python. two modes provided, visualized client and api client.
 - [ ] 24圈
   - [ ] 发牌顺序
   - [ ] 起手顺序
-  - [ ] calculate fan
+- [x] calculate fan
 - [ ] class for each tile instead of writing out chinese character
 - [ ] performance bench
   - [ ] per round time
@@ -20,16 +20,17 @@ mahjong in python. two modes provided, visualized client and api client.
 - [ ] numpy or equivalent matrix operation
 - [ ] save state
   - [ ] replay with state
+- [x] elagant prints
+  - [ ] discard tiles segregated by players in sequence
+- [ ] play action
+  - [ ] move discard out? (less for loops)
 
 ## test strategy
 
 - `test_fan.py` focus on 100% coverage of real hands
 - non `test_calculate_fan.py::test_calculate_fan` focus on `ResultFan`
 - `test_calculate_fan.py::test_calculate_fan` focus on all 82 combinations
-- [ ] elagant prints
-  - [ ] discard tiles segregated by players in sequence
-- [ ] play action
-  - [ ] move discard out? (less for loops)
+
 
 ```bash
 >> python -m pytest --cov=. --cov-report html tests/
