@@ -1,6 +1,6 @@
 import pytest
 
-from game import PlayAction
+from model import PlayAction
 
 
 def test_eq():

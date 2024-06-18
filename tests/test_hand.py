@@ -1,4 +1,6 @@
-from game import Hand, TilesSequence, PlayAction, PlayResult
+from hand import Hand
+from tiles import TilesSequence
+from model import PlayAction, PlayResult
 
 import pytest
 

@@ -20,6 +20,13 @@ class ResultFan:
     def __repr__(self):
         return f"{self.total_fan} {self.fan_names} {self.exclude}"
 
+    def to_dict(self):
+        return {
+            "total_fan": self.total_fan,
+            "fan_names": self.fan_names,
+            "exclude": list(self.exclude),
+        }
+
 
 # -------- helper functions --------
 

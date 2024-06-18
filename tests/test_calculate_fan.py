@@ -1,5 +1,4 @@
 import calculate_fan
-import fan
 import pytest
 
 # fmt: off

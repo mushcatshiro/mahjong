@@ -1,4 +1,7 @@
-from game import Player, TilesSequence, DummyPlayer, Hand, PlayAction
+from player import Player, DummyPlayer
+from tiles import TilesSequence
+from hand import Hand
+from model import PlayAction
 
 
 class MockTilesSequence(TilesSequence):

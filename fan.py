@@ -1,7 +1,6 @@
 from tiles import (
     FENGS,
     JIANS,
-    SHANGS,
 )
 
 # -------- 1番 --------

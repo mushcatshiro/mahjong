@@ -2,10 +2,12 @@ import sys
 import yaml
 import time
 import datetime as dt
+import json
 
 sys.path.append(".")
 
-from game import Mahjong, Player, DummyPlayer
+from game import Mahjong
+from player import Player, DummyPlayer
 
 # from ext.data_collector import DummyPlayerWithSave
 
@@ -89,6 +91,21 @@ def main(rounds, debug):
                         win_condition_stats[fan] = 1
                     else:
                         win_condition_stats[fan] += 1
+                winning_player = game.players[game.winner]
+                data = {
+                    "result_fan": winning_player.result_fan.to_dict(),
+                    "winning_conditions": winning_player.winning_conditions,
+                    "tiles_history": winning_player.hand.tiles_history,
+                    "tiles": winning_player.hand.tiles,
+                    "peng_history": winning_player.hand.peng_history,
+                    "gang_history": winning_player.hand.gang_history,
+                    "shang_history": winning_player.hand.shang_history,
+                    "an_gang_history": winning_player.hand.an_gang_history,
+                    "flower_tiles": winning_player.hand.flower_tiles,
+                    "jiangs": winning_player.hand.jiangs,
+                }
+                with open("scenario.json", "w", encoding="utf8") as f:
+                    json.dump(data, f, ensure_ascii=False)
             if debug:
                 for i, player in game.players.items():
                     print_details(player, game.winner)

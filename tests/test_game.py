@@ -1,4 +1,5 @@
-from game import Mahjong, Player, DummyPlayer, TilesSequence, PlayAction
+from game import Mahjong, TilesSequence, PlayAction
+from player import Player, DummyPlayer
 
 import pytest
 from unittest.mock import patch

@@ -1,4 +1,9 @@
-from game import Mahjong, Player, PlayAction, DummyPlayer
+from game import Mahjong
+from player import Player, DummyPlayer
+from model import PlayAction
+
+
+__all__ = ["MahjongClient", "HumanPlayer"]
 
 
 class HumanPlayer(Player):
