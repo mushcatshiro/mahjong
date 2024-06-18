@@ -22,5 +22,5 @@ for i in range(10000):
             3: DummyPlayer(3),
         }
     )
-    g.start()
+    g.prepare()
     g.play()

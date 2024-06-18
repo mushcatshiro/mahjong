@@ -87,7 +87,7 @@ def test_house_winning_immediately(monkeypatch):
         }
     )
     game.tile_sequence = ts
-    game.start()
+    game.prepare()
     game.deal()
     game.play()
     assert game.winner == 0
@@ -299,7 +299,7 @@ def test_play_with_multiple_resolve_conditions(monkeypatch):
         }
     )
     game.tile_sequence = ts
-    game.start()
+    game.prepare()
     game.deal()
     game.play()
     assert game.round_player_sequence == [0, 1, 2, 3]
@@ -343,7 +343,7 @@ def test_play_with_multiple_resolve_conditions(monkeypatch):
         }
     )
     game.tile_sequence = ts
-    game.start()
+    game.prepare()
     game.deal()
     game.play()
     assert game.round_player_sequence == [0, 1, 2, 3]
@@ -396,7 +396,7 @@ def test_play_shang_peng(monkeypatch):
         }
     )
     game.tile_sequence = ts
-    game.start()
+    game.prepare()
     game.deal()
     game.play()
     assert sorted(game.players[1].hand.shang_history) == sorted(["1万", "2万", "3万"])

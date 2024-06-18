@@ -12,9 +12,6 @@ __all__ = ["Mahjong"]
 
 class Mahjong:
     def __init__(self, players: Dict[int, Player]):
-        super().__init__(
-            ["players", "tile_sequence", "current_player_idx", "round_player_sequence"]
-        )
         self.players: Dict[int, Player] = players  # TODO dynamic load players
         self.tile_sequence = None
         self.current_player_idx = 0
@@ -36,7 +33,7 @@ class Mahjong:
         for player in self.players.values():
             player.hand.reset()
 
-    def start(self):
+    def prepare(self):
         # throw dice twice
         self.current_game_round += 1
         val_player_sequence = random.randint(1, 13)
@@ -55,7 +52,7 @@ class Mahjong:
 
     def start_game(self):
         self.reset()
-        self.start()
+        self.prepare()
         self.deal()
         self.play()
         self.round_summary()
