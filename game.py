@@ -12,7 +12,10 @@ __all__ = ["Mahjong"]
 
 class Mahjong:
     def __init__(self, players: Dict[int, Player]):
-        self.players: Dict[int, Player] = players
+        super().__init__(
+            ["players", "tile_sequence", "current_player_idx", "round_player_sequence"]
+        )
+        self.players: Dict[int, Player] = players  # TODO dynamic load players
         self.tile_sequence = None
         self.current_player_idx = 0
         self.round_player_sequence = []
