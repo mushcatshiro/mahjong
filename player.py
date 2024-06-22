@@ -203,7 +203,7 @@ class DummyPlayer(Player):
         self.debug = debug
         super().__init__(player_idx=player_idx, house=house)
 
-    def play_turn_strategy(self, possible_actions):
+    def play_turn_strategy(self, possible_actions, **kwargs):
         if self.debug:
             print(f"hand: {sorted(self.hand.tiles)}")
             print(f"peng_history: {self.hand.peng_history}")
@@ -220,7 +220,7 @@ class DummyPlayer(Player):
             print(f"turn action chosen: {action}")
         return action
 
-    def call_strategy(self, possible_actions, played_tile):
+    def call_strategy(self, possible_actions, played_tile, **kwargs):
         if not possible_actions:
             return []
         if self.debug:
@@ -240,7 +240,7 @@ class DummyPlayer(Player):
             print(f"call action chosen: {action}")
         return action
 
-    def gang_discard_strategy(self, possible_actions) -> PlayAction:
+    def gang_discard_strategy(self, possible_actions, **kwargs) -> PlayAction:
         if self.debug:
             print(f"hand: {sorted(self.hand.tiles)}")
             print(f"gang_history: {self.hand.gang_history}")
@@ -313,7 +313,9 @@ class GreedyPlayer(Player):
         )
         return score
 
-    def play_turn_strategy(self, possible_actions: List[PlayAction]) -> PlayAction:
+    def play_turn_strategy(
+        self, possible_actions: List[PlayAction], **kwargs
+    ) -> PlayAction:
         play_action_scores = {}
         for idx, action in enumerate(possible_actions):
             play_action_scores[idx] = self.calculate_play_action_score(action)
@@ -327,7 +329,7 @@ class GreedyPlayer(Player):
         max_call_action_score = max(call_action_scores, key=call_action_scores.get)
         return possible_actions[max_call_action_score]
 
-    def gang_discard_strategy(self, possible_actions) -> PlayAction:
+    def gang_discard_strategy(self, possible_actions, **kwargs) -> PlayAction:
         gang_discard_action_scores = {}
         for idx, action in enumerate(possible_actions):
             gang_discard_action_scores[idx] = self.calculate_play_action_score(action)

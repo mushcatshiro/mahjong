@@ -148,9 +148,20 @@ class Mahjong:
         )
         return play_result, resolve_to
 
-    def play_one_round(self):
+    def player_play_turn(self) -> PlayResult:
         current_player = self.players[self.current_player_idx]
-        play_result: PlayResult = current_player.play_turn(self.tile_sequence)
+        play_result = current_player.play_turn(self.tile_sequence)
+        return play_result
+
+    def player_call(self, play_result: PlayResult, player_idx) -> PlayAction:
+        current_player = self.players[player_idx]
+        play_action = current_player.call(
+            play_result.discarded_tile, self.current_player_idx
+        )
+        return play_action
+
+    def play_one_round(self):
+        play_result = self.player_play_turn()
         if play_result.hu:
             self.winner = current_player.player_idx
             return
@@ -160,12 +171,13 @@ class Mahjong:
         check_responses = {}
         while True:
             for _, player in self.players.items():
-                if player.player_idx == current_player.player_idx:
+                if player.player_idx == self.current_player_idx:
                     continue
-                player: Player
-                play_action = player.call(
-                    play_result.discarded_tile, current_player.player_idx
-                )
+                # player: Player
+                # play_action = player.call(
+                #     play_result.discarded_tile, current_player.player_idx
+                # )
+                play_action = self.player_call(play_result, self.current_player_idx)
                 if not play_action:
                     continue
                 if (
