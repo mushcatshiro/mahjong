@@ -389,3 +389,11 @@ class Hand(State):
 
     def get_showable_tiles(self):
         return self.gang_history + self.peng_history + self.shang_history
+
+    def get_hand(self, use_oracle=False):
+        hand = [self.gang_history, self.peng_history, self.shang_history]
+        if use_oracle:
+            hand = [self.tiles + self.flower_tiles] + hand + self.an_gang_history
+        else:
+            hand = [self.flower_tiles] + hand
+        return hand
