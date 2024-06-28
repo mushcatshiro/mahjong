@@ -9,6 +9,7 @@ __all__ = [
     "FENGS",
     "JIANS",
     "Tiles",
+    "RENDER_TILES",
     "SHANGS",
     "SHANG_LUT",
     "REVERSED_SHANG_LUT",
@@ -32,6 +33,9 @@ Tiles = {
     "春": 1, "夏": 1, "秋": 1, "冬": 1,
     "梅": 1, "蘭": 1, "菊": 1, "竹": 1,
 }
+
+# TODO using 11x13 grid for rendering; 2 \u2587 as 1x1 pixel
+RENDER_TILES = {}
 
 # fmt: on
 
