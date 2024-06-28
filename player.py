@@ -60,6 +60,7 @@ class Player(State):
                 self.winning_conditions.append("自摸")
                 return self.hand.get_hu_play_result()
             possible_actions += self.hand.get_discardable_tiles()
+            possible_actions += self.hand.get_gang_candidates()
         else:
             drawed_tile = tile_sequence.draw()  # guaranteed
             if tile_sequence.is_empty():
@@ -313,30 +314,23 @@ class GreedyPlayer(Player):
         )
         return score
 
+    def step(self, possible_actions: List[PlayAction], **kwargs) -> PlayResult:
+        action_scores = {}
+        for idx, action in enumerate(possible_actions):
+            action_scores[idx] = self.calculate_play_action_score(action)
+        max_play_action_score = max(action_scores, key=action_scores.get)
+        return possible_actions[max_play_action_score]
+
     def play_turn_strategy(
         self, possible_actions: List[PlayAction], **kwargs
     ) -> PlayAction:
-        play_action_scores = {}
-        for idx, action in enumerate(possible_actions):
-            play_action_scores[idx] = self.calculate_play_action_score(action)
-        max_play_action_score = max(play_action_scores, key=play_action_scores.get)
-        return possible_actions[max_play_action_score]
+        return self.step(possible_actions)
 
     def call_strategy(self, possible_actions, played_tile, **kwargs) -> PlayAction:
-        call_action_scores = {}
-        for idx, action in enumerate(possible_actions):
-            call_action_scores[idx] = self.calculate_play_action_score(action)
-        max_call_action_score = max(call_action_scores, key=call_action_scores.get)
-        return possible_actions[max_call_action_score]
+        return self.step(possible_actions)
 
     def gang_discard_strategy(self, possible_actions, **kwargs) -> PlayAction:
-        gang_discard_action_scores = {}
-        for idx, action in enumerate(possible_actions):
-            gang_discard_action_scores[idx] = self.calculate_play_action_score(action)
-        max_gang_discard_action_score = max(
-            gang_discard_action_scores, key=gang_discard_action_scores.get
-        )
-        return possible_actions[max_gang_discard_action_score]
+        return self.step(possible_actions)
 
 
 class AssistedPlayer:
