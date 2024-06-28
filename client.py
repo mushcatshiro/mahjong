@@ -1,5 +1,5 @@
 from game import Mahjong
-from player import Player, DummyPlayer
+from player import Player, DummyPlayer, GreedyPlayer
 from model import PlayAction
 
 
@@ -75,7 +75,12 @@ def main():
         # to replace while True with standard 24 rounds or 1 round
         # associate round summary/game summary code need to behave correctly
         game = MahjongClient(
-            {0: HumanPlayer(0), 1: DummyPlayer(1), 2: DummyPlayer(2), 3: DummyPlayer(3)}
+            {
+                0: HumanPlayer(0),
+                1: GreedyPlayer(1),
+                2: GreedyPlayer(2),
+                3: GreedyPlayer(3),
+            }
         )
         game.start_game()
         input("Press Enter to continue or ctrl+c to exit...")
