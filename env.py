@@ -1,216 +1,218 @@
-import socket
 import os
-import subprocess
 from typing import Dict
 
 from game import Mahjong, Player
 from model import PlayResult
 from player import PlayAction
+from tiles import TilesSequence
 
 
-def push_data(cmd, host, port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((host, port))
-    s.send(cmd.encode())
-    # check if data is received?
-    s.close()
+class EnvPlayAction:
+    """
+    To be reimplemented is the agent implementation is different
+    """
 
+    def __init__(self, possible_actions):
+        self.possible_actions = possible_actions
 
-def pull_data(cmd, host, port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((host, port))
-    s.send(cmd.encode())
-    data = b""
-    while True:
-        part = s.recv(1024)
-        if not part:
-            break
-        data += part
-    s.close()
-    return data
+    def model_to_tensor(possible_actions):
+        # idx 0 is the current hand
+        # idx 1 - 31 is the potential next state hand TODO validate 30 is max
+        # idx 32 - 34 is the other players open hand
+        return
 
-
-class TCPServer:
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.bind((host, port))
-        self.s.listen(1)
-        self.pact_queue = []  # no need to consider thread safety
-        self.ract_queue = []
-        self.game_queue = []
-
-    def serve(self):
-        while True:
-            client_socket, addr = self.s.accept()
-            print("Got connection from", addr)
-
-            data = b""
-            while True:
-                part = client_socket.recv(1024)
-                if not part:
-                    break
-                data += part
-            header, queue_name, payload = data.decode().split(":")
-            queue = getattr(self, queue_name)
-            if not queue:
-                raise ValueError(f"Queue {queue_name} not found")
-            if header == "ADDQ":
-                queue.append(payload)
-            elif header == "GETQ":
-                if len(queue) == 0:
-                    client_socket.send(b"NONE")
-                else:
-                    client_socket.send(queue.pop(0))
-
-
-def model_to_tensor(possible_actions):
-    pass
-
-
-def tensor_to_model(possible_action):
-    pass
+    def tensor_to_model(self, selected_action_idx):
+        return self.possible_actions[selected_action_idx]
 
 
 class EnvPlayer(Player):
-    def __init__(self, player_idx, host, port, info, debug=False):
+    def __init__(self, player_idx, debug=False):
         super().__init__(player_idx, debug=debug)
-        self.host = host
-        self.port = port
-        self.info = info
 
-    def process_possible_actions(self, possible_actions):
-        payload = model_to_tensor(possible_actions)
-        cmd = "ADDQ:pact:" + payload
-        push_data(cmd, self.host, self.port)
+    def draw_stage(self):
+        # TODO port back to initial implementation in `Player`
+        raise NotImplementedError
 
-        while True:
-            possible_action = pull_data("GETQ:ract:", self.host, self.port)
-            if possible_action != b"NONE":
-                break
+    def step(self, state) -> PlayAction:
+        raise NotImplementedError
 
-        return self.tensor_to_model(possible_action)
+    def execute_play_turn_strategy(
+        self, action: PlayAction, tile_sequence: TilesSequence
+    ):
+        # TODO port back to initial implementation in `Player`
+        play_result: PlayResult = self.hand.resolve(action)
+        if play_result.need_replacement:
+            if tile_sequence.is_empty():
+                return PlayResult(draw=True), False
+            tile = tile_sequence.replace(1)
+            self.replacement_tile_count += self.hand.add_tiles(
+                tile, "replace", action.action
+            )
+            replacement_result = self.resolve_tile_replacement(tile_sequence)
+            if not replacement_result.complete:
+                return PlayResult(draw=True), False
+            possible_discards = self.hand.get_discardable_tiles()
+            return possible_discards, True
+        return play_result, False
 
-    def play_turn_strategy(self, possible_actions, **kwargs):
-        return self.process_possible_actions(possible_actions)
-
-    def call_strategy(self, possible_actions, played_tile, **kwargs):
-        return self.process_possible_actions(possible_actions)
-
-    def gang_discard_strategy(self, possible_actions, **kwargs):
-        return self.process_possible_actions(possible_actions)
+    def execute_gang_discard_strategy(self, action):
+        # TODO port back to initial implementation in `Player`
+        pass
 
 
 class EnvMahjong(Mahjong):
-    def __init__(self, players: Dict[int, Player], host, port):
+    def __init__(self, players: Dict[int, EnvPlayer]):
+        for player in dict.values():
+            if not isinstance(player, EnvPlayer):
+                raise ValueError("Player must be a subclass of `EnvPlayer`")
         super().__init__(players)
-        self.host = host
-        self.port = port
+        self.done = False
+        self.stage = ""
+        self.call_sequence = []
+        self.call_responses = (
+            {}
+        )  # TODO might want to consider creating a class for this
 
-    def player_play_turn(self) -> PlayResult:
-        current_player = self.players[self.current_player_idx]
-        if hasattr(current_player, "info"):
-            pass
+    def get_current_player_idx(self):
+        # BUG must be validated
+        if self.stage == "play_turn_strategy" or self.stage == "gang_discard_strategy":
+            return self.current_player_idx
+        elif self.stage == "call":
+            if len(self.call_sequence) != 0:
+                return self.call_sequence.pop(0)
+            else:
+                raise ValueError(
+                    "No more players to call"
+                )  # pragma: no cover; for brute force testing
+
+    def reset(self):
+        super().reset()
+        self.done = False
+        self.prepare()
+        self.deal()
+
+        current_player: EnvPlayer = self.players[self.current_player_idx]
+        current_player.draw_stage()
+        self.stage = "draw"
+        self.next_stage = "play_turn_strategy"
+        return
+
+    def get_call_sequence(self):
+        return [x for x in range(self.current_player_idx, 4)] + [
+            x for x in range(0, self.current_player_idx)
+        ]
+
+    def update_call_responses(self, player_idx, action: PlayAction):
+        # TODO port back to initial implementation in `Mahjong`
+        if not action:
+            return
+        if action.action == "hu":
+            if action.action not in self.call_responses:
+                self.call_responses["hu"] = [[player_idx, action]]
+            else:
+                self.call_responses["hu"].append([player_idx, action])
         else:
-            play_result = current_player.play_turn(self.tile_sequence)
-        return play_result
+            self.call_responses[action.action] = [player_idx, action]
 
-    def play(self):
-        while True:
-            game_playload = pull_data("GETQ:game:", self.host, self.port)
-            term = True if game_playload.decode() == "term" else False
-            if self.winner is not None or term:
-                break
-            if self.tile_sequence.is_empty():
-                break
-            self.play_one_round()
+    def post_play_turn_strategy_check(self, action: PlayAction):
+        if action.action == "hu":
+            self.winner = self.current_player_idx
+            return True
+        elif action.action == "draw":
+            return True
+        return False
 
-    def player_call(self, play_result: PlayResult, player_idx) -> PlayAction:
-        return super().player_call(play_result, player_idx)
+    def process_play_result(self, play_result: PlayResult, resolve_to):
+        if self.stage == "call":
+            self.call_sequence = []
+            self.call_responses = {}  # reset
+        if play_result.hu:
+            self.winner = resolve_to
+            return True
+        elif play_result.draw:
+            return True
+        elif play_result.discarded_tile:
+            self.discarded_pool.append(play_result.discarded_tile)
+            self.current_player_idx = resolve_to
+            return False
+
+    def play_round(self, action: PlayAction):
+        """
+        if player can proceed till discard, stop prior to collecting calls
+        if player need play turn strategy, stop at call turn strategy
+          once action provided, continue till discard
+        **need a way to break out from endless call to next player draw**
+        **only move self.current_player_idx ahead when there is no call**
+        """
+        action = tensor_to_model(action)
+
+        current_player: EnvPlayer = self.players[
+            self.current_player_idx
+        ]  # TODO consider using `get_current_player_idx`
+        if self.stage == "play_turn_strategy":
+            # move on to
+            # 1. gang discard
+            # 2. call
+            self.done = self.post_play_turn_strategy_check(action)
+            if self.done:
+                return
+            outcome, has_gang_discard = current_player.execute_play_turn_strategy(
+                action
+            )
+            # outcome is either a PlayResult or a list of PlayAction
+            # BUG process play result
+            if has_gang_discard:
+                outcome: PlayAction
+                self.state = "gang_discard_strategy"
+            else:
+                outcome: PlayResult
+                self.discarded_pool.append(outcome.discarded_tile)
+                self.done = self.process_play_result(outcome, self.current_player_idx)
+                if self.done:
+                    return
+                self.state = "call"
+                self.call_sequence = self.get_call_sequence()
+        elif self.stage == "gang_discard_strategy":
+            # finish gang discard, add to discarded pool
+            # move on to
+            # 1. call
+            play_result = current_player.execute_gang_discard_strategy(action)
+            self.discarded_pool.append(action.discard_tile)
+            self.stage = "call"
+        elif self.stage == "call":
+            # append action to self.call_response
+            # if all players called, resolve and move to
+            # 1. gang discard
+            # 2. call
+            if (
+                len(self.call_sequence) == 0
+            ):  # enter the condition when all players have called
+                if not self.call_responses:
+                    self.current_player_idx = current_player.next_player_idx
+                    current_player = self.players[self.current_player_idx]
+                    current_player.draw_stage()
+                    self.state = "play_turn_strategy"
+                    return
+                play_result, resolve_to = self.resolve_call(self.call_responses)
+                self.done = self.process_play_result(play_result, resolve_to)
+                if self.done:
+                    return
+                self.call_sequence = self.get_call_sequence()
+            else:
+                self.update_call_responses(current_player.player_idx, action)
+        return
+
+    def get_state(self, use_oracle=False):
+        # discarded pool, current player hand, other players showed tiles, tile sequence
+        state = []
+        # ensure self hand is at position 0
+        current_player: EnvPlayer = self.players[self.current_player_idx]
+        state.append(current_player.hand.get_hand(use_oracle=True))
+        seq = self.get_call_sequence()
+        for player_idx in seq:
+            player: EnvPlayer = self.players[player_idx]
+            state.append(player.hand.get_hand(use_oracle=use_oracle))
+        return model_to_tensor(state)
 
     def round_summary(self):
         return super().round_summary()
-
-
-class Env:
-    """
-    a few things to think about:
-    - how to train multiple rl agents (self-play)
-      - same agent observe different states (player hand) and update a unified mapping function? how?
-    - intermediate rewards?
-    assumes 1 player (idx 0) vs 3 bots
-    """
-
-    def __init__(self, env_name, host, port):
-        self.env_name = "Mahjong"
-        self.host = host
-        self.port = port
-
-    def calculate_step_reward(self, state):
-        pass
-
-    def close(self):
-        push_data(b"ADDQ:game:exit", self.host, self.port)
-
-    def reset(self):
-        # returns initial state
-        push_data(b"ADDQ:game:reset", self.host, self.port)
-        while True:
-            state = pull_data("GETQ:pact:", self.host, self.port)
-            if state:
-                break
-        return state
-
-    def step(self, action):
-        """
-        state: current hand, discarded pool, remaining player showable tiles
-        reward: ?
-        term: game ends
-        early term
-        """
-        push_data("ADDQ:ract:", self.host, self.port)
-        while True:
-            play_payload = pull_data("GETQ:pact:", self.host, self.port)
-            if play_payload:
-                break
-        state = play_payload.decode()
-        game_payload = pull_data("GETQ:game:", self.host, self.port)
-
-        reward = self.calculate_step_reward(state)
-        term = True if game_payload.decode() == "term" else False
-
-        return state, reward, term
-
-
-def main(host, port, cmd):
-    if cmd == "start-game":
-        while True:
-            payload = pull_data("GETQ:game:", host, port)
-            if payload[:4] == b"exit":
-                break
-            elif payload[:4] == b"reset":
-                game = EnvMahjong()
-                game.reset()
-                game.prepare()
-                game.deal()
-                game.play()
-                result = game.round_summary()
-                result = result.encode()
-                payload = b"ADDQ:game:term" + result
-                push_data(payload, host, port)
-                payload = b"ADDQ:"  # add round summary reward
-    elif cmd == "start-server":
-        server = TCPServer(host, port)
-        server.serve()
-
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--host", type=str, default="localhost")
-    parser.add_argument("--port", type=int, default=12345)
-    parser.add_argument("--cmd", type=str, choices=["start-game", "start-server"])
-    args = parser.parse_args()
-    main(args.host, args.port, args.cmd)
