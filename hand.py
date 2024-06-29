@@ -278,6 +278,8 @@ class Hand(State):
         self.tiles.remove(tile)
         self.distinct_tile_count[tile] -= 1
         assert self.distinct_tile_count[tile] >= 0
+        if self.distinct_tile_count[tile] == 0:
+            del self.distinct_tile_count[tile]
         self.tiles_history[f"{len(self.tiles_history)}"] = {
             "action": "remove",
             "play_action": method,
@@ -391,9 +393,10 @@ class Hand(State):
         return self.gang_history + self.peng_history + self.shang_history
 
     def get_hand(self, use_oracle=False):
-        hand = [self.gang_history, self.peng_history, self.shang_history]
-        if use_oracle:
-            hand = [self.tiles + self.flower_tiles] + hand + self.an_gang_history
-        else:
-            hand = [self.flower_tiles] + hand
-        return hand
+        # hand = [self.gang_history, self.peng_history, self.shang_history]
+        # if use_oracle:
+        #     hand = [self.tiles + self.flower_tiles] + hand + self.an_gang_history
+        # else:
+        #     hand = [self.flower_tiles] + hand
+        # return hand
+        return self.distinct_tile_count
