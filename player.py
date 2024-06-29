@@ -53,10 +53,12 @@ class Player(State):
                 return ReplacementResult(complete=False)
         return ReplacementResult(complete=True)
 
-    def play_turn(self, tile_sequence: TilesSequence) -> PlayResult:
+    def draw_stage(self, tile_sequence: TilesSequence) -> List[PlayAction]:
         possible_actions = []
         if self.house and len(self.hand.tiles) == 14:
             if self.hand.is_winning_hand():
+                # TODO instead of force winning, make it a choice;
+                # remove winning_conditions if user chooses not to win
                 self.winning_conditions.append("自摸")
                 return self.hand.get_hu_play_result()
             possible_actions += self.hand.get_discardable_tiles()
@@ -82,22 +84,44 @@ class Player(State):
             possible_actions += self.hand.get_gang_candidates(
                 drawed_tile=drawed_tile[0]
             )
-        action: PlayAction = self.play_turn_strategy(possible_actions)
-        assert action.action in ["an_gang", "jia_gang", "discard"]
-        play_result = self.hand.resolve(action)
+        return possible_actions
+
+    def terminate_check(self, outcome) -> bool:
+        if isinstance(outcome, PlayResult):
+            return True
+        return False
+
+    def execute_strategy(self, action: PlayAction, tile_sequence: TilesSequence):
+        play_result: PlayResult = self.hand.resolve(action)
         if play_result.need_replacement:
             if tile_sequence.is_empty():
-                return PlayResult(draw=True)
+                return PlayResult(draw=True), False
             tile = tile_sequence.replace(1)
             self.replacement_tile_count += self.hand.add_tiles(
                 tile, "replace", action.action
             )
             replacement_result = self.resolve_tile_replacement(tile_sequence)
             if not replacement_result.complete:
-                return PlayResult(draw=True)
+                return PlayResult(draw=True), False
+            if self.hand.is_winning_hand():
+                self.winning_conditions.append("杠上开花")
+                return self.hand.get_hu_play_result(), False
             possible_discards = self.hand.get_discardable_tiles()
-            discard_play_action = self.gang_discard_strategy(possible_discards)
+            return possible_discards, True
+        return play_result, False
+
+    def play_turn(self, tile_sequence: TilesSequence) -> PlayResult:
+        outcome = self.draw_stage(tile_sequence)
+        if self.terminate_check(outcome):
+            return outcome
+        action: PlayAction = self.play_turn_strategy(outcome)
+        assert action.action in ["an_gang", "jia_gang", "discard"]
+        outcome, has_gang_discard = self.execute_strategy(action, tile_sequence)
+        if has_gang_discard:
+            discard_play_action = self.gang_discard_strategy(outcome)
             play_result = self.hand.resolve(discard_play_action)
+        else:
+            play_result = outcome
         return play_result
 
     def call(self, played_tile, player) -> PlayAction:
@@ -137,23 +161,12 @@ class Player(State):
                 self.winning_conditions.append("单骑对子")
             self.hand.add_tiles([action.target_tile], "hu-add", action.hu_by)
             return self.hand.get_hu_play_result()
-        play_result: PlayResult = self.hand.resolve(action)
-        if play_result.need_replacement:
-            if tile_sequence.is_empty():
-                return PlayResult(draw=True)
-            tile = tile_sequence.replace(1)
-            self.replacement_tile_count += self.hand.add_tiles(
-                tile, "replace", action.action
-            )
-            replacement_result = self.resolve_tile_replacement(tile_sequence)
-            if not replacement_result.complete:
-                return PlayResult(draw=True)
-            if self.hand.is_winning_hand():
-                self.winning_conditions.append("杠上开花")
-                return self.hand.get_hu_play_result()
-            possible_discards = self.hand.get_discardable_tiles()
-            discard_play_action = self.gang_discard_strategy(possible_discards)
+        outcome, has_gang_discard = self.execute_strategy(action, tile_sequence)
+        if has_gang_discard:
+            discard_play_action = self.gang_discard_strategy(outcome)
             play_result = self.hand.resolve(discard_play_action)
+        else:
+            play_result = outcome
         return play_result
 
     def play_turn_strategy(self, possible_actions, **kwargs) -> PlayAction:
