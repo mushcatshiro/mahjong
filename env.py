@@ -1,68 +1,100 @@
 import os
-from typing import Dict
+from typing import Dict, List
 
 from game import Mahjong, Player
 from model import PlayResult
 from player import PlayAction
 from tiles import TilesSequence
 
+try:
+    import numpy as np
+except ImportError:
+    raise ImportError("Please install numpy")
 
-class EnvPlayAction:
-    """
-    To be reimplemented is the agent implementation is different
-    """
 
-    def __init__(self, possible_actions):
-        self.possible_actions = possible_actions
-
-    def model_to_tensor(possible_actions):
-        # idx 0 is the current hand
-        # idx 1 - 31 is the potential next state hand TODO validate 30 is max
-        # idx 32 - 34 is the other players open hand
-        return
-
-    def tensor_to_model(self, selected_action_idx):
-        return self.possible_actions[selected_action_idx]
+# fmt: off
+TILE_INDEX = {
+    "1万": 0, "2万": 1, "3万": 2, "4万": 3, "5万": 4, "6万": 5, "7万": 6, "8万": 7, "9万": 8,
+    "1筒": 9, "2筒": 10, "3筒": 11, "4筒": 12, "5筒": 13, "6筒": 14, "7筒": 15, "8筒": 16, "9筒": 17,
+    "1索": 18, "2索": 19, "3索": 20, "4索": 21, "5索": 22, "6索": 23, "7索": 24, "8索": 25, "9索": 26,
+    "东": 27, "南": 28, "西": 29, "北": 30,
+    "白": 31, "發": 32, "中": 33,
+    "春": 34, "夏": 34, "秋": 34, "冬": 34,
+    "梅": 35, "蘭": 35, "菊": 35, "竹": 35,
+}
+# fmt: on
 
 
 class EnvPlayer(Player):
-    def __init__(self, player_idx, debug=False):
-        super().__init__(player_idx, debug=debug)
+    def __init__(self, player_idx):
+        super().__init__(player_idx)
+        self.valid_actions = None
 
-    def draw_stage(self):
-        # TODO port back to initial implementation in `Player`
-        raise NotImplementedError
+    def reset(self):
+        super().reset()
+        self.valid_actions = None
 
     def step(self, state) -> PlayAction:
         raise NotImplementedError
 
-    def execute_play_turn_strategy(
-        self, action: PlayAction, tile_sequence: TilesSequence
-    ):
-        # TODO port back to initial implementation in `Player`
-        play_result: PlayResult = self.hand.resolve(action)
-        if play_result.need_replacement:
-            if tile_sequence.is_empty():
-                return PlayResult(draw=True), False
-            tile = tile_sequence.replace(1)
-            self.replacement_tile_count += self.hand.add_tiles(
-                tile, "replace", action.action
-            )
-            replacement_result = self.resolve_tile_replacement(tile_sequence)
-            if not replacement_result.complete:
-                return PlayResult(draw=True), False
-            possible_discards = self.hand.get_discardable_tiles()
-            return possible_discards, True
-        return play_result, False
-
     def execute_gang_discard_strategy(self, action):
-        # TODO port back to initial implementation in `Player`
-        pass
+        play_result = self.hand.resolve(action)
+        return play_result
+
+    def update_valid_actions(self, valid_actions):
+        self.valid_actions = valid_actions
+
+    def reset_valid_actions(self):
+        self.valid_actions = None
+
+    def get_state(self, use_oracle, include_valid_actions, to_tensor=False):
+        hand_state = self.hand.get_hand(use_oracle=use_oracle)
+        valid_actions = []
+        if include_valid_actions:
+            valid_actions = self.valid_actions
+        if to_tensor:
+            state = self.model_to_tensor(hand_state, valid_actions)
+
+        return state
+
+    def draw_stage(self, tile_sequence: TilesSequence):
+        outcome = super().draw_stage(tile_sequence)
+        self.update_valid_actions(outcome)
+        if self.terminate_check(outcome):
+            return True
+        return False
+
+    def model_to_tensor(self, hand_state, possible_actions: List[PlayAction] = None):
+        state = np.zeros((36, 4))
+        for tile, count in hand_state.items():
+            state[TILE_INDEX[tile], :count] = 1
+        if possible_actions:
+            action_state = np.zeros((44, 36, 4))
+            max_idx = np.sum(state, axis=1)
+            for action_idx, possible_action in enumerate(possible_actions):
+                possible_action: PlayAction
+                if possible_action.discard_tile:
+                    discard_idx = TILE_INDEX[possible_action.discard_tile]
+                    action_state[
+                        action_idx, discard_idx, int(max_idx[discard_idx]) - 1
+                    ] = 0
+                if possible_action.target_tile:
+                    target_idx = TILE_INDEX[possible_action.target_tile]
+                    action_state[action_idx, target_idx, max_idx[target_idx]] = 1
+            state = state.reshape(1, 36, 4)
+            state = np.concatenate((state, action_state), axis=0)
+        else:
+            state = state.reshape(1, 36, 4)
+        return state
+
+    def tensor_to_model(self, selected_action_idx):
+        print(self.valid_actions[selected_action_idx])
+        return self.valid_actions[selected_action_idx]
 
 
 class EnvMahjong(Mahjong):
     def __init__(self, players: Dict[int, EnvPlayer]):
-        for player in dict.values():
+        for player in players.values():
             if not isinstance(player, EnvPlayer):
                 raise ValueError("Player must be a subclass of `EnvPlayer`")
         super().__init__(players)
@@ -78,6 +110,7 @@ class EnvMahjong(Mahjong):
         if self.stage == "play_turn_strategy" or self.stage == "gang_discard_strategy":
             return self.current_player_idx
         elif self.stage == "call":
+            print(self.call_sequence)
             if len(self.call_sequence) != 0:
                 return self.call_sequence.pop(0)
             else:
@@ -92,15 +125,17 @@ class EnvMahjong(Mahjong):
         self.deal()
 
         current_player: EnvPlayer = self.players[self.current_player_idx]
-        current_player.draw_stage()
-        self.stage = "draw"
-        self.next_stage = "play_turn_strategy"
+        self.done = current_player.draw_stage(self.tile_sequence)
+        if self.done:
+            return
+        self.stage = "play_turn_strategy"
         return
 
     def get_call_sequence(self):
-        return [x for x in range(self.current_player_idx, 4)] + [
+        full_seq = [x for x in range(self.current_player_idx, 4)] + [
             x for x in range(0, self.current_player_idx)
         ]
+        return full_seq[1:]
 
     def update_call_responses(self, player_idx, action: PlayAction):
         # TODO port back to initial implementation in `Mahjong`
@@ -136,7 +171,12 @@ class EnvMahjong(Mahjong):
             self.current_player_idx = resolve_to
             return False
 
-    def play_round(self, action: PlayAction):
+    def reset_valid_actions(self):
+        for player in self.players:
+            player: EnvPlayer
+            player.reset_valid_actions()
+
+    def play_round(self, action: PlayAction, call_player_idx: int = None):
         """
         if player can proceed till discard, stop prior to collecting calls
         if player need play turn strategy, stop at call turn strategy
@@ -144,11 +184,12 @@ class EnvMahjong(Mahjong):
         **need a way to break out from endless call to next player draw**
         **only move self.current_player_idx ahead when there is no call**
         """
-        action = tensor_to_model(action)
 
+        print(self.current_player_idx)
         current_player: EnvPlayer = self.players[
             self.current_player_idx
         ]  # TODO consider using `get_current_player_idx`
+        action = current_player.tensor_to_model(action)
         if self.stage == "play_turn_strategy":
             # move on to
             # 1. gang discard
@@ -156,22 +197,22 @@ class EnvMahjong(Mahjong):
             self.done = self.post_play_turn_strategy_check(action)
             if self.done:
                 return
-            outcome, has_gang_discard = current_player.execute_play_turn_strategy(
-                action
+            outcome, has_gang_discard = current_player.execute_strategy(
+                action, self.tile_sequence
             )
-            # outcome is either a PlayResult or a list of PlayAction
-            # BUG process play result
             if has_gang_discard:
                 outcome: PlayAction
-                self.state = "gang_discard_strategy"
+                self.stage = "gang_discard_strategy"
             else:
+                print("in post play turn strategy")
                 outcome: PlayResult
                 self.discarded_pool.append(outcome.discarded_tile)
                 self.done = self.process_play_result(outcome, self.current_player_idx)
                 if self.done:
                     return
-                self.state = "call"
+                self.stage = "call"
                 self.call_sequence = self.get_call_sequence()
+                print(f"in {self.stage} set call sequence")
         elif self.stage == "gang_discard_strategy":
             # finish gang discard, add to discarded pool
             # move on to
@@ -190,29 +231,55 @@ class EnvMahjong(Mahjong):
                 if not self.call_responses:
                     self.current_player_idx = current_player.next_player_idx
                     current_player = self.players[self.current_player_idx]
-                    current_player.draw_stage()
-                    self.state = "play_turn_strategy"
+                    self.reset_valid_actions()
+                    self.done = current_player.draw_stage(self.tile_sequence)
+                    if self.done:
+                        return
+                    self.stage = "play_turn_strategy"
                     return
                 play_result, resolve_to = self.resolve_call(self.call_responses)
+                self.reset_valid_actions()
                 self.done = self.process_play_result(play_result, resolve_to)
                 if self.done:
                     return
                 self.call_sequence = self.get_call_sequence()
             else:
-                self.update_call_responses(current_player.player_idx, action)
+                print(f"call resp: {self.call_responses}")
+                print(action)
+                self.update_call_responses(call_player_idx, action)
         return
 
-    def get_state(self, use_oracle=False):
+    def get_state(
+        self,
+        current_player_idx,
+        include_valid_actions,
+        use_oracle=False,
+        to_tensor=False,
+    ):
         # discarded pool, current player hand, other players showed tiles, tile sequence
-        state = []
+        full_state = []
         # ensure self hand is at position 0
-        current_player: EnvPlayer = self.players[self.current_player_idx]
-        state.append(current_player.hand.get_hand(use_oracle=True))
+        current_player: EnvPlayer = self.players[current_player_idx]
+        full_state.append(
+            current_player.get_state(
+                use_oracle=True,
+                include_valid_actions=include_valid_actions,
+                to_tensor=to_tensor,
+            )
+        )
         seq = self.get_call_sequence()
         for player_idx in seq:
             player: EnvPlayer = self.players[player_idx]
-            state.append(player.hand.get_hand(use_oracle=use_oracle))
-        return model_to_tensor(state)
+            full_state.append(
+                player.get_state(
+                    use_oracle=use_oracle,
+                    include_valid_actions=False,
+                    to_tensor=to_tensor,
+                )
+            )
+        if to_tensor:
+            full_state = np.concatenate(full_state)
+        return full_state
 
     def round_summary(self):
         return super().round_summary()
