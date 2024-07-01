@@ -12,12 +12,15 @@ from env import EnvMahjong, EnvPlayer
 
 class EnvGreedyPlayer(EnvPlayer):
     def step(self, state):
-        print(state.shape)
-        # BUG call shape and play shape are different
-        assert state.shape == (48, 36, 4) or state.shape == (4, 36, 4)
-        if state[1:, :, :].sum() == 0:
+        # print(self.valid_actions)
+        assert state.shape == (48, 36, 4), f"receive shape: {state.shape}"
+        if state[1:45, :, :].sum() == 0:
+            # print("pass")
             return []
-        return 0
+        # implementing random?
+        action = self.tensor_to_model(0)  # BUG valid actions does not include pass
+        # print(action)
+        return action
 
 
 environment = EnvMahjong(
@@ -39,21 +42,24 @@ class Model:
 m = Model()
 
 r = 0
-while r < 1:
-    while not environment.done:
-        print(environment.stage)
+while r < 1_000_000:
+    print(f"in round: {r}")
+    while not environment.is_done():
+        # print(f"in stage: {environment.stage}")
         current_player_idx = environment.get_current_player_idx()
-        print(current_player_idx)
+        # print(current_player_idx)
         current_player: EnvPlayer = environment.players[current_player_idx]
         state = environment.get_state(
             current_player_idx,
-            include_valid_actions=True,
             use_oracle=True,
             to_tensor=True,
         )
         action = current_player.step(state)
-        print(f"sampled action: {action}")
+        # print(f"action: {action}")
         reward = environment.play_round(action, current_player_idx)
-    print(environment.round_summary())
+    # print(environment.round_summary())
+    # print("-" * 80)
+    if environment.winner is not None:
+        print(f"Winner: {environment.winner}")
     environment.reset()
     r += 1
