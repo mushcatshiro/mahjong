@@ -31,7 +31,7 @@ class Mahjong:
         self.discarded_pool = []
         self.quan_feng = None
         for player in self.players.values():
-            player.hand.reset()
+            player.reset()
 
     def prepare(self):
         # throw dice twice
