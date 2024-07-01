@@ -29,6 +29,8 @@ class Player(State):
     def reset(self):
         self.hand.reset()
         self.action_history = []
+        self.house = False
+        self.replacement_tile_count = 0
         self.winning_conditions = []
         self.result_fan = None
 
@@ -124,7 +126,7 @@ class Player(State):
             play_result = outcome
         return play_result
 
-    def call(self, played_tile, player) -> PlayAction:
+    def call_check(self, played_tile, player) -> List[PlayAction]:
         # to include pass option
         call_actions = []
         is_hu = self.hand.is_winning_hand(call_tile=played_tile)
@@ -142,6 +144,10 @@ class Player(State):
             call_actions += [
                 PlayAction(action="hu", target_tile=played_tile, hu_by="jiang")
             ]
+        return call_actions
+
+    def call(self, played_tile, player) -> PlayAction:
+        call_actions = self.call_check(played_tile, player)
         if not call_actions:
             return []
         call_action = self.call_strategy(call_actions, played_tile)
